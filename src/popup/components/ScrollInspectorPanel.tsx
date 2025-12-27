@@ -386,45 +386,54 @@ observer.observe(document.querySelector('${animation.element}'));`;
                     </div>
                   </div>
 
-                  {/* Progress Slider */}
-                  <div className="pt-3 pb-2 border-t border-gray-100">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs font-semibold text-gray-700">Animation Progress</span>
-                      <span className="text-xs text-gray-500">Drag to scrub</span>
+                  {/* Progress Slider - Only for GSAP and CSS Scroll Timeline */}
+                  {(animation.library === 'gsap-scrolltrigger' || animation.library === 'css-scroll-timeline') && (
+                    <div className="pt-3 pb-2 border-t border-gray-100">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-xs font-semibold text-gray-700">Animation Progress</span>
+                        <span className="text-xs text-gray-500">Drag to scrub</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        defaultValue="0"
+                        onChange={(e) => {
+                          const progress = parseInt(e.target.value) / 100;
+                          controlAnimation(animation.id, 'setProgress', progress);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                        style={{
+                          accentColor: '#9333ea'
+                        }}
+                      />
+                      <div className="flex justify-between mt-1">
+                        <span className="text-xs text-gray-400">0%</span>
+                        <span className="text-xs text-gray-400">100%</span>
+                      </div>
                     </div>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      defaultValue="0"
-                      onChange={(e) => {
-                        const progress = parseInt(e.target.value) / 100;
-                        controlAnimation(animation.id, 'setProgress', progress);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                      style={{
-                        accentColor: '#9333ea'
-                      }}
-                    />
-                    <div className="flex justify-between mt-1">
-                      <span className="text-xs text-gray-400">0%</span>
-                      <span className="text-xs text-gray-400">100%</span>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Actions */}
-                  <div className="grid grid-cols-3 gap-2 pt-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        controlAnimation(animation.id, 'restart');
-                      }}
-                      className="flex items-center justify-center gap-1 px-2 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded text-xs font-medium transition-colors"
-                      title="Restart animation from beginning"
-                    >
-                      � Replay
-                    </button>
+                  <div className={`grid gap-2 pt-2 ${
+                    animation.library === 'gsap-scrolltrigger' || animation.library === 'css-scroll-timeline'
+                      ? 'grid-cols-3'
+                      : 'grid-cols-2'
+                  }`}>
+                    {/* Replay button - Only for GSAP and CSS Scroll Timeline */}
+                    {(animation.library === 'gsap-scrolltrigger' || animation.library === 'css-scroll-timeline') && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          controlAnimation(animation.id, 'restart');
+                        }}
+                        className="flex items-center justify-center gap-1 px-2 py-2 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded text-xs font-medium transition-colors"
+                        title="Restart animation from beginning"
+                      >
+                        🔄 Replay
+                      </button>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

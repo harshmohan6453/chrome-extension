@@ -155,7 +155,69 @@
             break;
         }
       } catch (err) {
-        console.error('Error controlling animation:', err);
+        console.error('Error controlling GSAP animation:', err);
+      }
+    }
+    
+    // Control CSS animations (css-scroll-timeline, regular CSS animations)
+    if (event.data.type === 'CONTROL_ANIMATION' && animationId.startsWith('css-scroll-')) {
+      try {
+        // Find the element by parsing the animation ID
+        const index = parseInt(animationId.replace('css-scroll-', ''));
+        const elements = document.querySelectorAll('*');
+        let targetElement = null;
+        let currentIndex = 0;
+        
+        // Find element with animation-timeline
+        for (const el of elements) {
+          const computed = window.getComputedStyle(el);
+          const animationTimeline = computed.animationTimeline;
+          
+          if (animationTimeline && animationTimeline !== 'auto' && animationTimeline !== 'none') {
+            if (currentIndex === index) {
+              targetElement = el;
+              break;
+            }
+            currentIndex++;
+          }
+        }
+        
+        if (!targetElement) {
+          console.warn('CSS animation element not found:', animationId);
+          return;
+        }
+        
+        // Use Web Animations API to control CSS animations
+        const animations = targetElement.getAnimations();
+        
+        if (animations.length === 0) {
+          console.warn('No animations found on element:', animationId);
+          return;
+        }
+        
+        switch (action) {
+          case 'restart':
+            // Restart CSS animation
+            animations.forEach(anim => {
+              anim.cancel();
+              anim.play();
+            });
+            console.log('🔄 Restarted CSS animation:', animationId);
+            break;
+            
+          case 'setProgress':
+            // Set animation progress using currentTime
+            animations.forEach(anim => {
+              if (anim.effect && anim.effect.getTiming().duration !== 'auto') {
+                const duration = anim.effect.getTiming().duration;
+                anim.currentTime = duration * value;
+              }
+            });
+            console.log(`⏩ Set CSS animation progress to ${value * 100}%:`, animationId);
+            break;
+        }
+      } catch (err) {
+        console.error('Error controlling CSS animation:', err);
       }
     }
   });

@@ -278,6 +278,18 @@ export default function App() {
     }
   };
 
+  // State for tooltip
+  const [hoveredTab, setHoveredTab] = useState<{ id: string, label: string, rect: DOMRect } | null>(null);
+
+  // Handle tooltip calculation
+  const handleMouseEnter = (e: React.MouseEvent, tab: { id: string, label: string }) => {
+    setHoveredTab({
+      id: tab.id,
+      label: tab.label,
+      rect: e.currentTarget.getBoundingClientRect()
+    });
+  };
+
   return (
     <div className="flex h-screen bg-secondary/30 text-foreground font-sans antialiased overflow-hidden">
       {/* Playful Floating Sidebar */}
@@ -286,11 +298,13 @@ export default function App() {
              <Code2 className="w-8 h-8 text-white" />
         </div>
 
-        <nav className="flex-1 flex flex-col gap-3">
+        <nav className="flex-1 flex flex-col gap-3 overflow-y-auto [&::-webkit-scrollbar]:hidden pb-4">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id as Tab)}
+              onMouseEnter={(e) => handleMouseEnter(e, tab)}
+              onMouseLeave={() => setHoveredTab(null)}
               className={clsx(
                 "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 relative group",
                 activeTab === tab.id 
@@ -299,9 +313,6 @@ export default function App() {
               )}
             >
               <tab.icon className={clsx("w-6 h-6 transition-transform duration-300", activeTab === tab.id && "scale-110", "group-hover:scale-110")} />
-              <span className="absolute left-16 bg-foreground text-background text-xs font-bold px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all pointer-events-none whitespace-nowrap z-50 shadow-xl translate-x-[-10px] group-hover:translate-x-0">
-                {tab.label}
-              </span>
             </button>
           ))}
         </nav>
@@ -334,6 +345,20 @@ export default function App() {
          
          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-primary/5 to-transparent rounded-full blur-3xl -z-10 pointer-events-none translate-x-1/2 -translate-y-1/2"></div>
       </main>
+
+      {/* Floating Tooltip Portal */}
+      {hoveredTab && (
+        <div 
+          className="fixed bg-foreground text-background text-xs font-bold px-3 py-1.5 rounded-lg shadow-xl z-50 pointer-events-none transition-opacity animate-in fade-in zoom-in-95 duration-200"
+          style={{
+            left: `${hoveredTab.rect.right + 10}px`,
+            top: `${hoveredTab.rect.top + (hoveredTab.rect.height / 2)}px`,
+            transform: 'translateY(-50%)'
+          }}
+        >
+          {hoveredTab.label}
+        </div>
+      )}
     </div>
   );
 }

@@ -100,6 +100,64 @@
         animations: animations
       }, '*');
     }
+    
+    // Control animation playback
+    if (event.data.type === 'CONTROL_ANIMATION') {
+      const { animationId, action, value } = event.data;
+      
+      try {
+        let ScrollTrigger = window.ScrollTrigger || window.gsap?.ScrollTrigger;
+        if (!ScrollTrigger) return;
+        
+        const triggers = ScrollTrigger.getAll() || [];
+        const index = parseInt(animationId.replace('gsap-st-', ''));
+        const trigger = triggers[index];
+        
+        if (!trigger) {
+          console.warn('Trigger not found:', animationId);
+          return;
+        }
+        
+        switch (action) {
+          case 'restart':
+            // Restart the animation by refreshing the trigger
+            trigger.refresh();
+            if (trigger.animation) {
+              trigger.animation.restart();
+            }
+            console.log('🔄 Restarted animation:', animationId);
+            break;
+            
+          case 'play':
+            // Play the animation (set progress to 1)
+            if (trigger.animation) {
+              trigger.animation.play();
+            }
+            console.log('▶️ Playing animation:', animationId);
+            break;
+            
+          case 'setProgress':
+            // Set animation progress (0-1)
+            if (trigger.animation) {
+              trigger.animation.progress(value);
+            }
+            console.log(`⏩ Set progress to ${value * 100}%:`, animationId);
+            break;
+            
+          case 'scrollTo':
+            // Scroll to trigger position
+            const scrollY = trigger.start;
+            window.scrollTo({
+              top: scrollY,
+              behavior: 'smooth'
+            });
+            console.log('📜 Scrolled to trigger:', animationId);
+            break;
+        }
+      } catch (err) {
+        console.error('Error controlling animation:', err);
+      }
+    }
   });
   
   console.log('✅ Page context detector ready');

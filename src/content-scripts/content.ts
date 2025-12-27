@@ -56,34 +56,37 @@ chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
         // Scroll element into view
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         
-        // Create highlight overlay
-        const rect = element.getBoundingClientRect();
-        const highlight = document.createElement('div');
-        highlight.style.cssText = `
-          position: fixed;
-          top: ${rect.top}px;
-          left: ${rect.left}px;
-          width: ${rect.width}px;
-          height: ${rect.height}px;
-          border: 3px solid #3b82f6;
-          background: rgba(59, 130, 246, 0.1);
-          pointer-events: none;
-          z-index: 999999;
-          box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
-          transition: all 0.3s ease;
-        `;
-        document.body.appendChild(highlight);
-        
-        // Pulse effect
+        // Wait for scroll to complete before highlighting
         setTimeout(() => {
-          highlight.style.transform = 'scale(1.05)';
-        }, 100);
-        
-        // Remove after 3 seconds
-        setTimeout(() => {
-          highlight.style.opacity = '0';
-          setTimeout(() => highlight.remove(), 300);
-        }, 3000);
+          // Recalculate position after scroll
+          const rect = element.getBoundingClientRect();
+          const highlight = document.createElement('div');
+          highlight.style.cssText = `
+            position: fixed;
+            top: ${rect.top}px;
+            left: ${rect.left}px;
+            width: ${rect.width}px;
+            height: ${rect.height}px;
+            border: 3px solid #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+            pointer-events: none;
+            z-index: 999999;
+            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+            transition: all 0.3s ease;
+          `;
+          document.body.appendChild(highlight);
+          
+          // Pulse effect
+          setTimeout(() => {
+            highlight.style.transform = 'scale(1.05)';
+          }, 100);
+          
+          // Remove after 3 seconds
+          setTimeout(() => {
+            highlight.style.opacity = '0';
+            setTimeout(() => highlight.remove(), 300);
+          }, 3000);
+        }, 800); // Wait 800ms for smooth scroll to complete
         
         sendResponse({ status: 'highlighted' });
       } else {
@@ -94,6 +97,17 @@ chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
       sendResponse({ status: 'error' });
     }
     return true;
+  }
+
+  if (request.action === 'CONTROL_ANIMATION') {
+    // Relay animation control to page context
+    window.postMessage({
+      type: 'CONTROL_ANIMATION',
+      animationId: request.animationId,
+      action: request.animationAction,
+      value: request.value
+    }, '*');
+    sendResponse({ status: 'ok' });
   }
 
   if (request.action === 'GET_PAGE_DATA') {

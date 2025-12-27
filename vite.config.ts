@@ -1,9 +1,22 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
+import { copyFileSync } from 'fs';
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    {
+      name: 'copy-page-context',
+      writeBundle() {
+        // Copy pageContext.js to dist root
+        copyFileSync(
+          resolve(__dirname, 'src/content-scripts/pageContext.js'),
+          resolve(__dirname, 'dist/pageContext.js')
+        );
+      }
+    }
+  ],
   build: {
     rollupOptions: {
       input: {

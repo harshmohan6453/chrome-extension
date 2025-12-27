@@ -23,12 +23,41 @@ export interface AssetData {
   count: number;
 }
 
+export interface ScrollAnimationData {
+  id: string;
+  library: 'gsap-scrolltrigger' | 'framer-motion' | 'locomotive' | 'aos' | 'scrollmagic' | 'intersection-observer' | 'css-scroll-timeline' | 'custom';
+  element: string;
+  trigger: {
+    element: string;
+    start: string | number;
+    end: string | number;
+    scrub?: boolean | number;
+    pin?: boolean;
+    toggleActions?: string;
+    once?: boolean;
+    repeat?: boolean;
+    threshold?: number;
+  };
+  animation: {
+    type: 'css' | 'js' | 'transform' | 'opacity' | 'mix';
+    properties: string[];
+    duration?: number | null;
+    easing?: string;
+    delay?: number;
+    speed?: number;
+  };
+  markers?: boolean;
+  animationName?: string;
+  className?: string;
+}
+
 export interface InspectionData {
   fonts: FontData[];
   colors: ColorData[];
   spacing: number[];
   technologies: string[];
   assets: AssetData[];
+  scrollAnimations: ScrollAnimationData[];
   meta: {
     title: string;
     description: string;
@@ -57,6 +86,7 @@ const initialData: InspectionData = {
   spacing: [],
   technologies: [],
   assets: [],
+  scrollAnimations: [],
   meta: {
     title: '',
     description: '',

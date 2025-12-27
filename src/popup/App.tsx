@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Type, Palette, Layout, MousePointer2, Code2, Settings, Sparkles, RefreshCw, Layers, Image as ImageIcon } from 'lucide-react';
+import { Type, Palette, Layout, MousePointer2, Code2, Settings, Sparkles, RefreshCw, Layers, Image as ImageIcon, Play } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useStore } from '../store';
 import { TypographyPanel } from './components/TypographyPanel';
@@ -9,8 +9,9 @@ import { SettingsPanel } from './components/SettingsPanel';
 import { TechPanel } from './components/TechPanel';
 import { AssetsPanel } from './components/AssetsPanel';
 import { GeneratePanel } from './components/GeneratePanel';
+import ScrollInspectorPanel from './components/ScrollInspectorPanel';
 
-type Tab = 'overview' | 'typography' | 'colors' | 'assets' | 'spacing' | 'technologies' | 'prompt' | 'settings';
+type Tab = 'overview' | 'typography' | 'colors' | 'assets' | 'spacing' | 'scroll' | 'technologies' | 'prompt' | 'settings';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -46,6 +47,7 @@ export default function App() {
                 spacing: response.spacing || [],
                 technologies: response.technologies || [],
                 assets: response.assets || [],
+                scrollAnimations: response.scrollAnimations || [],
                 meta: response.meta
                 });
             } else {
@@ -74,6 +76,20 @@ export default function App() {
 
   useEffect(() => {
     fetchData();
+    
+    // Listen for delayed scroll animation updates
+    const messageListener = (message: any) => {
+      if (message.action === 'SCROLL_ANIMATIONS_UPDATED') {
+        console.log('📨 Received delayed scroll animations update');
+        setData({ scrollAnimations: message.scrollAnimations });
+      }
+    };
+    
+    chrome.runtime.onMessage.addListener(messageListener);
+    
+    return () => {
+      chrome.runtime.onMessage.removeListener(messageListener);
+    };
   }, []);
 
   const toggleInspector = async () => {
@@ -101,6 +117,7 @@ export default function App() {
     { id: 'colors', icon: Palette, label: 'Colors' },
     { id: 'assets', icon: ImageIcon, label: 'Assets' },
     { id: 'spacing', icon: Layout, label: 'Spacing' },
+    { id: 'scroll', icon: Play, label: 'Scroll Animations' },
     { id: 'technologies', icon: Code2, label: 'Tech Stack' },
     { id: 'prompt', icon: Sparkles, label: 'Generate' },
     { id: 'settings', icon: Settings, label: 'Settings' },
@@ -149,6 +166,7 @@ export default function App() {
       case 'colors': return <ColorPanel />;
       case 'assets': return <AssetsPanel />;
       case 'spacing': return <SpacingPanel />;
+      case 'scroll': return <ScrollInspectorPanel />;
       case 'technologies': return <TechPanel />;
       case 'prompt': return <GeneratePanel />;
       case 'settings': return <SettingsPanel />;

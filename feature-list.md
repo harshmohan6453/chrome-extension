@@ -280,6 +280,146 @@
 
 ---
 
+### 2.4 Scroll & Animation Inspector ⭐ **NEW KILLER FEATURE**
+**Priority:** P0 (Market Differentiator)
+
+**Problem Solved:**
+- No existing extension provides comprehensive scroll animation analysis
+- Developers spend hours reverse-engineering scroll effects
+- High learning curve for modern scroll animation libraries
+
+**Supported Libraries:**
+- ✅ **GSAP ScrollTrigger** - Industry standard scroll animation library
+- ✅ **Framer Motion** - Viewport animations (whileInView)
+- ✅ **Locomotive Scroll** - Smooth scrolling and parallax effects
+- ✅ **AOS** - Animate On Scroll library
+- ✅ **Intersection Observer API** - Native browser API patterns
+- ✅ **ScrollMagic** - Scene-based scroll interactions (partial)
+- ✅ **CSS Scroll Timeline** - Experimental CSS spec
+
+**Features:**
+- ✅ Detect all scroll-based animations on page
+- ✅ Automatically identify which library is being used
+- ✅ Extract trigger configuration:
+  - Trigger element selector
+  - Start position/threshold
+  - End position/threshold
+  - Scrub settings (boolean or number)
+  - Pin settings
+  - Toggle actions (for GSAP)
+  - Once/repeat flags
+- ✅ Extract animation properties:
+  - Animated CSS properties
+  - Animation type (CSS, JS, transform, opacity)
+  - Duration (in milliseconds)
+  - Easing function
+  - Delay
+  - Speed (for Locomotive)
+- ✅ Library-specific metadata:
+  - Markers enabled (GSAP)
+  - Class names (Locomotive)
+  - Animation names (AOS, CSS)
+- ✅ Visual timeline scrubber:
+  - See all animations on scroll timeline
+  - Trigger point markers
+  - Current scroll position indicator
+  - Interactive exploration (basic)
+- ✅ Library filtering:
+  - Filter by specific library
+  - See animation count per library
+  - Color-coded badges
+- ✅ Element highlighting:
+  - Highlight animated elements on page
+  - Visual feedback on interaction
+- ✅ Code export:
+  - Export GSAP ScrollTrigger configuration
+  - Export Framer Motion code
+  - Export Locomotive Scroll markup
+  - Export AOS markup
+  - Export vanilla Intersection Observer code
+  - Copy to clipboard with confirmation
+- ✅ Expandable details:
+  - Collapsible animation cards
+  - Trigger configuration details
+  - Animation property breakdown
+- ✅ Statistics dashboard:
+  - Total animations count
+  - Number of libraries detected
+  - Scrubbed animations count
+
+**UI Elements:**
+- 📊 Animation list with library badges
+- 🎨 Color-coded library indicators
+- 🎬 Timeline visualization
+- 🔍 Library filter buttons
+- 📈 Statistics cards
+- 🎯 Expandable animation details
+- 👁️ Element highlight button
+- 📋 Copy code button with confirmation
+- 🎪 Empty state with supported libraries
+
+**Detection Methods:**
+```javascript
+// GSAP ScrollTrigger
+window.ScrollTrigger.getAll()
+
+// Framer Motion
+[data-framer-appear-id], [data-framer-name]
+
+// Locomotive Scroll
+[data-scroll]
+
+// AOS
+[data-aos]
+
+// Intersection Observer
+Pattern detection + common class names
+
+// CSS Scroll Timeline
+animation-timeline property
+```
+
+**Export Code Examples:**
+
+GSAP ScrollTrigger:
+```javascript
+gsap.to(".element", {
+  scrollTrigger: {
+    trigger: ".section",
+    start: "top center",
+    end: "bottom top",
+    scrub: true
+  },
+  opacity: 1,
+  y: 0
+});
+```
+
+Framer Motion:
+```jsx
+<motion.div
+  initial={{ opacity: 0 }}
+  whileInView={{ opacity: 1 }}
+  viewport={{ once: false }}
+/>
+```
+
+Locomotive Scroll:
+```html
+<div data-scroll data-scroll-speed="2">
+  Content
+</div>
+```
+
+**Market Impact:**
+- First-to-market comprehensive scroll animation inspector
+- High viral potential (developers will share scroll breakdowns)
+- Positions extension as essential learning tool
+- Premium feature candidate for future monetization
+
+---
+
+
 ## 3. TECHNOLOGY & ASSET DETECTION
 
 ### 3.1 Framework Detection

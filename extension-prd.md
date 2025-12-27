@@ -226,6 +226,74 @@ A comprehensive, all-in-one Chrome extension that automatically extracts, analyz
 
 ---
 
+#### 2.3 Scroll & Animation Inspector ⭐ **NEW KILLER FEATURE**
+**Priority:** P0 (Must Have - Market Differentiator)
+
+**Market Gap:**
+No extension currently provides comprehensive scroll animation analysis. Developers spend hours reverse-engineering scroll effects manually. This feature positions the extension as the first true "Scroll Behavior Inspector" and could drive 30-40% of total installs.
+
+**Functionality:**
+- Detect all scroll-triggered animations automatically
+- Identify animation libraries:
+  - GSAP ScrollTrigger (industry standard)
+  - Framer Motion (viewport animations)
+  - Locomotive Scroll (smooth scrolling & parallax)
+  - AOS (Animate On Scroll)
+  - ScrollMagic (scene-based interactions)
+  - Intersection Observer API (native patterns)
+  - CSS Scroll Timeline (experimental spec)
+- Extract complete trigger configurations:
+  - Trigger element selector
+  - Start/end positions or thresholds
+  - Scrub settings (boolean or numeric)
+  - Pin configurations
+  - Toggle actions (GSAP-specific)
+  - Once/repeat flags
+- Show animated properties and timings:
+  - CSS properties being animated
+  - Animation type (CSS, JS, transform, opacity)
+  - Duration in milliseconds
+  - Easing functions
+  - Delays and speeds
+- Visual timeline with all scroll animations mapped
+- Interactive scrubber to preview animations at different scroll positions
+- Highlight trigger elements directly on the page
+- Export working code for each animation in library-specific format
+
+**User Experience:**
+- Dedicated "Scroll Animations" tab in popup
+- Visual timeline showing all animations across page scroll
+- Click animation card to expand and see full details
+- Filter animations by library type (GSAP, Framer, Locomotive, etc.)
+- Color-coded library badges for quick identification
+- One-click code export with clipboard confirmation
+- Highlight button to visually locate elements on page
+- Statistics dashboard (total animations, libraries used, scrubbed count)
+- Empty state with supported libraries list
+- Expandable animation cards with trigger and property details
+
+**Technical Requirements:**
+- Access GSAP ScrollTrigger instances: `ScrollTrigger.getAll()`
+- Detect Framer Motion via `[data-framer-appear-id]` and component internals
+- Parse Locomotive Scroll `[data-scroll]` attributes
+- Identify AOS animations via `[data-aos]` attributes
+- Monitor Intersection Observer pattern usage
+- Detect experimental CSS `animation-timeline` property
+- Generate element selectors (ID, class, or nth-of-type)
+- Build visual timeline mapping scroll position to animation triggers
+- Implement message passing for element highlighting
+- Create library-specific code export templates
+
+**Success Metrics:**
+- This feature alone could be a primary driver of extension adoption
+- High engagement (users exploring scroll animations on popular sites)
+- Social sharing potential (developers showcasing scroll breakdowns)
+- Premium feature candidate for future monetization
+- Positions extension as essential tool for learning modern animation techniques
+
+---
+
+
 ### 3. Technology Detection
 
 #### 3.1 Framework & Library Detection

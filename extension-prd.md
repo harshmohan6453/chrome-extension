@@ -306,7 +306,8 @@ SEO tools are overwhelming and complex. Developers need quick, actionable warnin
 - Check mobile responsiveness issues
 - Analyze performance hints
 - Organize issues by severity (Critical, Warning, Info)
-- Provide actionable recommendations for each issue
+- Provide actionable recommendations, fix code, and impact scores
+- **Export full reports** to Markdown for clients/developers
 
 **SEO Detection Categories:**
 - **Title & Meta**: Missing/long/short title, meta description, canonical URL

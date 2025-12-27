@@ -10,6 +10,23 @@ export interface RedFlag {
   element?: string;
   count?: number;
   recommendation: string;
+  // Detailed fields
+  affectedElements?: string[];
+  fixCode?: string;
+  learnMoreUrl?: string;
+  impactScore?: number;
+  estimatedImpact?: string;
+  pageSection?: 'head' | 'header' | 'main' | 'footer' | 'unknown';
+}
+
+// Helper to get element selector
+function getSelector(el: Element): string {
+  if (el.id) return `#${el.id}`;
+  if (el.className && typeof el.className === 'string') {
+    const classes = el.className.trim().split(/\s+/).slice(0, 2).join('.');
+    if (classes) return `${el.tagName.toLowerCase()}.${classes}`;
+  }
+  return el.tagName.toLowerCase();
 }
 
 export function detectRedFlags(): RedFlag[] {
@@ -29,8 +46,14 @@ export function detectRedFlags(): RedFlag[] {
       title: 'Missing H1 Tag',
       description: 'No H1 tag found on the page',
       recommendation: 'Add exactly one H1 tag as the main page heading',
+      fixCode: '<h1>Your Main Page Title</h1>',
+      learnMoreUrl: 'https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements',
+      impactScore: 9,
+      estimatedImpact: 'Critical for SEO - search engines use H1 to understand page topic',
+      pageSection: 'main',
     });
   } else if (h1Tags.length > 1) {
+    const h1Selectors = Array.from(h1Tags).slice(0, 5).map(el => getSelector(el));
     flags.push({
       id: 'seo-multiple-h1',
       category: 'seo',
@@ -39,6 +62,10 @@ export function detectRedFlags(): RedFlag[] {
       description: `Found ${h1Tags.length} H1 tags on the page`,
       count: h1Tags.length,
       recommendation: 'Use only one H1 tag per page for better SEO',
+      affectedElements: h1Selectors,
+      learnMoreUrl: 'https://developer.mozilla.org/en-US/docs/Web/HTML/Element/Heading_Elements',
+      impactScore: 6,
+      estimatedImpact: 'Multiple H1s confuse search engines about page topic',
     });
   }
 
@@ -71,6 +98,11 @@ export function detectRedFlags(): RedFlag[] {
       title: 'Missing Meta Description',
       description: 'No meta description found',
       recommendation: 'Add a meta description (150-160 characters)',
+      fixCode: '<meta name="description" content="A compelling description of your page in 150-160 characters">',
+      learnMoreUrl: 'https://developers.google.com/search/docs/appearance/snippet',
+      impactScore: 8,
+      estimatedImpact: 'Meta descriptions appear in search results and affect click-through rates',
+      pageSection: 'head',
     });
   } else {
     const content = metaDescription.getAttribute('content') || '';
@@ -87,8 +119,8 @@ export function detectRedFlags(): RedFlag[] {
   }
 
   // Check title tag
-  const title = document.querySelector('title');
-  if (!title || !title.textContent?.trim()) {
+  const titleTag = document.querySelector('title');
+  if (!titleTag || !titleTag.textContent?.trim()) {
     flags.push({
       id: 'seo-missing-title',
       category: 'seo',
@@ -96,12 +128,58 @@ export function detectRedFlags(): RedFlag[] {
       title: 'Missing Title Tag',
       description: 'No title tag found',
       recommendation: 'Add a descriptive title tag (50-60 characters)',
+      fixCode: '<title>Descriptive Page Title | Brand Name</title>',
+      learnMoreUrl: 'https://developers.google.com/search/docs/appearance/title-link',
+      impactScore: 10,
+      estimatedImpact: 'Titles are the primary signal for search relevance and click-throughs',
+      pageSection: 'head',
+    });
+  }
+
+  // Check canonical URL
+  const canonicalLink = document.querySelector('link[rel="canonical"]');
+  if (!canonicalLink) {
+    flags.push({
+      id: 'seo-missing-canonical',
+      category: 'seo',
+      severity: 'warning',
+      title: 'Missing Canonical URL',
+      description: 'No canonical link tag found',
+      recommendation: 'Add <link rel="canonical" href="..."> to prevent duplicate content issues',
+      fixCode: `<link rel="canonical" href="${window.location.href.split('?')[0]}">`,
+      learnMoreUrl: 'https://developers.google.com/search/docs/crawling-indexing/canonicalization',
+      impactScore: 7,
+      estimatedImpact: 'Prevents "duplicate content" penalties from search engines',
+      pageSection: 'head',
+    });
+  }
+
+  // ============================================
+  // 4. MOBILE ISSUES
+  // ============================================
+
+  // Check viewport meta tag
+  const viewportMeta = document.querySelector('meta[name="viewport"]');
+  if (!viewportMeta) {
+    flags.push({
+      id: 'mobile-missing-viewport',
+      category: 'mobile',
+      severity: 'critical',
+      title: 'Missing Viewport Meta Tag',
+      description: 'No viewport meta tag found',
+      recommendation: 'Add <meta name="viewport" content="width=device-width, initial-scale=1">',
+      fixCode: '<meta name="viewport" content="width=device-width, initial-scale=1">',
+      learnMoreUrl: 'https://web.dev/responsive-web-design-basics/#set-the-viewport',
+      impactScore: 10,
+      estimatedImpact: 'Essential for mobile responsiveness; prevents sites from rendering as desktop size',
+      pageSection: 'head',
     });
   }
 
   // Check images without alt text
   const imagesWithoutAlt = Array.from(document.querySelectorAll('img:not([alt])'));
   if (imagesWithoutAlt.length > 0) {
+    const imgSelectors = imagesWithoutAlt.slice(0, 5).map(el => getSelector(el));
     flags.push({
       id: 'seo-missing-alt',
       category: 'seo',
@@ -110,6 +188,11 @@ export function detectRedFlags(): RedFlag[] {
       description: `${imagesWithoutAlt.length} images missing alt attributes`,
       count: imagesWithoutAlt.length,
       recommendation: 'Add descriptive alt text to all images',
+      affectedElements: imgSelectors,
+      fixCode: '<img src="image.jpg" alt="Descriptive text about the image">',
+      learnMoreUrl: 'https://developer.mozilla.org/en-US/docs/Web/HTML/Element/img#accessibility_concerns',
+      impactScore: 7,
+      estimatedImpact: 'Alt text improves accessibility and SEO image search rankings',
     });
   }
 
@@ -136,8 +219,8 @@ export function detectRedFlags(): RedFlag[] {
   // ============================================
   
   // Check title length
-  if (title && title.textContent) {
-    const titleLength = title.textContent.trim().length;
+  if (titleTag && titleTag.textContent) {
+    const titleLength = titleTag.textContent.trim().length;
     if (titleLength > 60) {
       flags.push({
         id: 'seo-title-too-long',
@@ -647,6 +730,7 @@ export function detectRedFlags(): RedFlag[] {
   });
 
   if (largeImages.length > 0) {
+    const largeImgSelectors = largeImages.slice(0, 5).map(el => getSelector(el));
     flags.push({
       id: 'perf-large-images',
       category: 'performance',
@@ -655,6 +739,10 @@ export function detectRedFlags(): RedFlag[] {
       description: `${largeImages.length} images embedded as large data URLs`,
       count: largeImages.length,
       recommendation: 'Use external image files and optimize with modern formats (WebP, AVIF)',
+      affectedElements: largeImgSelectors,
+      learnMoreUrl: 'https://web.dev/optimize-lcp/',
+      impactScore: 6,
+      estimatedImpact: 'Large inline images bloat the HTML size and delay parsing',
     });
   }
 
@@ -669,12 +757,19 @@ export function detectRedFlags(): RedFlag[] {
       description: `Page has ${domSize} DOM nodes`,
       count: domSize,
       recommendation: 'Reduce DOM size to < 1500 nodes for better performance',
+      learnMoreUrl: 'https://web.dev/dom-size/',
+      impactScore: 8,
+      estimatedImpact: 'Large DOMs increase memory usage and slow down style calculations',
     });
   }
 
   // Check blocking scripts in head
   const blockingScripts = document.querySelectorAll('head script:not([async]):not([defer])');
   if (blockingScripts.length > 0) {
+    const scriptSelectors = Array.from(blockingScripts).slice(0, 5).map(el => {
+      const src = el.getAttribute('src');
+      return src ? `script[src="${src.split('/').pop()}"]` : 'script (inline)';
+    });
     flags.push({
       id: 'perf-blocking-scripts',
       category: 'performance',
@@ -683,6 +778,11 @@ export function detectRedFlags(): RedFlag[] {
       description: `${blockingScripts.length} scripts in <head> without async/defer`,
       count: blockingScripts.length,
       recommendation: 'Add async or defer attributes to non-critical scripts',
+      affectedElements: scriptSelectors,
+      fixCode: '<script src="script.js" defer></script>',
+      learnMoreUrl: 'https://web.dev/render-blocking-resources/',
+      impactScore: 9,
+      estimatedImpact: 'Eliminating render-blocking resources can improve First Contentful Paint by seconds',
     });
   }
 
@@ -700,6 +800,7 @@ export function detectRedFlags(): RedFlag[] {
   });
   
   if (oldFormatImages.length > 5) {
+    const oldImgSelectors = oldFormatImages.slice(0, 5).map(el => getSelector(el));
     flags.push({
       id: 'perf-old-image-formats',
       category: 'performance',
@@ -708,6 +809,10 @@ export function detectRedFlags(): RedFlag[] {
       description: `${oldFormatImages.length} images use JPG/PNG/GIF instead of WebP/AVIF`,
       count: oldFormatImages.length,
       recommendation: 'Convert images to WebP or AVIF for 25-50% smaller file sizes',
+      affectedElements: oldImgSelectors,
+      learnMoreUrl: 'https://web.dev/serve-modern-images/',
+      impactScore: 5,
+      estimatedImpact: 'Modern formats reduce download size and data usage',
     });
   }
 
@@ -720,6 +825,7 @@ export function detectRedFlags(): RedFlag[] {
   });
   
   if (imagesWithoutLazy.length > 5) {
+    const lazySelectors = imagesWithoutLazy.slice(0, 5).map(el => getSelector(el));
     flags.push({
       id: 'perf-no-lazy-loading',
       category: 'performance',
@@ -728,6 +834,11 @@ export function detectRedFlags(): RedFlag[] {
       description: `${imagesWithoutLazy.length} images missing loading="lazy" attribute`,
       count: imagesWithoutLazy.length,
       recommendation: 'Add loading="lazy" to images below the fold to improve initial load time',
+      affectedElements: lazySelectors,
+      fixCode: '<img src="image.jpg" loading="lazy">',
+      learnMoreUrl: 'https://web.dev/browser-level-image-lazy-loading/',
+      impactScore: 7,
+      estimatedImpact: 'Can significantly reduce initial page weight and improve LCP',
     });
   }
 

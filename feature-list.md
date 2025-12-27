@@ -425,7 +425,13 @@ Locomotive Scroll:
 **Status:** ✅ IMPLEMENTED
 
 **Overview:**
-A comprehensive analyzer that detects SEO issues, UX anti-patterns, accessibility problems, mobile issues, and performance hints. Provides actionable warnings organized by severity with specific recommendations.
+A comprehensive analyzer that detects SEO issues, UX anti-patterns, accessibility problems, mobile issues, and performance hints. Provides actionable warnings organized by severity with specific recommendations. Includes a **Global Health Score (0-100)** and **Markdown Report Export**.
+
+**Core Capabilities:**
+- 📊 **Global Health Score:** 0-100 rating based on weighted issue severity
+- 📥 **Export Reports:** Download full analysis as Markdown for clients/developers
+- 🔍 **Rich Details:** Affected elements, impact scores, fix code, and documentation links
+- 👁️ **Smart Views:** Group by Priority (Critical/Warning) or Page Section (Head/Body)
 
 **Features:**
 

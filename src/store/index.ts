@@ -60,6 +60,13 @@ export interface RedFlag {
   element?: string;
   count?: number;
   recommendation: string;
+  // New detailed fields
+  affectedElements?: string[];  // List of element selectors
+  fixCode?: string;              // Code snippet to fix the issue
+  learnMoreUrl?: string;         // Documentation URL
+  impactScore?: number;          // 1-10 impact score
+  estimatedImpact?: string;      // e.g., "Could improve LCP by ~500ms"
+  pageSection?: 'head' | 'header' | 'main' | 'footer' | 'unknown';
 }
 
 export interface InspectionData {

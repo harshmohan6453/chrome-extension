@@ -51,6 +51,17 @@ export interface ScrollAnimationData {
   className?: string;
 }
 
+export interface RedFlag {
+  id: string;
+  category: 'seo' | 'ux' | 'accessibility' | 'mobile' | 'performance';
+  severity: 'critical' | 'warning' | 'info';
+  title: string;
+  description: string;
+  element?: string;
+  count?: number;
+  recommendation: string;
+}
+
 export interface InspectionData {
   fonts: FontData[];
   colors: ColorData[];
@@ -58,6 +69,7 @@ export interface InspectionData {
   technologies: string[];
   assets: AssetData[];
   scrollAnimations: ScrollAnimationData[];
+  redFlags: RedFlag[];
   meta: {
     title: string;
     description: string;
@@ -87,6 +99,7 @@ const initialData: InspectionData = {
   technologies: [],
   assets: [],
   scrollAnimations: [],
+  redFlags: [],
   meta: {
     title: '',
     description: '',

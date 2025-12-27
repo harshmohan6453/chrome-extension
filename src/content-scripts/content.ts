@@ -5,6 +5,7 @@ import { detectSpacingSystem } from './extractors/spacingExtractor';
 import { extractTechnologies } from './extractors/techExtractor';
 import { extractAssets } from './extractors/assetExtractor';
 import { detectAllScrollAnimations } from './extractors/scrollAnimationDetector';
+import { detectRedFlags } from './extractors/redFlagDetector';
 
 const inspector = new Inspector();
 
@@ -116,6 +117,7 @@ chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
     const spacing = detectSpacingSystem();
     const technologies = extractTechnologies();
     const assets = extractAssets();
+    const redFlags = detectRedFlags();
     
     // Request scroll animations from page context (can access window.ScrollTrigger)
     window.postMessage({ type: 'DETECT_SCROLL_ANIMATIONS' }, '*');
@@ -178,6 +180,7 @@ chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
         technologies,
         assets,
         scrollAnimations,
+        redFlags,
         meta: {
           title: document.title,
           url: window.location.href,

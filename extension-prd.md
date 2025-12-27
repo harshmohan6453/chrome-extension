@@ -293,6 +293,72 @@ No extension currently provides comprehensive scroll animation analysis. Develop
 
 ---
 
+#### 2.4 SEO + UX Red Flag Detector
+**Priority:** P0 (Must Have)
+**Status:** ✅ IMPLEMENTED
+
+**Problem Being Solved:**
+SEO tools are overwhelming and complex. Developers need quick, actionable warnings about critical SEO and UX issues without running full Lighthouse audits. Clients often don't understand technical SEO reports.
+
+**Functionality:**
+- Detect 25+ critical SEO issues instantly
+- Identify UX anti-patterns and accessibility problems
+- Check mobile responsiveness issues
+- Analyze performance hints
+- Organize issues by severity (Critical, Warning, Info)
+- Provide actionable recommendations for each issue
+
+**SEO Detection Categories:**
+- **Title & Meta**: Missing/long/short title, meta description, canonical URL
+- **Social Media**: Open Graph tags, Twitter Card, og:image
+- **Indexing**: Robots meta (noindex/nofollow), structured data (JSON-LD)
+- **Technical**: Language attribute, charset, hreflang, favicon
+- **Content**: Heading hierarchy, empty headings, text-to-HTML ratio
+- **Links**: Alt text, empty links, broken patterns, external link security
+- **Images**: Missing alt, missing dimensions (CLS issues)
+
+**UX Anti-Patterns:**
+- Native browser dialogs (alert, confirm, prompt)
+- Form fields without labels
+- Buttons styled as links
+
+**Accessibility:**
+- Interactive elements without ARIA labels
+- Low contrast text detection
+
+**Mobile Issues:**
+- Missing viewport meta tag
+- Text too small (<12px)
+- Touch targets too small (<44x44px)
+
+**Performance Hints:**
+- Large inline images
+- Large DOM size (>1500 nodes)
+- Render-blocking scripts
+
+**User Experience:**
+- Dedicated "Red Flags" tab with ⚠️ icon
+- Issues grouped by severity (Critical first)
+- Color-coded severity cards
+- Category badges (SEO, UX, A11y, Mobile, Performance)
+- Count indicators for each issue
+- Actionable recommendations with each warning
+- Summary statistics at top
+
+**Technical Requirements:**
+- Parse DOM for SEO elements (meta tags, headings, links, images)
+- Analyze element styles for accessibility
+- Check page structure against best practices
+- Provide instant results (no external API calls)
+
+**Success Metrics:**
+- Comparable to Lighthouse SEO section but instant
+- High value for quick client presentations
+- Differentiator from other design analysis tools
+- Potential premium feature for detailed reports
+
+---
+
 
 ### 3. Technology Detection
 

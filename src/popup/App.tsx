@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Type, Palette, Layout, MousePointer2, Code2, Settings, Sparkles, RefreshCw, Layers, Image as ImageIcon, Play } from 'lucide-react';
+import { Type, Palette, Layout, MousePointer2, Code2, Settings, Sparkles, RefreshCw, Layers, Image as ImageIcon, Play, AlertTriangle } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useStore } from '../store';
 import { TypographyPanel } from './components/TypographyPanel';
@@ -10,8 +10,9 @@ import { TechPanel } from './components/TechPanel';
 import { AssetsPanel } from './components/AssetsPanel';
 import { GeneratePanel } from './components/GeneratePanel';
 import ScrollInspectorPanel from './components/ScrollInspectorPanel';
+import RedFlagsPanel from './components/RedFlagsPanel';
 
-type Tab = 'overview' | 'typography' | 'colors' | 'assets' | 'spacing' | 'scroll' | 'technologies' | 'prompt' | 'settings';
+type Tab = 'overview' | 'typography' | 'colors' | 'assets' | 'spacing' | 'scroll' | 'redflags' | 'technologies' | 'prompt' | 'settings';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -48,6 +49,7 @@ export default function App() {
                 technologies: response.technologies || [],
                 assets: response.assets || [],
                 scrollAnimations: response.scrollAnimations || [],
+                redFlags: response.redFlags || [],
                 meta: response.meta
                 });
             } else {
@@ -118,6 +120,7 @@ export default function App() {
     { id: 'assets', icon: ImageIcon, label: 'Assets' },
     { id: 'spacing', icon: Layout, label: 'Spacing' },
     { id: 'scroll', icon: Play, label: 'Scroll Animations' },
+    { id: 'redflags', icon: AlertTriangle, label: 'Red Flags' },
     { id: 'technologies', icon: Code2, label: 'Tech Stack' },
     { id: 'prompt', icon: Sparkles, label: 'Generate' },
     { id: 'settings', icon: Settings, label: 'Settings' },
@@ -167,6 +170,7 @@ export default function App() {
       case 'assets': return <AssetsPanel />;
       case 'spacing': return <SpacingPanel />;
       case 'scroll': return <ScrollInspectorPanel />;
+      case 'redflags': return <RedFlagsPanel />;
       case 'technologies': return <TechPanel />;
       case 'prompt': return <GeneratePanel />;
       case 'settings': return <SettingsPanel />;

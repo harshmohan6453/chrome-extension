@@ -419,6 +419,86 @@ Locomotive Scroll:
 
 ---
 
+### 2.5 SEO + UX Red Flag Detector
+**Priority:** P0
+
+**Status:** ✅ IMPLEMENTED
+
+**Overview:**
+A comprehensive analyzer that detects SEO issues, UX anti-patterns, accessibility problems, mobile issues, and performance hints. Provides actionable warnings organized by severity with specific recommendations.
+
+**Features:**
+
+**SEO Detection (25+ Checks):**
+- ✅ H1 tag validation (missing, multiple)
+- ✅ Heading hierarchy (H1 → H2 → H3 sequence)
+- ✅ Title tag (missing, too long >60 chars, too short <30 chars)
+- ✅ Meta description (missing, too long >160 chars, too short <50 chars)
+- ✅ Canonical URL presence
+- ✅ Open Graph tags (og:title, og:description, og:image)
+- ✅ Twitter Card meta tags
+- ✅ Robots meta (noindex, nofollow detection)
+- ✅ Structured data (JSON-LD schema.org)
+- ✅ Language attribute on `<html>`
+- ✅ Charset declaration
+- ✅ Hreflang tags for multilingual sites
+- ✅ Images without alt text
+- ✅ Images without dimensions (CLS issue)
+- ✅ Generic link text ("click here", "read more")
+- ✅ Empty/placeholder links (href="#")
+- ✅ Broken link patterns (undefined/null in URLs)
+- ✅ External links missing rel="noopener"
+- ✅ Missing favicon
+- ✅ Duplicate meta descriptions
+- ✅ Empty headings
+- ✅ Too many H2 tags (>15)
+- ✅ Non-descriptive URLs (query params)
+- ✅ Low text-to-HTML ratio
+
+**UX Anti-Patterns:**
+- ✅ Native browser dialogs (alert, confirm, prompt)
+- ✅ Form fields without labels
+- ✅ Buttons styled as links
+
+**Accessibility Issues:**
+- ✅ Interactive elements without ARIA labels
+- ✅ Low contrast text detection
+
+**Mobile Issues:**
+- ✅ Missing viewport meta tag
+- ✅ Text too small (<12px)
+- ✅ Touch targets too small (<44x44px)
+
+**Performance Hints:**
+- ✅ Large inline images (data URLs)
+- ✅ Large DOM size (>1500 nodes)
+- ✅ Render-blocking scripts in <head>
+
+**Severity Levels:**
+- 🔴 **Critical** - Must fix (noindex, missing H1, missing viewport)
+- 🟡 **Warning** - Should fix (heading hierarchy, missing alt, small targets)
+- 🔵 **Info** - Nice to have (structured data, Twitter Card)
+
+**UI Elements:**
+- Severity-grouped issue cards
+- Color-coded by severity
+- Category badges (SEO, UX, A11y, Mobile, Performance)
+- Count indicators
+- Actionable recommendations for each issue
+- Summary statistics
+
+**Code Files:**
+- `src/content-scripts/extractors/redFlagDetector.ts` - Detection logic (~700 lines)
+- `src/popup/components/RedFlagsPanel.tsx` - UI component (~180 lines)
+
+**Market Impact:**
+- Comparable to Lighthouse SEO audits but instant
+- No competition offers this in a single extension
+- Valuable for clients and quick site audits
+- Positions extension as professional developer tool
+
+---
+
 
 ## 3. TECHNOLOGY & ASSET DETECTION
 

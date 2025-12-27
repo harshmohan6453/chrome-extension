@@ -45,14 +45,19 @@
             const vars = trigger.vars || {};
             const animation = trigger.animation;
             
-            // Extract animated properties
+            // Extract animated properties safely
             const properties = [];
-            if (animation && animation.vars) {
-              Object.keys(animation.vars).forEach(key => {
-                if (key !== 'onComplete' && key !== 'onUpdate' && key !== 'onStart' && key !== 'onReverseComplete') {
-                  properties.push(key);
-                }
-              });
+            try {
+              if (animation && animation.vars && typeof animation.vars === 'object') {
+                const keys = Object.keys(animation.vars);
+                keys.forEach(key => {
+                  if (key !== 'onComplete' && key !== 'onUpdate' && key !== 'onStart' && key !== 'onReverseComplete') {
+                    properties.push(key);
+                  }
+                });
+              }
+            } catch (err) {
+              console.warn('Could not extract animation properties:', err);
             }
             
             // Only use serializable data (strings, numbers, booleans)

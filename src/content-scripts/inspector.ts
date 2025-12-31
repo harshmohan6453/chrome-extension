@@ -204,57 +204,6 @@ export class Inspector {
       }
   }
 
-
-  private async captureElementScreenshot(el: HTMLElement): Promise<string> {
-      // 1. Get full page screenshot from background
-      const response = await chrome.runtime.sendMessage({ action: 'CAPTURE_SCREENSHOT' });
-      if (response.error || !response.dataUrl) {
-          throw new Error('Screenshot failed: ' + (response.error || 'Unknown error'));
-      }
-
-      // 2. Crop to element using Canvas
-      return new Promise((resolve, reject) => {
-          const img = new Image();
-          img.onload = () => {
-              const rect = el.getBoundingClientRect();
-              const dpr = window.devicePixelRatio || 1;
-              
-              const canvas = document.createElement('canvas');
-              canvas.width = rect.width * dpr;
-              canvas.height = rect.height * dpr;
-              
-              const ctx = canvas.getContext('2d');
-              if (!ctx) return reject('No canvas context');
-
-              // Handle high-DPI cropping
-              ctx.drawImage(
-                  img,
-                  rect.left * dpr, rect.top * dpr, rect.width * dpr, rect.height * dpr, // Source
-                  0, 0, canvas.width, canvas.height // Dest
-              );
-
-              resolve(canvas.toDataURL('image/png'));
-          };
-          img.onerror = reject;
-          img.src = response.dataUrl;
-      });
-  }
-
-  private async sendToBackend(payload: any): Promise<any> {
-      // Proxy through background script to avoid Mixed Content (HTTPS -> HTTP) blocks
-      return new Promise((resolve, reject) => {
-          chrome.runtime.sendMessage({ action: 'ANALYZE_IMAGE', payload }, (response) => {
-              if (chrome.runtime.lastError) {
-                  return reject(chrome.runtime.lastError.message);
-              }
-              if (response && response.error) {
-                  return reject(response.error);
-              }
-              resolve(response);
-          });
-      });
-  }
-
   private generatePrompt(el: HTMLElement): string {
     const computed = window.getComputedStyle(el);
     
@@ -684,9 +633,6 @@ height: ${rect.height}px;
                 <button id="di-gen-prompt" style="background: linear-gradient(135deg, #7c3aed 0%, #db2777 100%); border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; cursor: pointer; color: white; display: flex; align-items: center; gap: 4px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);">
                     ✨ PROMPT
                 </button>
-                <button id="di-ai-enhance" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; cursor: pointer; color: white; display: flex; align-items: center; gap: 4px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);">
-                    🤖 AI ENHANCE
-                </button>
             </div>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
@@ -791,44 +737,7 @@ height: ${rect.height}px;
         });
     });
 
-    // Backend AI Enhance Listener
-    this.detailCard.querySelector('#di-ai-enhance')?.addEventListener('click', async (e) => {
-        const btn = e.target as HTMLButtonElement;
-        const originalText = btn.innerHTML;
-        
-        try {
-            btn.innerHTML = '📸 CAPTURING...';
-            // Slight delay to ensure UI updates
-            await new Promise(r => setTimeout(r, 50));
-            
-            const image = await this.captureElementScreenshot(el);
-            
-            btn.innerHTML = '🤖 ANALYZING...';
-            const context = this.generatePrompt(el);
-            
-            const result = await this.sendToBackend({
-                image,
-                context,
-                timestamp: Date.now()
-            });
-            
-            if (result.prompt) {
-                await navigator.clipboard.writeText(result.prompt);
-                btn.innerHTML = '✅ COPIED!';
-            } else {
-                throw new Error('No prompt returned');
-            }
-        } catch (err: any) {
-            console.error(err);
-            btn.innerHTML = '❌ ERROR';
-            btn.title = err.message || 'Unknown Error';
-        }
 
-        setTimeout(() => {
-            btn.innerHTML = originalText;
-            btn.title = '';
-        }, 2000);
-    });
   }
 
   private updateOverlay(element: HTMLElement) {

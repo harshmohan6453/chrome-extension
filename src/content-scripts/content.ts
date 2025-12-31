@@ -6,6 +6,7 @@ import { extractTechnologies } from './extractors/techExtractor';
 import { extractAssets } from './extractors/assetExtractor';
 import { detectAllScrollAnimations } from './extractors/scrollAnimationDetector';
 import { detectRedFlags } from './extractors/redFlagDetector';
+import { FlowRecorder } from './extractors/flowRecorder';
 
 const inspector = new Inspector();
 
@@ -19,6 +20,9 @@ function injectPageContextScript() {
   };
   (document.head || document.documentElement).appendChild(script);
 }
+
+// Initialize Flow Recorder (checks for active recording session)
+FlowRecorder.init();
 
 // Try to inject the script
 try {

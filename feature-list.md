@@ -453,7 +453,28 @@ A comprehensive analyzer that detects SEO issues, UX anti-patterns, accessibilit
 - ✅ Generic link text ("click here", "read more")
 - ✅ Empty/placeholder links (href="#")
 - ✅ Broken link patterns (undefined/null in URLs)
+- ✅ Broken link patterns (undefined/null in URLs)
 - ✅ External links missing rel="noopener"
+
+---
+
+### 2.6 User Flow Recorder 📹
+**Priority:** P1
+**Status:** ✅ IMPLEMENTED
+
+**Overview:**
+A "flight recorder" for UX research. Simply start recording, browse a website, and the extension auto-generates a flowchart of your journey.
+
+**Features:**
+- 🔴 **One-Click Recording:** Captures clicks, navigation, and inputs.
+- 🔗 **Smart Persistence:** Records seamless flows across multiple pages/reloads.
+- 🎨 **Auto-Diagrams:** Generates Mermaid.js code instantly (Graph TD).
+- 🧩 **Smart Selectors:** Auto-generates robust CSS selectors for every interaction.
+- 📋 **Export:** Copy diagram code to Notion, GitHub, or Obsidian.
+
+**Market Impact:**
+- Saves hours of manual flowcharting for PMs and Designers.
+- Unique differentiator ("Dynamic" analysis vs standard "Static" analysis).
 - ✅ Missing favicon
 - ✅ Duplicate meta descriptions
 - ✅ Empty headings

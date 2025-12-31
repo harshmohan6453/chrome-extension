@@ -69,6 +69,16 @@ export interface RedFlag {
   pageSection?: 'head' | 'header' | 'main' | 'footer' | 'unknown';
 }
 
+export interface FlowStep {
+  id: string;
+  timestamp: number;
+  type: 'click' | 'navigation' | 'input';
+  selector: string;
+  label: string;
+  url: string;
+  description: string;
+}
+
 export interface InspectionData {
   fonts: FontData[];
   colors: ColorData[];

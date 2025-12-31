@@ -53,6 +53,8 @@ ${c?.animations || (data.scrollAnimations.length > 0 ? data.scrollAnimations.sli
 ## 🖼️ Images & Media
 ${c?.images?.slice(0, 20).map(img => `- ${img.alt} (${img.width}x${img.height}): ${img.src}`).join('\n') || data.assets.filter(a => a.type === 'image').slice(0, 15).map(a => `- Image: ${a.url}`).join('\n')}
 
+${c?.backgroundImages && c.backgroundImages.length > 0 ? `### Background Images (${c.backgroundImages.length})\n${c.backgroundImages.join('\n')}` : ''}
+
 ${c?.videos && c.videos.length > 0 ? `### Videos\n${c.videos.join('\n')}` : ''}
 
 ${c?.svgs && c.svgs.length > 0 ? `### SVGs\n${c.svgs.map(s => `- ${s.desc}`).join('\n')}` : ''}

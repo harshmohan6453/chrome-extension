@@ -256,111 +256,325 @@ export class Inspector {
   }
 
   private generatePrompt(el: HTMLElement): string {
-  // Helper to serialize element with computed styles
-      const serializeWithStyles = (node: Element, depth: number = 0): string => {
-          if (depth > 10) return '<!-- depth limit -->'; // Safety break
-          
-          if (node.nodeType === Node.TEXT_NODE) {
-              const text = node.textContent?.trim();
-              return text ? text : '';
-          }
-
-          if (node.nodeType !== Node.ELEMENT_NODE) return '';
-          
-          const element = node as HTMLElement;
-          const tagName = element.tagName.toLowerCase();
-          
-          // Skip sensitive/invisible or clutter
-          const comp = window.getComputedStyle(element);
-          if (comp.display === 'none' || comp.opacity === '0' || comp.visibility === 'hidden') return '';
-          if (tagName === 'script' || tagName === 'style' || tagName === 'noscript' || tagName === 'iframe') return '';
-
-          // Special Handling for Icons/Images
-          if (tagName === 'svg') {
-             return `<svg width="${comp.width}" height="${comp.height}" fill="${comp.fill}"><!-- icon path --></svg>`;
-          }
-          if (tagName === 'img') {
-             return `<img src="${element.getAttribute('src')}" alt="${element.getAttribute('alt') || ''}" style="width:${comp.width}; height:${comp.height}; object-fit:${comp.objectFit}; border-radius:${comp.borderRadius}" />`; 
-          }
-
-          // Extract Critical Styles
-          const props = [
-              // Layout
-              'display', 'flex-direction', 'justify-content', 'align-items', 'flex-wrap', 'gap',
-              'grid-template-columns', 'grid-template-rows',
-              'position', 'width', 'height', 'max-width',
-              // Spacing
-              'padding', 'margin',
-              // Typography
-              'font-family', 'font-size', 'font-weight', 'line-height', 'text-align', 'color',
-              // Decor
-              'background-color', 'background-image', 'border', 'border-radius', 'box-shadow', 'opacity', 'z-index'
-          ];
-          
-          const stylePairs: string[] = [];
-          
-          // Check for flex/grid specifics to avoid noise
-          const isFlex = comp.display.includes('flex');
-          const isGrid = comp.display.includes('grid');
-
-          props.forEach(p => {
-              const val = comp.getPropertyValue(p);
-              
-              // Filter defaults/empty
-              if (!val || val === 'none' || val === '0px' || val === 'auto' || val === 'normal' || val === 'rgba(0, 0, 0, 0)') return;
-              
-              // Context-sensitive filtering
-              if (!isFlex && (p.startsWith('flex') || p === 'justify-content' || p === 'align-items')) return;
-              if (!isGrid && p.startsWith('grid')) return;
-              if (p === 'width' || p === 'height') {
-                  if (val === '0px') return; 
+    const computed = window.getComputedStyle(el);
+    
+    // Extract ALL computed styles - EVERY SINGLE ONE
+    const allStyles: Record<string, string> = {};
+    for (let i = 0; i < computed.length; i++) {
+      const prop = computed[i];
+      const value = computed.getPropertyValue(prop);
+      
+      // Only skip truly empty/default values
+      if (value && 
+          value !== 'none' && 
+          value !== 'auto' && 
+          value !== 'normal' &&
+          value !== '0px' &&
+          value !== 'rgba(0, 0, 0, 0)' &&
+          value !== 'transparent' &&
+          value !== 'static' &&
+          value !== 'visible' &&
+          value !== 'scroll' &&
+          value !== 'inherit' &&
+          value !== 'initial') {
+        allStyles[prop] = value;
+      }
+    }
+    
+    // Convert styles to CSS string
+    const stylesString = Object.entries(allStyles)
+      .map(([prop, val]) => `  ${prop}: ${val.slice(0, 150)};`)
+      .join('\n');
+    
+    // Extract pseudo-elements (::before, ::after)
+    const extractPseudoStyles = (pseudo: string): string | null => {
+      const pseudoComputed = window.getComputedStyle(el, pseudo);
+      const content = pseudoComputed.content;
+      if (!content || content === 'none') return null;
+      
+      const styles: string[] = [`content: ${content}`];
+      const props = ['display', 'position', 'width', 'height', 'background', 'color', 
+                     'top', 'right', 'bottom', 'left', 'transform', 'opacity', 'z-index'];
+      
+      props.forEach(prop => {
+        const val = pseudoComputed.getPropertyValue(prop);
+        if (val && val !== 'none' && val !== 'auto' && val !== 'rgba(0, 0, 0, 0)') {
+          styles.push(`${prop}: ${val}`);
+        }
+      });
+      
+      return styles.join('; ');
+    };
+    
+    const beforeStyles = extractPseudoStyles('::before');
+    const afterStyles = extractPseudoStyles('::after');
+    
+    // Extract hover/focus/active states from CSS rules
+    const hoverRules: string[] = [];
+    const focusRules: string[] = [];
+    const activeRules: string[] = [];
+    
+    const selectors: string[] = [];
+    if (el.id) selectors.push(`#${el.id}`);
+    if (el.className) {
+      el.className.split(' ').forEach(cls => {
+        if (cls.trim()) selectors.push(`.${cls.trim()}`);
+      });
+    }
+    selectors.push(el.tagName.toLowerCase());
+    
+    try {
+      for (const sheet of document.styleSheets) {
+        try {
+          if (sheet.cssRules) {
+            for (const rule of sheet.cssRules) {
+              if (rule instanceof CSSStyleRule) {
+                const ruleText = rule.selectorText;
+                selectors.forEach(sel => {
+                  if (ruleText.includes(sel)) {
+                    if (ruleText.includes(':hover')) hoverRules.push(`${ruleText} { ${rule.style.cssText} }`);
+                    if (ruleText.includes(':focus')) focusRules.push(`${ruleText} { ${rule.style.cssText} }`);
+                    if (ruleText.includes(':active')) activeRules.push(`${ruleText} { ${rule.style.cssText} }`);
+                  }
+                });
               }
-              if (p === 'position' && val === 'static') return;
-              if (p === 'z-index' && val === 'auto') return;
-              if (p === 'font-weight' && val === '400') return;
-              if (p === 'opacity' && val === '1') return;
-
-              stylePairs.push(`${p}: ${val}`);
-          });
-
-          // Serialize Children
-          let childrenHtml = '';
-          Array.from(element.childNodes).forEach(child => {
-              childrenHtml += serializeWithStyles(child as Element, depth + 1);
-          });
-          
-          // Clean up children whitespace if only one text node
-          if (childrenHtml.length < 50 && !childrenHtml.includes('<')) {
-              // likely just text
-          } else {
-             childrenHtml = `\n${childrenHtml}\n`;
+            }
           }
+        } catch (e) {}
+      }
+    } catch (e) {}
+    
+    // Extract CSS variables
+    const cssVars: { name: string; value: string }[] = [];
+    for (let i = 0; i < computed.length; i++) {
+      const prop = computed[i];
+      const value = computed.getPropertyValue(prop);
+      const varMatches = value.match(/var\((--[^,)]+)/g);
+      if (varMatches) {
+        varMatches.forEach(match => {
+          const varName = match.replace('var(', '');
+          const varValue = computed.getPropertyValue(varName);
+          if (varValue && !cssVars.find(v => v.name === varName)) {
+            cssVars.push({ name: varName, value: varValue });
+          }
+        });
+      }
+    }
+    
+    // Extract parent context
+    let parentContext = 'No parent';
+    if (el.parentElement) {
+      const parent = el.parentElement;
+      const parentComputed = window.getComputedStyle(parent);
+      const ctx: string[] = [
+        `Parent: <${parent.tagName.toLowerCase()}>`,
+        `Display: ${parentComputed.display}`
+      ];
+      if (parentComputed.display.includes('flex')) {
+        ctx.push(`Flex-direction: ${parentComputed.flexDirection}`);
+        ctx.push(`Justify: ${parentComputed.justifyContent}, Align: ${parentComputed.alignItems}, Gap: ${parentComputed.gap}`);
+      }
+      if (parentComputed.display.includes('grid')) {
+        ctx.push(`Grid-template-columns: ${parentComputed.gridTemplateColumns}`);
+        ctx.push(`Gap: ${parentComputed.gap}`);
+      }
+      parentContext = ctx.join('\n');
+    }
+    
+    const tagName = el.tagName.toLowerCase();
+    const id = el.id || 'none';
+    const className = el.className || 'none';
+    
+    // Extract colors
+    const colors = new Set<string>();
+    el.querySelectorAll('*').forEach(child => {
+      const c = window.getComputedStyle(child);
+      if (c.color && c.color !== 'rgba(0, 0, 0, 0)') colors.add(c.color);
+      if (c.backgroundColor && c.backgroundColor !== 'rgba(0, 0, 0, 0)') colors.add(c.backgroundColor);
+    });
+    
+    // Extract fonts
+    const fonts = new Set<string>();
+    el.querySelectorAll('*').forEach(child => {
+      const c = window.getComputedStyle(child);
+      const font = c.fontFamily.split(',')[0].replace(/['"]/g, '').trim();
+      if (font) fonts.add(font);
+    });
+    
+    // Extract assets
+    const images: string[] = [];
+    const svgs: string[] = [];
+    const bgImages: string[] = [];
+    const videos: string[] = [];
+    
+    el.querySelectorAll('img').forEach(img => {
+      images.push(`${img.alt || 'Image'} (${img.naturalWidth}x${img.naturalHeight}): ${img.src.slice(0, 100)}`);
+    });
+    
+    el.querySelectorAll('svg').forEach((svg, i) => {
+      const rect = svg.getBoundingClientRect();
+      svgs.push(`SVG ${i + 1} (${Math.round(rect.width)}x${Math.round(rect.height)})`);
+    });
+    
+    el.querySelectorAll('*').forEach(child => {
+      const bg = window.getComputedStyle(child).backgroundImage;
+      if (bg && bg !== 'none' && bg.includes('url')) {
+        const match = bg.match(/url\(['"]?([^'")\s]+)['"]?\)/);
+        if (match && !bgImages.includes(match[1])) bgImages.push(match[1].slice(0, 80));
+      }
+    });
+    
+    el.querySelectorAll('video, iframe').forEach((v, i) => {
+      const src = (v as HTMLVideoElement | HTMLIFrameElement).src;
+      if (src) videos.push(`Video/Iframe ${i + 1}: ${src.slice(0, 80)}`);
+    });
+    
+    return `
+# 🎯 GOD-TIER UI Component Recreation - 99% Pixel-Perfect Accuracy
 
-          return `<${tagName} style="${stylePairs.join('; ')}">${childrenHtml}</${tagName}>`;
-      };
+You are a world-class frontend developer. Your mission: recreate this component with ABSOLUTE precision.
 
-      const richHtml = serializeWithStyles(el);
+## 📊 Element Identity
+- **Tag**: \`<${tagName}>\`
+- **ID**: \`${id}\`
+- **Classes**: \`${className}\`
+- **Dimensions**: ${computed.width} × ${computed.height}
 
-      // Construct Prompt
-      return `
-You are an expert Frontend Developer. Recreate this specific UI component using React and Tailwind CSS.
-I have explicitly inlined the **Computed Styles** for every element in the HTML below.
+## 🎨 Complete Computed Styles (${Object.keys(allStyles).length} Properties)
 
-## Source HTML (with Computed Styles)
-\`\`\`html
-${richHtml}
+\`\`\`css
+${tagName} {
+${stylesString}
+}
 \`\`\`
 
-## Instruction
-1. **Analyze the Inline Styles**: Look at the \`style\` attributes for every node. They contain the *exact* computed layout (flex/grid), spacing (padding/margin), colors, and typography you must match.
-2. **Map to Tailwind**: Convert these raw CSS values into the closest Tailwind utility classes.
-   - e.g., \`display: flex; gap: 16px\` -> \`flex gap-4\`
-   - e.g., \`background-color: rgb(30, 41, 59)\` -> \`bg-slate-800\` (or custom hex)
-   - e.g., \`font-size: 14px; font-weight: 600\` -> \`text-sm font-semibold\`
-3. **Structure**: Maintain the exact hierarchy shown in the HTML.
-4. **Icons/Images**: Use placeholders where you see \`<img>\` or \`<svg>\` tags.
+${beforeStyles ? `## 🎭 Pseudo-Element: ::before
+\`\`\`css
+${tagName}::before {
+  ${beforeStyles}
+}
+\`\`\`
+` : ''}
 
-**Output**: Provide the full, responsive React component code.
+${afterStyles ? `## 🎭 Pseudo-Element: ::after
+\`\`\`css
+${tagName}::after {
+  ${afterStyles}
+}
+\`\`\`
+` : ''}
+
+${hoverRules.length > 0 ? `## 🎯 Interactive State: :hover
+\`\`\`css
+${hoverRules.join('\n')}
+\`\`\`
+` : ''}
+
+${focusRules.length > 0 ? `## 🎯 Interactive State: :focus
+\`\`\`css
+${focusRules.join('\n')}
+\`\`\`
+` : ''}
+
+${activeRules.length > 0 ? `## 🎯 Interactive State: :active
+\`\`\`css
+${activeRules.join('\n')}
+\`\`\`
+` : ''}
+
+${cssVars.length > 0 ? `## 🎨 CSS Custom Properties Detected
+${cssVars.map(v => `- ${v.name}: ${v.value}`).join('\n')}
+` : ''}
+
+## 🎨 Design Tokens
+
+### Colors (${colors.size} unique)
+${Array.from(colors).map(c => `- ${c}`).join('\n')}
+
+### Typography (${fonts.size} fonts)
+${Array.from(fonts).map(f => `- ${f}`).join('\n')}
+- Size: ${computed.fontSize}
+- Weight: ${computed.fontWeight}
+- Line-height: ${computed.lineHeight}
+- Letter-spacing: ${computed.letterSpacing}
+
+## 📦 Layout Context
+
+### Parent Container
+${parentContext}
+
+### This Element's Layout
+- Display: ${computed.display}
+- Position: ${computed.position}${computed.position !== 'static' ? `\n- Coordinates: top: ${computed.top}, right: ${computed.right}, bottom: ${computed.bottom}, left: ${computed.left}` : ''}
+${computed.display.includes('flex') ? `- Flex: ${computed.flex}\n- Flex-direction: ${computed.flexDirection}\n- Justify: ${computed.justifyContent}\n- Align: ${computed.alignItems}\n- Gap: ${computed.gap}` : ''}
+${computed.display.includes('grid') ? `- Grid-template: ${computed.gridTemplateColumns} / ${computed.gridTemplateRows}\n- Grid-column: ${computed.gridColumn}\n- Grid-row: ${computed.gridRow}\n- Gap: ${computed.gap}` : ''}
+
+## 🖼️ Assets in Component
+
+${images.length > 0 ? `### Images (${images.length})
+${images.join('\n')}
+` : ''}
+
+${svgs.length > 0 ? `### SVG Graphics (${svgs.length})
+${svgs.join('\n')}
+` : ''}
+
+${bgImages.length > 0 ? `### Background Images (${bgImages.length})
+${bgImages.join('\n')}
+` : ''}
+
+${videos.length > 0 ? `### Videos/Embeds (${videos.length})
+${videos.join('\n')}
+` : ''}
+
+## 🎭 Visual Effects
+
+- **Box Shadow**: ${computed.boxShadow !== 'none' ? computed.boxShadow : 'None'}
+- **Border Radius**: ${computed.borderRadius}
+- **Opacity**: ${computed.opacity}
+- **Transform**: ${computed.transform !== 'none' ? computed.transform : 'None'}
+- **Filter**: ${computed.filter !== 'none' ? computed.filter : 'None'}
+- **Backdrop Filter**: ${computed.backdropFilter !== 'none' ? computed.backdropFilter : 'None'}
+- **Mix Blend Mode**: ${computed.mixBlendMode}
+- **Clip Path**: ${computed.clipPath !== 'none' ? computed.clipPath : 'None'}
+
+## ⚡ Transitions & Animations
+
+- **Transition**: ${computed.transition !== 'all 0s ease 0s' ? computed.transition : 'None'}
+- **Animation**: ${computed.animationName !== 'none' ? `${computed.animationName} ${computed.animationDuration} ${computed.animationTimingFunction}` : 'None'}
+
+## ✅ RECREATION REQUIREMENTS (99% Accuracy)
+
+### CRITICAL - MUST MATCH EXACTLY:
+1. ✅ **Every CSS property** - All ${Object.keys(allStyles).length} properties listed above
+2. ✅ **Pseudo-elements** - ::before and ::after with exact styling
+3. ✅ **Interactive states** - :hover, :focus, :active with exact transitions
+4. ✅ **Exact dimensions** - ${computed.width} × ${computed.height}
+5. ✅ **Spacing** - padding: ${computed.padding}, margin: ${computed.margin}
+6. ✅ **Colors** - Exact hex/rgb values, no approximations
+7. ✅ **Typography** - ${Array.from(fonts)[0] || 'system font'}, ${computed.fontSize}, ${computed.fontWeight}
+8. ✅ **Effects** - Shadows, filters, transforms, opacity, clip-path
+9. ✅ **Layout behavior** - ${computed.display} with exact flex/grid properties
+10. ✅ **Assets** - ${images.length} images, ${svgs.length} SVGs, ${bgImages.length} backgrounds
+11. ✅ **Responsive units** - Preserve vw, vh, clamp(), calc(), var() as-is
+12. ✅ **Z-index & stacking** - ${computed.zIndex}
+
+### IMPLEMENTATION INSTRUCTIONS:
+
+1. **Copy EVERY CSS property** from the computed styles section - no exceptions
+2. **Add pseudo-elements** if ::before or ::after are present with exact styles  
+3. **Implement interactive states** - copy the exact :hover/:focus/:active CSS
+4. **Handle assets**: Replace URLs with placeholders or use actual sources
+5. **Preserve modern CSS**: Keep clamp(), min(), max(), calc(), var() functions as-is
+6. **Match parent context**: Ensure this element fits its parent's layout system
+7. **Test side-by-side**: Compare with original to verify 99% accuracy
+
+**OUTPUT**: Complete production-ready React/Vue/HTML component with Tailwind CSS or vanilla CSS that achieves 99% visual fidelity.
+
+---
+
+
+*This extraction captures ${Object.keys(allStyles).length} computed CSS properties including pseudo-elements, interactive states, CSS variables, and parent context. Every detail captured for maximum accuracy.*
 `.trim();
   }
 

@@ -38,6 +38,7 @@ export interface SiteCloneData {
   
   // Assets
   images: { src: string; alt: string; width: number; height: number }[];
+  backgroundImages: string[];
   videos: string[];
   svgs: { desc: string; code: string }[];
   
@@ -247,6 +248,25 @@ export const extractImagesDetailed = () => {
 };
 
 /**
+ * Extract background images
+ */
+export const extractBackgroundImages = (): string[] => {
+  const bgImages: string[] = [];
+  
+  document.querySelectorAll('*').forEach(el => {
+    const bg = window.getComputedStyle(el).backgroundImage;
+    if (bg && bg !== 'none' && bg.includes('url')) {
+      const match = bg.match(/url\(['"]?([^'")\s]+)['"]?\)/);
+      if (match && match[1] && !bgImages.includes(match[1])) {
+        bgImages.push(match[1].slice(0, 100));
+      }
+    }
+  });
+  
+  return bgImages.slice(0, 20);
+};
+
+/**
  * Extract videos
  */
 export const extractVideos = (): string[] => {
@@ -381,25 +401,40 @@ export const getCriticalCSS = (): string => {
 };
 
 /**
- * Get computed styles for key elements
+ * Get computed styles for key elements - ALL properties
  */
 export const getComputedStylesDetailed = (): string => {
-  const selectors = ['body', 'header', 'nav', 'main', 'section:first-of-type', 'footer'];
+  const selectors = ['body', 'header', 'nav', 'main', 'section:first-of-type', 'section:nth-of-type(2)', 'footer', '[class*="hero"]', '[class*="container"]:first-of-type'];
   let styles = '';
   
+  const allProps = [
+    'display', 'position', 'top', 'right', 'bottom', 'left',
+    'width', 'height', 'min-width', 'min-height', 'max-width', 'max-height',
+    'margin', 'padding', 'gap',
+    'flex', 'flex-direction', 'justify-content', 'align-items', 'flex-wrap',
+    'grid-template-columns', 'grid-template-rows',
+    'background', 'background-color', 'background-image',
+    'color', 'font-family', 'font-size', 'font-weight', 'line-height', 'letter-spacing',
+    'border', 'border-radius', 'box-shadow',
+    'transform', 'transition', 'animation', 'opacity', 'z-index', 'overflow'
+  ];
+  
   selectors.forEach(sel => {
-    const el = document.querySelector(sel);
-    if (el) {
-      const c = window.getComputedStyle(el);
-      styles += `${sel} {\n`;
-      styles += `  display: ${c.display}; position: ${c.position};\n`;
-      styles += `  width: ${c.width}; max-width: ${c.maxWidth};\n`;
-      styles += `  margin: ${c.margin}; padding: ${c.padding};\n`;
-      styles += `  background: ${c.background.slice(0, 80)};\n`;
-      styles += `  color: ${c.color}; font: ${c.fontSize}/${c.lineHeight} ${c.fontFamily.split(',')[0]};\n`;
-      styles += `  flex: ${c.flex}; gap: ${c.gap};\n`;
-      styles += `}\n\n`;
-    }
+    try {
+      const el = document.querySelector(sel);
+      if (el) {
+        const c = window.getComputedStyle(el);
+        styles += `${sel} {\n`;
+        allProps.forEach(prop => {
+          const val = c.getPropertyValue(prop);
+          if (val && val !== 'none' && val !== 'auto' && val !== 'normal' && 
+              val !== '0px' && val !== 'rgba(0, 0, 0, 0)' && val !== 'static' && val !== 'visible') {
+            styles += `  ${prop}: ${val.slice(0, 80)};\n`;
+          }
+        });
+        styles += `}\n\n`;
+      }
+    } catch (e) {}
   });
   
   return styles;
@@ -505,6 +540,7 @@ export const captureSiteCloneData = (): SiteCloneData => {
     filters: effects.filters,
     animations: extractAnimations(),
     images: extractImagesDetailed(),
+    backgroundImages: extractBackgroundImages(),
     videos: extractVideos(),
     svgs: extractSVGs(),
     externalFonts: external.fonts,

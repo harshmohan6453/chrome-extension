@@ -113,6 +113,7 @@ export interface InspectionData {
     filters: string;
     animations: string;
     images: { src: string; alt: string; width: number; height: number }[];
+    backgroundImages: string[];
     videos: string[];
     svgs: { desc: string; code: string }[];
     externalFonts: string[];

@@ -16,121 +16,197 @@ export const GeneratePanel = () => {
   const c = data.siteCloneData; // Clone data shorthand
   const h = data.htmlStructure; // HTML structure shorthand
 
-  // === HIGHLY ENGINEERED 90%+ ACCURACY PROMPT ===
-  const clonePrompt = `Create a pixel-perfect clone of this website with 90%+ accuracy:
+  // === GOD-TIER SITE CLONE PROMPT - 99% ACCURACY ===
+  const clonePrompt = `# 🎯 GOD-TIER Website Clone - 99% Pixel-Perfect Accuracy
+
+You are a world-class frontend developer. Your mission: recreate this ENTIRE website with ABSOLUTE precision.
 
 ## 📊 Page Metadata
-- Title: ${c?.metadata?.title || data.meta.title}
-- URL: ${c?.metadata?.url || data.meta.url}
-- Viewport: ${c?.metadata?.viewport || 'responsive'}
-- Favicon: ${c?.metadata?.favicon || 'none'}
+- **Title**: ${c?.metadata?.title || data.meta.title}
+- **URL**: ${c?.metadata?.url || data.meta.url}
+- **Viewport**: ${c?.metadata?.viewport || 'responsive'}
+- **Favicon**: ${c?.metadata?.favicon || 'none'}
+- **Charset**: ${c?.metadata?.charset || 'UTF-8'}
 
 ## 🎨 Design System
 
-### Colors (Top ${c?.colors?.length || data.colors.length})
-${c?.colors?.map(col => `- ${col.color} (used ${col.count}x)`).join('\n') || data.colors.slice(0, 15).map(col => `- ${col.hex}`).join('\n')}
+### Colors (${c?.colors?.length || data.colors.length} Detected with Frequency)
+${c?.colors?.map(col => `- ${col.color} (used ${col.count}x)`).join('\n') || data.colors.slice(0, 20).map(col => `- ${col.hex}`).join('\n')}
 
 ### Typography
 ${c?.fonts?.map(f => `- ${f.family} (weights: ${f.weights.join(', ')})`).join('\n') || data.fonts.map(f => `- ${f.family}`).join('\n')}
 
 ### Spacing Scale
-${c?.spacing?.join(', ') || data.spacing.slice(0, 15).map(s => `${s}px`).join(', ')}
+${c?.spacing?.join(', ') || data.spacing.slice(0, 20).map(s => `${s}px`).join(', ')}
 
 ## 📐 Layout Architecture
-- Type: ${c?.layoutType || 'Unknown'}
-- Container Width: ${c?.containerWidth || 'auto'}
-- Grid System: ${c?.gridSystem || 'custom'}
+- **Type**: ${c?.layoutType || 'Modern CSS'}
+- **Container Width**: ${c?.containerWidth || 'fluid'}
+- **Grid System**: ${c?.gridSystem || 'custom'}
 
 ## 🏗️ Page Structure
-${c?.structure || h?.sectionCount + ' sections detected'}
+${c?.structure || h?.sectionCount + ' semantic sections detected'}
 
 ## 🧩 Components Detected
 ${c?.components || 'Standard web components'}
 
 ## 🎭 Animations & Transitions
-${c?.animations || (data.scrollAnimations.length > 0 ? data.scrollAnimations.slice(0, 10).map(a => `- ${a.library}: ${a.element} (${a.animation.properties.join(', ')})`).join('\n') : 'No animations detected')}
+${c?.animations || (data.scrollAnimations.length > 0 ? data.scrollAnimations.slice(0, 15).map(a => `- ${a.library}: ${a.element} (${a.animation.properties.join(', ')})`).join('\n') : 'No animations detected')}
 
 ## 🖼️ Images & Media
-${c?.images?.slice(0, 20).map(img => `- ${img.alt} (${img.width}x${img.height}): ${img.src}`).join('\n') || data.assets.filter(a => a.type === 'image').slice(0, 15).map(a => `- Image: ${a.url}`).join('\n')}
 
-${c?.backgroundImages && c.backgroundImages.length > 0 ? `### Background Images (${c.backgroundImages.length})\n${c.backgroundImages.join('\n')}` : ''}
+### Images (${c?.images?.length || data.assets.filter(a => a.type === 'image').length})
+${c?.images?.slice(0, 30).map(img => `- ${img.alt} (${img.width}x${img.height}): ${img.src}`).join('\n') || data.assets.filter(a => a.type === 'image').slice(0, 20).map(a => `- Image: ${a.url}`).join('\n')}
 
-${c?.videos && c.videos.length > 0 ? `### Videos\n${c.videos.join('\n')}` : ''}
+${c?.backgroundImages && c.backgroundImages.length > 0 ? `### Background Images (${c.backgroundImages.length})
+${c.backgroundImages.join('\n')}
+` : ''}
 
-${c?.svgs && c.svgs.length > 0 ? `### SVGs\n${c.svgs.map(s => `- ${s.desc}`).join('\n')}` : ''}
+${c?.videos && c.videos.length > 0 ? `### Videos (${c.videos.length})
+${c.videos.join('\n')}
+` : ''}
+
+${c?.svgs && c.svgs.length > 0 ? `### SVG Graphics (${c.svgs.length})
+${c.svgs.map(s => `- ${s.desc}`).join('\n')}
+` : ''}
 
 ## 🔗 External Resources
+
 ### Font URLs
-${c?.externalFonts?.join('\n') || 'Detect from page'}
+${c?.externalFonts?.join('\n') || 'System fonts or Google Fonts'}
 
 ### Stylesheets
-${c?.externalCSS?.slice(0, 5).join('\n') || 'Inline or linked CSS'}
+${c?.externalCSS?.slice(0, 8).join('\n') || 'Inline CSS'}
 
 ### Scripts
-${c?.scripts?.slice(0, 5).join('\n') || 'Minimal JS'}
+${c?.scripts?.slice(0, 8).join('\n') || 'Minimal JavaScript'}
 
 ## 📱 Responsive Breakpoints
-${c?.breakpoints || 'Standard mobile/tablet/desktop'}
+\`\`\`css
+${c?.breakpoints || 'Standard: 640px (sm), 768px (md), 1024px (lg), 1280px (xl), 1536px (2xl)'}
+\`\`\`
 
 ## 🎯 Interactive Elements
-${c?.interactive || 'Buttons, links, forms'}
+${c?.interactive || 'Buttons, links, forms - standard interactions'}
 
 ## 📝 Form Elements
 ${c?.forms || 'No forms detected'}
 
-## ⚡ JavaScript Features Needed
-${c?.jsFeatures || 'Static page'}
+## ⚡ JavaScript Features Required
+${c?.jsFeatures || 'Static HTML/CSS - minimal JS'}
 
-## 🎪 Special Effects
-- Shadows: ${c?.shadows?.slice(0, 3).join(', ') || 'none'}
-- Blurs: ${c?.blurs?.join(', ') || 'none'}
-- Transforms: ${c?.transforms || 'none'}
-- Filters: ${c?.filters || 'none'}
+## 🎪 Special Effects & Advanced CSS
+
+- **Shadows**: ${c?.shadows?.slice(0, 5).join(', ') || 'none'}
+- **Blurs**: ${c?.blurs?.join(', ') || 'none'}
+- **Transforms**: ${c?.transforms || 'none'}
+- **Filters**: ${c?.filters || 'none'}
 
 ## 💅 Critical CSS (Key Elements)
 \`\`\`css
-${c?.criticalCSS || '/* Run extraction to generate */'}
+${c?.criticalCSS || '/* Capture from page load */'}
 \`\`\`
 
-## 🔍 Computed Styles (Key Elements)
+## 🔍 Computed Styles (Major Elements)
 \`\`\`css
-${c?.computedStyles || '/* Run extraction to generate */'}
+${c?.computedStyles || '/* Extract from browser DevTools */'}
 \`\`\`
 
 ## 📦 Complete HTML Structure
-${h ? `**Stats**: ${h.elementCount} elements, ${h.sectionCount} sections, ${h.depth} levels deep` : ''}
-
+${h ? `**Stats**: ${h.elementCount} elements, ${h.sectionCount} sections, ${h.depth} levels deep
+` : ''}
 \`\`\`html
-${h?.cleanHTML || c?.html || '<!-- Run extraction to generate -->'}
+${h?.cleanHTML || c?.html || '<!-- DOM structure goes here -->'}
 \`\`\`
 
 ## 🎨 Full Extracted CSS
 \`\`\`css
-${c?.css || '/* Run extraction to generate */'}
+${c?.css || '/* All stylesheet rules */'}
 \`\`\`
 
 ## 🔧 Implementation Notes
-${c?.implementationNotes || '• Standard implementation'}
+${c?.implementationNotes || '• Standard modern web implementation\n• Responsive design required\n• Cross-browser compatibility'}
 
 ---
 
-## ✅ Recreation Checklist:
-1. ✅ Exact color palette and gradients
-2. ✅ Precise typography (fonts, sizes, weights, line-heights)
-3. ✅ Accurate spacing system (margins, paddings)
-4. ✅ Layout structure (${c?.layoutType || 'Flexbox/Grid'} patterns)
-5. ✅ All hover states and transitions
-6. ✅ Responsive breakpoints and behavior
-7. ✅ Image aspect ratios and positioning
-8. ✅ Shadow and blur effects
-9. ✅ Animations and transforms
-10. ✅ Component hierarchy and relationships
-11. ✅ Form styling and validation states
-12. ✅ Interactive element feedback
-13. ✅ Icon system (SVGs or icon fonts)
-14. ✅ Loading states and micro-interactions
+## ✅ RECREATION REQUIREMENTS (99% Accuracy)
 
-**Create production-ready code with semantic HTML, modern CSS, and accessible markup. Match the visual design to 90%+ accuracy.**
+### CRITICAL - MUST MATCH EXACTLY:
+
+1. ✅ **Exact Color Palette** - All ${c?.colors?.length || data.colors.length} colors with exact hex/rgb values
+2. ✅ **Precise Typography** - All fonts (${c?.fonts?.length || data.fonts.length}), exact sizes, weights, line-heights, letter-spacing
+3. ✅ **Accurate Spacing** - Exact spacing scale: ${c?.spacing?.slice(0, 10).join(', ') || data.spacing.slice(0, 10).map(s => `${s}px`).join(', ')}
+4. ✅ **Layout Structure** - ${c?.layoutType || 'Flexbox/Grid'} patterns matching computed styles
+5. ✅ **Pseudo-elements** - Include all ::before and ::after decorative elements
+6. ✅ **Interactive States** - Exact :hover, :focus, :active, :disabled styles
+7. ✅ **Responsive Breakpoints** - All media queries with exact behavior
+8. ✅ **Animations** - ${data.scrollAnimations.length} scroll animations, ${c?.animations ? 'keyframes,' : ''} transitions
+9. ✅ **Images & Assets** - ${c?.images?.length || data.assets.length} images, ${c?.svgs?.length || 0} SVGs, ${c?.backgroundImages?.length || 0} backgrounds
+10. ✅ **Shadow & Blur Effects** - Exact box-shadow, text-shadow, filter values
+11. ✅ **Transform Effects** - All translate, rotate, scale, skew values
+12. ✅ **Component Hierarchy** - ${c?.components || 'Navigation, Hero, Sections, Footer'} relationships
+13. ✅ **Form Styling** - Input states, validation, custom controls
+14. ✅ **Z-index & Stacking** - Proper layering and stacking contexts
+15. ✅ **CSS Variables** - Detect and use all custom properties (--variable-name)
+16. ✅ **Modern CSS Features** - clamp(), calc(), min(), max(), aspect-ratio, container queries
+17. ✅ **Accessibility** - ARIA labels, keyboard navigation, focus states
+18. ✅ **Performance** - Lazy loading (${c?.implementationNotes?.includes('lazy') ? 'detected' : 'implement if needed'})
+
+### ADVANCED REQUIREMENTS:
+
+**Pseudo-elements**: Scan CSS for all \`::before\` and \`::after\` rules - these are CRITICAL for icons, decorative elements, and separators.
+
+**Interactive States**: Extract all \`:hover\`, \`:focus\`, \`:active\` rules from stylesheets. Match exact transition durations and easing functions.
+
+**CSS Variables**: Detect usage of \`var(--custom-property)\` and create matching CSS custom properties in your implementation.
+
+**Grid & Flexbox**: Match exact \`grid-template-columns\`, \`grid-gap\`, \`justify-content\`, \`align-items\` values from computed styles.
+
+**Responsive Behavior**: Test at ALL breakpoints. Elements must reflow/resize/hide/show exactly as original.
+
+**Scroll Animations**: 
+${data.scrollAnimations.length > 0 ? data.scrollAnimations.slice(0, 10).map((a, i) => `${i + 1}. ${a.library} on \`${a.element}\`: ${a.animation.properties.join(', ')} (${a.trigger.start} → ${a.trigger.end})`).join('\n') : 'No scroll animations'}
+
+## 🎯 IMPLEMENTATION INSTRUCTIONS:
+
+1. **Start with exact HTML structure** - Copy the semantic markup preserving all IDs, classes, ARIA attributes
+2. **Apply CSS methodically**:
+   - Start with CSS reset/normalize
+   - Add all CSS variables
+   - Import exact fonts
+   - Apply global styles (body, html)
+   - Style each component matching all properties
+   - Add pseudo-elements (::before, ::after)
+   - Implement interactive states (:hover, :focus, :active)
+   - Add animations and transitions
+   - Implement media queries for responsiveness
+3. **Handle Assets**:
+   - ${c?.images?.length || 0} images: Use exact dimensions, object-fit, aspect ratios
+   - ${c?.backgroundImages?.length || 0} backgrounds: Match position, size, repeat
+   - ${c?.svgs?.length || 0} SVGs: Inline or external, match viewBox and paths
+4. **Test Thoroughly**:
+   - Side-by-side comparison with original
+   - All hover/focus states working
+   - Responsive at 320px, 375px, 768px, 1024px, 1920px
+   - Scroll animations triggering correctly
+   - Form validation and interactions
+   - Cross-browser (Chrome, Firefox, Safari, Edge)
+
+## 🚀 EXPECTED OUTPUT:
+
+Production-ready code using:
+- **Semantic HTML5** with proper structure
+- **Modern CSS** (Flexbox, Grid, Custom Properties)
+- **Tailwind CSS** (optional, or vanilla CSS)
+- **Vanilla JavaScript** or framework of choice (React, Vue, Svelte)
+- **Accessibility best practices** (WCAG 2.1 AA minimum)
+- **Performance optimizations** (lazy loading, code splitting, minification)
+
+**Target**: 99% visual fidelity when compared side-by-side with the original.
+
+---
+
+*This extraction captures ${h?.elementCount || 'thousands of'} HTML elements, ${c?.colors?.length || data.colors.length} colors, ${c?.fonts?.length || data.fonts.length} fonts, ${data.scrollAnimations.length} animations, ${c?.images?.length || data.assets.length} assets, and all computed styles for pixel-perfect recreation.*
 `.trim();
 
   // Quick copy options

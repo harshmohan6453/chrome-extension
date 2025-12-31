@@ -29,16 +29,11 @@
     
     try {
       // Check for GSAP ScrollTrigger
-      let ScrollTrigger = null;
-      if (window.ScrollTrigger) {
-        ScrollTrigger = window.ScrollTrigger;
-      } else if (window.gsap?.ScrollTrigger) {
-        ScrollTrigger = window.gsap.ScrollTrigger;
-      }
+      let ScrollTrigger = window.ScrollTrigger || window.gsap?.ScrollTrigger;
       
       if (ScrollTrigger) {
         const triggers = ScrollTrigger.getAll() || [];
-        console.log(`📊 Found ${triggers.length} ScrollTrigger instances in page context`);
+        console.log(`📊 Found ${triggers.length} ScrollTrigger instances`);
         
         triggers.forEach((trigger, index) => {
           try {
@@ -47,20 +42,14 @@
             
             // Extract animated properties safely
             const properties = [];
-            try {
-              if (animation && animation.vars && typeof animation.vars === 'object') {
-                const keys = Object.keys(animation.vars);
-                keys.forEach(key => {
-                  if (key !== 'onComplete' && key !== 'onUpdate' && key !== 'onStart' && key !== 'onReverseComplete') {
-                    properties.push(key);
-                  }
-                });
-              }
-            } catch (err) {
-              console.warn('Could not extract animation properties:', err);
+            if (animation?.vars && typeof animation.vars === 'object') {
+              Object.keys(animation.vars).forEach(key => {
+                if (!['onComplete', 'onUpdate', 'onStart', 'onReverseComplete'].includes(key)) {
+                  properties.push(key);
+                }
+              });
             }
             
-            // Only use serializable data (strings, numbers, booleans)
             animations.push({
               id: `gsap-st-${index}`,
               library: 'gsap-scrolltrigger',
@@ -98,8 +87,8 @@
   window.addEventListener('message', (event) => {
     if (event.data.type === 'DETECT_SCROLL_ANIMATIONS') {
       const animations = detectScrollAnimations();
+      window.__gsapAnimationCache__ = animations;
       
-      // Send back only serializable data
       window.postMessage({
         type: 'SCROLL_ANIMATIONS_DETECTED',
         animations: animations
@@ -111,71 +100,115 @@
       const { animationId, action, value } = event.data;
       
       try {
-        // Handle GSAP animations
+        // Handle GSAP ScrollTrigger animations
         if (animationId.startsWith('gsap-st-')) {
-          let ScrollTrigger = window.ScrollTrigger || window.gsap?.ScrollTrigger;
-          if (!ScrollTrigger) return;
-          
-          const triggers = ScrollTrigger.getAll() || [];
           const index = parseInt(animationId.replace('gsap-st-', ''));
-          const trigger = triggers[index];
+          const storedAnimations = window.__gsapAnimationCache__ || [];
+          const animData = storedAnimations[index];
           
-          if (!trigger) {
-            console.warn('Trigger not found:', animationId);
+          if (!animData) {
+            console.warn('❌ Animation data not found for:', animationId);
             return;
           }
           
-          switch (action) {
-            case 'restart':
-              // Restart the animation by refreshing the trigger
-              trigger.refresh();
-              if (trigger.animation) {
+          const targetSelector = animData.trigger?.element;
+          let targetElement = null;
+          
+          // Find the target element
+          try {
+            if (targetSelector) {
+              targetElement = document.querySelector(targetSelector);
+            }
+          } catch (e) {
+            console.warn('Selector failed:', targetSelector);
+          }
+          
+          // scrollTo: Just scroll to the element
+          if (action === 'scrollTo') {
+            if (targetElement) {
+              targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              console.log('📜 Scrolled to:', targetSelector);
+            } else {
+              console.warn('❌ Element not found:', targetSelector);
+            }
+            return;
+          }
+          
+          // For restart/setProgress: Find the GSAP trigger
+          const ScrollTrigger = window.ScrollTrigger || window.gsap?.ScrollTrigger;
+          if (!ScrollTrigger) {
+            console.warn('ScrollTrigger not available');
+            return;
+          }
+          
+          const triggers = ScrollTrigger.getAll() || [];
+          let trigger = null;
+          
+          // Find trigger by matching element
+          if (targetElement) {
+            trigger = triggers.find(t => t.trigger === targetElement);
+          }
+          
+          // Fallback: try index if element match failed
+          if (!trigger && triggers[index]) {
+            trigger = triggers[index];
+          }
+          
+          if (action === 'restart') {
+            if (targetElement) {
+              // Scroll element into view first
+              targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+            
+            // Wait for scroll, then restart animation
+            setTimeout(() => {
+              if (trigger?.animation) {
+                trigger.animation.progress(0);
                 trigger.animation.restart();
+                console.log('🔄 Restarted animation');
+              } else if (targetElement) {
+                // No trigger found - try scrolling away and back to re-trigger
+                const rect = targetElement.getBoundingClientRect();
+                const scrollBack = window.scrollY;
+                window.scrollTo({ top: Math.max(0, scrollBack - window.innerHeight), behavior: 'instant' });
+                setTimeout(() => {
+                  targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  console.log('🔄 Re-triggered via scroll');
+                }, 100);
               }
-              console.log('🔄 Restarted animation:', animationId);
-              break;
-              
-            case 'play':
-              // Play the animation (set progress to 1)
-              if (trigger.animation) {
-                trigger.animation.play();
-              }
-              console.log('▶️ Playing animation:', animationId);
-              break;
-              
-            case 'setProgress':
-              // Set animation progress (0-1)
-              if (trigger.animation) {
-                trigger.animation.progress(value);
-              }
-              console.log(`⏩ Set progress to ${value * 100}%:`, animationId);
-              break;
-              
-            case 'scrollTo':
-              // Scroll to trigger position
-              const scrollY = trigger.start;
-              window.scrollTo({
-                top: scrollY,
-                behavior: 'smooth'
-              });
-              console.log('📜 Scrolled to trigger:', animationId);
-              break;
+            }, 400);
+            return;
+          }
+          
+          if (action === 'setProgress') {
+            if (trigger?.animation) {
+              trigger.animation.progress(value);
+              console.log(`⏩ Set progress to ${Math.round(value * 100)}%`);
+            }
+            return;
+          }
+          
+          if (action === 'play') {
+            if (trigger?.animation) {
+              trigger.animation.play();
+              console.log('▶️ Playing animation');
+            }
+            return;
           }
         }
-        // Handle CSS animations (css-scroll-timeline, regular CSS animations)
-        else if (animationId.startsWith('css-scroll-')) {
-          // Find the element by parsing the animation ID
+        
+        // Handle CSS scroll-timeline animations
+        if (animationId.startsWith('css-scroll-')) {
           const index = parseInt(animationId.replace('css-scroll-', ''));
-          const elements = document.querySelectorAll('*');
           let targetElement = null;
           let currentIndex = 0;
           
           // Find element with animation-timeline
-          for (const el of elements) {
+          for (const el of document.querySelectorAll('*')) {
             const computed = window.getComputedStyle(el);
-            const animationTimeline = computed.animationTimeline;
+            const timeline = computed.animationTimeline;
             
-            if (animationTimeline && animationTimeline !== 'auto' && animationTimeline !== 'none') {
+            if (timeline && timeline !== 'auto' && timeline !== 'none') {
               if (currentIndex === index) {
                 targetElement = el;
                 break;
@@ -189,34 +222,24 @@
             return;
           }
           
-          // Use Web Animations API to control CSS animations
           const animations = targetElement.getAnimations();
           
-          if (animations.length === 0) {
-            console.warn('No animations found on element:', animationId);
-            return;
+          if (action === 'restart') {
+            animations.forEach(anim => {
+              anim.cancel();
+              anim.play();
+            });
+            console.log('🔄 Restarted CSS animation');
           }
           
-          switch (action) {
-            case 'restart':
-              // Restart CSS animation
-              animations.forEach(anim => {
-                anim.cancel();
-                anim.play();
-              });
-              console.log('🔄 Restarted CSS animation:', animationId);
-              break;
-              
-            case 'setProgress':
-              // Set animation progress using currentTime
-              animations.forEach(anim => {
-                if (anim.effect && anim.effect.getTiming().duration !== 'auto') {
-                  const duration = anim.effect.getTiming().duration;
-                  anim.currentTime = duration * value;
-                }
-              });
-              console.log(`⏩ Set CSS animation progress to ${value * 100}%:`, animationId);
-              break;
+          if (action === 'setProgress') {
+            animations.forEach(anim => {
+              if (anim.effect?.getTiming().duration !== 'auto') {
+                const duration = anim.effect.getTiming().duration;
+                anim.currentTime = duration * value;
+              }
+            });
+            console.log(`⏩ Set CSS animation progress to ${Math.round(value * 100)}%`);
           }
         }
       } catch (err) {

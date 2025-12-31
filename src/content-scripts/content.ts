@@ -92,22 +92,43 @@ chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
       }
       
       if (element) {
+        // Show immediate highlight before scroll for instant feedback
+        const rect = element.getBoundingClientRect();
+        const instantHighlight = document.createElement('div');
+        instantHighlight.style.cssText = `
+          position: fixed;
+          top: ${rect.top}px;
+          left: ${rect.left}px;
+          width: ${rect.width}px;
+          height: ${rect.height}px;
+          border: 3px solid #3b82f6;
+          background: rgba(59, 130, 246, 0.1);
+          pointer-events: none;
+          z-index: 999999;
+          box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
+          transition: all 0.3s ease;
+        `;
+        document.body.appendChild(instantHighlight);
+        
         // Scroll element into view
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         
-        // Wait for scroll to complete before highlighting
+        // Update highlight position after scroll completes (reduced from 800ms to 300ms)
         setTimeout(() => {
           if (!element) return;
           
+          // Remove old highlight
+          instantHighlight.remove();
+          
           // Recalculate position after scroll
-          const rect = element.getBoundingClientRect();
+          const newRect = element.getBoundingClientRect();
           const highlight = document.createElement('div');
           highlight.style.cssText = `
             position: fixed;
-            top: ${rect.top}px;
-            left: ${rect.left}px;
-            width: ${rect.width}px;
-            height: ${rect.height}px;
+            top: ${newRect.top}px;
+            left: ${newRect.left}px;
+            width: ${newRect.width}px;
+            height: ${newRect.height}px;
             border: 3px solid #3b82f6;
             background: rgba(59, 130, 246, 0.1);
             pointer-events: none;
@@ -127,7 +148,7 @@ chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
             highlight.style.opacity = '0';
             setTimeout(() => highlight.remove(), 300);
           }, 3000);
-        }, 800); // Wait 800ms for smooth scroll to complete
+        }, 300); // Reduced from 800ms to 300ms
         
         sendResponse({ status: 'highlighted', selector: request.selector });
       } else {

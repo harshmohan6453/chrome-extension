@@ -111,118 +111,116 @@
       const { animationId, action, value } = event.data;
       
       try {
-        let ScrollTrigger = window.ScrollTrigger || window.gsap?.ScrollTrigger;
-        if (!ScrollTrigger) return;
-        
-        const triggers = ScrollTrigger.getAll() || [];
-        const index = parseInt(animationId.replace('gsap-st-', ''));
-        const trigger = triggers[index];
-        
-        if (!trigger) {
-          console.warn('Trigger not found:', animationId);
-          return;
-        }
-        
-        switch (action) {
-          case 'restart':
-            // Restart the animation by refreshing the trigger
-            trigger.refresh();
-            if (trigger.animation) {
-              trigger.animation.restart();
-            }
-            console.log('🔄 Restarted animation:', animationId);
-            break;
-            
-          case 'play':
-            // Play the animation (set progress to 1)
-            if (trigger.animation) {
-              trigger.animation.play();
-            }
-            console.log('▶️ Playing animation:', animationId);
-            break;
-            
-          case 'setProgress':
-            // Set animation progress (0-1)
-            if (trigger.animation) {
-              trigger.animation.progress(value);
-            }
-            console.log(`⏩ Set progress to ${value * 100}%:`, animationId);
-            break;
-            
-          case 'scrollTo':
-            // Scroll to trigger position
-            const scrollY = trigger.start;
-            window.scrollTo({
-              top: scrollY,
-              behavior: 'smooth'
-            });
-            console.log('📜 Scrolled to trigger:', animationId);
-            break;
-        }
-      } catch (err) {
-        console.error('Error controlling GSAP animation:', err);
-      }
-    }
-    
-    // Control CSS animations (css-scroll-timeline, regular CSS animations)
-    if (event.data.type === 'CONTROL_ANIMATION' && animationId.startsWith('css-scroll-')) {
-      try {
-        // Find the element by parsing the animation ID
-        const index = parseInt(animationId.replace('css-scroll-', ''));
-        const elements = document.querySelectorAll('*');
-        let targetElement = null;
-        let currentIndex = 0;
-        
-        // Find element with animation-timeline
-        for (const el of elements) {
-          const computed = window.getComputedStyle(el);
-          const animationTimeline = computed.animationTimeline;
+        // Handle GSAP animations
+        if (animationId.startsWith('gsap-st-')) {
+          let ScrollTrigger = window.ScrollTrigger || window.gsap?.ScrollTrigger;
+          if (!ScrollTrigger) return;
           
-          if (animationTimeline && animationTimeline !== 'auto' && animationTimeline !== 'none') {
-            if (currentIndex === index) {
-              targetElement = el;
+          const triggers = ScrollTrigger.getAll() || [];
+          const index = parseInt(animationId.replace('gsap-st-', ''));
+          const trigger = triggers[index];
+          
+          if (!trigger) {
+            console.warn('Trigger not found:', animationId);
+            return;
+          }
+          
+          switch (action) {
+            case 'restart':
+              // Restart the animation by refreshing the trigger
+              trigger.refresh();
+              if (trigger.animation) {
+                trigger.animation.restart();
+              }
+              console.log('🔄 Restarted animation:', animationId);
               break;
-            }
-            currentIndex++;
+              
+            case 'play':
+              // Play the animation (set progress to 1)
+              if (trigger.animation) {
+                trigger.animation.play();
+              }
+              console.log('▶️ Playing animation:', animationId);
+              break;
+              
+            case 'setProgress':
+              // Set animation progress (0-1)
+              if (trigger.animation) {
+                trigger.animation.progress(value);
+              }
+              console.log(`⏩ Set progress to ${value * 100}%:`, animationId);
+              break;
+              
+            case 'scrollTo':
+              // Scroll to trigger position
+              const scrollY = trigger.start;
+              window.scrollTo({
+                top: scrollY,
+                behavior: 'smooth'
+              });
+              console.log('📜 Scrolled to trigger:', animationId);
+              break;
           }
         }
-        
-        if (!targetElement) {
-          console.warn('CSS animation element not found:', animationId);
-          return;
-        }
-        
-        // Use Web Animations API to control CSS animations
-        const animations = targetElement.getAnimations();
-        
-        if (animations.length === 0) {
-          console.warn('No animations found on element:', animationId);
-          return;
-        }
-        
-        switch (action) {
-          case 'restart':
-            // Restart CSS animation
-            animations.forEach(anim => {
-              anim.cancel();
-              anim.play();
-            });
-            console.log('🔄 Restarted CSS animation:', animationId);
-            break;
+        // Handle CSS animations (css-scroll-timeline, regular CSS animations)
+        else if (animationId.startsWith('css-scroll-')) {
+          // Find the element by parsing the animation ID
+          const index = parseInt(animationId.replace('css-scroll-', ''));
+          const elements = document.querySelectorAll('*');
+          let targetElement = null;
+          let currentIndex = 0;
+          
+          // Find element with animation-timeline
+          for (const el of elements) {
+            const computed = window.getComputedStyle(el);
+            const animationTimeline = computed.animationTimeline;
             
-          case 'setProgress':
-            // Set animation progress using currentTime
-            animations.forEach(anim => {
-              if (anim.effect && anim.effect.getTiming().duration !== 'auto') {
-                const duration = anim.effect.getTiming().duration;
-                anim.currentTime = duration * value;
+            if (animationTimeline && animationTimeline !== 'auto' && animationTimeline !== 'none') {
+              if (currentIndex === index) {
+                targetElement = el;
+                break;
               }
-            });
-            console.log(`⏩ Set CSS animation progress to ${value * 100}%:`, animationId);
-            break;
+              currentIndex++;
+            }
+          }
+          
+          if (!targetElement) {
+            console.warn('CSS animation element not found:', animationId);
+            return;
+          }
+          
+          // Use Web Animations API to control CSS animations
+          const animations = targetElement.getAnimations();
+          
+          if (animations.length === 0) {
+            console.warn('No animations found on element:', animationId);
+            return;
+          }
+          
+          switch (action) {
+            case 'restart':
+              // Restart CSS animation
+              animations.forEach(anim => {
+                anim.cancel();
+                anim.play();
+              });
+              console.log('🔄 Restarted CSS animation:', animationId);
+              break;
+              
+            case 'setProgress':
+              // Set animation progress using currentTime
+              animations.forEach(anim => {
+                if (anim.effect && anim.effect.getTiming().duration !== 'auto') {
+                  const duration = anim.effect.getTiming().duration;
+                  anim.currentTime = duration * value;
+                }
+              });
+              console.log(`⏩ Set CSS animation progress to ${value * 100}%:`, animationId);
+              break;
+          }
         }
       } catch (err) {
-        console.error('Error controlling CSS animation:', err);
+        console.error('Error controlling animation:', err);
       }
     }
   });

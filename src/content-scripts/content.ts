@@ -58,13 +58,47 @@ chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
   if (request.action === 'HIGHLIGHT_ELEMENT') {
     // Highlight the element on the page
     try {
-      const element = document.querySelector(request.selector);
+      let element: Element | null = null;
+      
+      // Try multiple strategies to find the element
+      try {
+        // Strategy 1: Direct querySelector
+        element = document.querySelector(request.selector);
+      } catch (e) {
+        console.warn('Direct querySelector failed, trying alternatives:', e);
+      }
+      
+      // Strategy 2: If selector is an ID, try getElementById
+      if (!element && request.selector.startsWith('#')) {
+        const id = request.selector.slice(1);
+        element = document.getElementById(id);
+      }
+      
+      // Strategy 3: If selector is a class, try getElementsByClassName
+      if (!element && request.selector.startsWith('.')) {
+        const className = request.selector.slice(1).split('.')[0];
+        const elements = document.getElementsByClassName(className);
+        if (elements.length > 0) {
+          element = elements[0];
+        }
+      }
+      
+      // Strategy 4: Try as tag name
+      if (!element) {
+        const elements = document.getElementsByTagName(request.selector);
+        if (elements.length > 0) {
+          element = elements[0];
+        }
+      }
+      
       if (element) {
         // Scroll element into view
         element.scrollIntoView({ behavior: 'smooth', block: 'center' });
         
         // Wait for scroll to complete before highlighting
         setTimeout(() => {
+          if (!element) return;
+          
           // Recalculate position after scroll
           const rect = element.getBoundingClientRect();
           const highlight = document.createElement('div');
@@ -95,13 +129,14 @@ chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
           }, 3000);
         }, 800); // Wait 800ms for smooth scroll to complete
         
-        sendResponse({ status: 'highlighted' });
+        sendResponse({ status: 'highlighted', selector: request.selector });
       } else {
-        sendResponse({ status: 'not_found' });
+        console.warn('Element not found with any strategy:', request.selector);
+        sendResponse({ status: 'not_found', selector: request.selector });
       }
     } catch (err) {
       console.error('Error highlighting element:', err);
-      sendResponse({ status: 'error' });
+      sendResponse({ status: 'error', error: String(err) });
     }
     return true;
   }

@@ -627,8 +627,8 @@ height: ${rect.height}px;
         <div style="display: flex; gap: 8px; align-items: center;">
             <span style="font-weight: 700; font-size: 14px; text-transform: lowercase; color: #64748b;">&lt;${el.tagName.toLowerCase()}&gt;</span>
             <div style="display: flex; gap: 4px;">
-                <button id="di-copy-css" style="background: #e2e8f0; border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; cursor: pointer; color: #475569; display: flex; align-items: center; gap: 4px; transition: all 0.2s;">
-                    CSS
+                <button id="di-copy-css" style="background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%); border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; cursor: pointer; color: white; display: flex; align-items: center; gap: 4px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);">
+                    📋 CSS
                 </button>
                 <button id="di-gen-prompt" style="background: linear-gradient(135deg, #7c3aed 0%, #db2777 100%); border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; cursor: pointer; color: white; display: flex; align-items: center; gap: 4px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);">
                     ✨ PROMPT
@@ -636,7 +636,7 @@ height: ${rect.height}px;
             </div>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
-            <label style="display: flex; align-items: center; gap: 4px; font-size: 10px; color: #64748b; cursor: pointer;" title="Toggle continuous inspection on hover">
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; color: #64748b; cursor: pointer; font-weight: 600;" title="Toggle continuous inspection on hover">
                  <input type="checkbox" id="di-hover-toggle" style="accent-color: #7c3aed;">
                  Hover
             </label>
@@ -695,9 +695,20 @@ height: ${rect.height}px;
 
     // Listeners for Card Controls
     this.detailCard.querySelector('#di-close-btn')?.addEventListener('click', () => {
-        this.detailCard.style.display = 'none';
-        this.selectedElement = null; // Deselect on close
-        this.guides.innerHTML = '';
+        // Hide detail card
+        if (this.detailCard) {
+            this.detailCard.style.display = 'none';
+        }
+        // Clear selection
+        this.selectedElement = null;
+        // Remove guides
+        if (this.guides) {
+            this.guides.innerHTML = '';
+        }
+        // Remove overlay
+        if (this.overlay) {
+            this.overlay.style.display = 'none';
+        }
     });
 
     const hoverToggle = this.detailCard.querySelector('#di-hover-toggle') as HTMLInputElement;

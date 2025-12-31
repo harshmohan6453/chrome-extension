@@ -49,9 +49,10 @@ export default function App() {
                 spacing: response.spacing || [],
                 technologies: response.technologies || [],
                 assets: response.assets || [],
-                // Heavy extractors are lazy loaded
-                scrollAnimations: [],
-                redFlags: [],
+                scrollAnimations: response.scrollAnimations || [],
+                redFlags: [], // Only red flags are lazy loaded
+                htmlStructure: response.htmlStructure,
+                siteCloneData: response.siteCloneData,
                 meta: response.meta
                 });
             } else {
@@ -80,6 +81,20 @@ export default function App() {
 
   useEffect(() => {
     fetchData();
+    
+    // Listen for delayed scroll animation updates
+    const messageListener = (message: any) => {
+      if (message.action === 'SCROLL_ANIMATIONS_UPDATED') {
+        console.log('📨 Received delayed scroll animations update');
+        setData({ scrollAnimations: message.scrollAnimations });
+      }
+    };
+    
+    chrome.runtime.onMessage.addListener(messageListener);
+    
+    return () => {
+      chrome.runtime.onMessage.removeListener(messageListener);
+    };
   }, []);
 
   const toggleInspector = async () => {

@@ -87,6 +87,43 @@ export interface InspectionData {
   assets: AssetData[];
   scrollAnimations: ScrollAnimationData[];
   redFlags: RedFlag[];
+  htmlStructure?: {
+    cleanHTML: string;
+    sectionCount: number;
+    depth: number;
+    elementCount: number;
+  };
+  siteCloneData?: {
+    metadata: { title: string; viewport: string; url: string; favicon: string; charset: string };
+    html: string;
+    structure: string;
+    components: string;
+    css: string;
+    criticalCSS: string;
+    computedStyles: string;
+    colors: { color: string; count: number }[];
+    fonts: { family: string; weights: string[] }[];
+    spacing: string[];
+    layoutType: string;
+    containerWidth: string;
+    gridSystem: string;
+    shadows: string[];
+    blurs: string[];
+    transforms: string;
+    filters: string;
+    animations: string;
+    images: { src: string; alt: string; width: number; height: number }[];
+    videos: string[];
+    svgs: { desc: string; code: string }[];
+    externalFonts: string[];
+    externalCSS: string[];
+    scripts: string[];
+    interactive: string;
+    forms: string;
+    jsFeatures: string;
+    breakpoints: string;
+    implementationNotes: string;
+  };
   meta: {
     title: string;
     description: string;

@@ -1,12 +1,39 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useStore, ScrollAnimationData } from '../../store';
 import { ChevronDown, ChevronUp, Eye, Code } from 'lucide-react';
 
 const ScrollInspectorPanel = () => {
   const scrollAnimations = useStore(state => state.data.scrollAnimations);
+  const { scrollAnimationsLoaded, setScrollAnimationsLoaded, setData } = useStore();
   const [selectedLibrary, setSelectedLibrary] = useState<string>('all');
   const [expandedAnimations, setExpandedAnimations] = useState<Set<string>>(new Set());
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  // Fetch scroll animations on first mount if not loaded
+  useEffect(() => {
+    if (!scrollAnimationsLoaded && !loading) {
+      fetchScrollAnimations();
+    }
+  }, [scrollAnimationsLoaded, loading]);
+
+  const fetchScrollAnimations = async () => {
+    setLoading(true);
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.id) {
+        const response = await chrome.tabs.sendMessage(tab.id, { action: 'GET_SCROLL_ANIMATIONS' });
+        if (response?.scrollAnimations !== undefined) {
+          setData({ scrollAnimations: response.scrollAnimations });
+          setScrollAnimationsLoaded(true);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch scroll animations:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Get unique libraries
   const libraries = Array.from(new Set(scrollAnimations.map(anim => anim.library)));
@@ -152,6 +179,25 @@ observer.observe(document.querySelector('${animation.element}'));`;
       }
     });
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="p-6 text-center">
+        <div className="relative w-16 h-16 mx-auto mb-4">
+          <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse"></div>
+          <div className="relative bg-card p-3 rounded-2xl shadow-lg flex items-center justify-center border border-border/50">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        </div>
+        <h3 className="text-lg font-bold text-gray-900 mb-2">Detecting Animations...</h3>
+        <p className="text-sm text-gray-600">
+          Scanning for GSAP, Framer Motion, AOS, and other scroll libraries.
+        </p>
+        <p className="text-xs text-gray-400 mt-2">This may take a few seconds...</p>
+      </div>
+    );
+  }
 
   if (scrollAnimations.length === 0) {
     return (

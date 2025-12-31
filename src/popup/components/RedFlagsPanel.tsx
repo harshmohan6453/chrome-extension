@@ -1,10 +1,37 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AlertTriangle, XCircle, Info, AlertCircle, Download } from 'lucide-react';
 import { useStore } from '../../store';
 import type { RedFlag } from '../../store';
 
 export default function RedFlagsPanel() {
   const { redFlags } = useStore((state) => state.data);
+  const { redFlagsLoaded, setRedFlagsLoaded, setData } = useStore();
+  const [loading, setLoading] = useState(false);
+
+  // Fetch red flags on first mount if not loaded
+  useEffect(() => {
+    if (!redFlagsLoaded && !loading) {
+      fetchRedFlags();
+    }
+  }, [redFlagsLoaded, loading]);
+
+  const fetchRedFlags = async () => {
+    setLoading(true);
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.id) {
+        const response = await chrome.tabs.sendMessage(tab.id, { action: 'GET_RED_FLAGS' });
+        if (response?.redFlags) {
+          setData({ redFlags: response.redFlags });
+          setRedFlagsLoaded(true);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to fetch red flags:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Group flags by category
   const flagsByCategory = {
@@ -293,6 +320,24 @@ export default function RedFlagsPanel() {
       </div>
     );
   };
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="p-6 text-center">
+        <div className="relative w-16 h-16 mx-auto mb-4">
+          <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse"></div>
+          <div className="relative bg-card p-3 rounded-2xl shadow-lg flex items-center justify-center border border-border/50">
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        </div>
+        <h3 className="text-lg font-bold text-gray-900 mb-2">Analyzing Page...</h3>
+        <p className="text-sm text-gray-600">
+          Detecting SEO, UX, and accessibility issues.
+        </p>
+      </div>
+    );
+  }
 
   if (redFlags.length === 0) {
     return (

@@ -121,7 +121,37 @@ chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
     const spacing = detectSpacingSystem();
     const technologies = extractTechnologies();
     const assets = extractAssets();
+    
+    // Send response immediately without heavy extractors
+    sendResponse({
+      fonts,
+      colors,
+      spacing,
+      technologies,
+      assets,
+      scrollAnimations: [], // Lazy loaded
+      redFlags: [], // Lazy loaded
+      meta: {
+        title: document.title,
+        url: window.location.href,
+        description: document.querySelector('meta[name="description"]')?.getAttribute('content') || ''
+      }
+    });
+    
+    return true;
+  }
+
+  // Lazy load Red Flags
+  if (request.action === 'GET_RED_FLAGS') {
+    console.log('🚩 Loading red flags on demand...');
     const redFlags = detectRedFlags();
+    sendResponse({ redFlags });
+    return true;
+  }
+
+  // Lazy load Scroll Animations
+  if (request.action === 'GET_SCROLL_ANIMATIONS') {
+    console.log('📜 Loading scroll animations on demand...');
     
     // Request scroll animations from page context (can access window.ScrollTrigger)
     window.postMessage({ type: 'DETECT_SCROLL_ANIMATIONS' }, '*');
@@ -147,10 +177,7 @@ chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
               
             if (retryAnimations.length > 0) {
               console.log('✅ Found animations after 2s delay!');
-              chrome.runtime.sendMessage({
-                action: 'SCROLL_ANIMATIONS_UPDATED',
-                scrollAnimations: retryAnimations
-              }).catch(() => {});
+              sendResponse({ scrollAnimations: retryAnimations });
             } else {
               // Second retry after 4 seconds total
               setTimeout(() => {
@@ -163,34 +190,19 @@ chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
                     
                   if (finalRetry.length > 0) {
                     console.log('✅ Found animations after 4s delay!');
-                    chrome.runtime.sendMessage({
-                      action: 'SCROLL_ANIMATIONS_UPDATED',
-                      scrollAnimations: finalRetry
-                    }).catch(() => {});
                   } else {
                     console.log('ℹ️ No scroll animations detected after multiple retries');
                   }
+                  
+                  sendResponse({ scrollAnimations: finalRetry });
                 }, 200);
               }, 2000);
             }
           }, 200);
         }, 2000);
+      } else {
+        sendResponse({ scrollAnimations });
       }
-      
-      sendResponse({
-        fonts,
-        colors,
-        spacing,
-        technologies,
-        assets,
-        scrollAnimations,
-        redFlags,
-        meta: {
-          title: document.title,
-          url: window.location.href,
-          description: document.querySelector('meta[name="description"]')?.getAttribute('content') || ''
-        }
-      });
     }, 500); // Initial wait for page context to respond
     
     return true; // Keep channel open for async response

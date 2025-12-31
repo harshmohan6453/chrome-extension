@@ -103,9 +103,13 @@ interface AppState {
   isInspecting: boolean;
   data: InspectionData;
   preferences: UserPreferences;
+  redFlagsLoaded: boolean;
+  scrollAnimationsLoaded: boolean;
   setInspecting: (isInspecting: boolean) => void;
   setData: (data: Partial<InspectionData>) => void;
   setPreferences: (prefs: Partial<UserPreferences>) => void;
+  setRedFlagsLoaded: (loaded: boolean) => void;
+  setScrollAnimationsLoaded: (loaded: boolean) => void;
   reset: () => void;
 }
 
@@ -133,8 +137,12 @@ export const useStore = create<AppState>((set) => ({
   isInspecting: false,
   data: initialData,
   preferences: initialPreferences,
+  redFlagsLoaded: false,
+  scrollAnimationsLoaded: false,
   setInspecting: (isInspecting) => set({ isInspecting }),
   setData: (newData) => set((state) => ({ data: { ...state.data, ...newData } })),
   setPreferences: (newPrefs) => set((state) => ({ preferences: { ...state.preferences, ...newPrefs } })),
-  reset: () => set({ data: initialData, isInspecting: false }),
+  setRedFlagsLoaded: (loaded) => set({ redFlagsLoaded: loaded }),
+  setScrollAnimationsLoaded: (loaded) => set({ scrollAnimationsLoaded: loaded }),
+  reset: () => set({ data: initialData, isInspecting: false, redFlagsLoaded: false, scrollAnimationsLoaded: false }),
 }));

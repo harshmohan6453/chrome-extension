@@ -14,6 +14,53 @@ import FlowsPanel from './components/FlowsPanel';
 
 type Tab = 'overview' | 'typography' | 'colors' | 'assets' | 'spacing' | 'scroll' | 'redflags' | 'flows' | 'prompt' | 'settings';
 
+// Helper function to aggregate fonts by family
+const aggregateFonts = (rawFonts: any[]): import('../store').FontData[] => {
+  const fontFamilies = new Map<string, any>();
+
+  rawFonts.forEach((font: any) => {
+    if (!fontFamilies.has(font.family)) {
+      fontFamilies.set(font.family, {
+        family: font.family,
+        source: font.source || 'unknown',
+        variants: new Map<string, any>(),
+        elementCount: 0,
+      });
+    }
+
+    const familyData = fontFamilies.get(font.family);
+    const variantKey = `${font.weight}-${font.style}`;
+
+    if (!familyData.variants.has(variantKey)) {
+      familyData.variants.set(variantKey, {
+        weight: font.weight,
+        style: font.style || 'normal',
+        sizes: [],
+      });
+    }
+
+    const variantData = familyData.variants.get(variantKey);
+    const sizeKey = `${font.size}-${font.lineHeight}`;
+
+    // Avoid duplicate sizes
+    if (!variantData.sizes.some((s: any) => `${s.value}-${s.lineHeight}` === sizeKey)) {
+      variantData.sizes.push({
+        value: font.size,
+        lineHeight: font.lineHeight,
+      });
+    }
+
+    familyData.elementCount++;
+  });
+
+  return Array.from(fontFamilies.values()).map(family => ({
+    family: family.family,
+    source: family.source as 'google' | 'adobe' | 'system' | 'custom' | 'unknown',
+    variants: Array.from(family.variants.values()) as import('../store').FontVariant[],
+    elementCount: family.elementCount,
+  }));
+};
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const { data, setData, isInspecting, setInspecting } = useStore();
@@ -43,7 +90,7 @@ export default function App() {
             const response = await chrome.tabs.sendMessage(tab.id, { action: 'GET_PAGE_DATA' });
             if (response) {
                 setData({
-                fonts: response.fonts.map((f: any) => ({ family: f.family, variants: [f.weight], sizes: [f.size], count: 1 })),
+                fonts: aggregateFonts(response.fonts || []),
                 colors: response.colors.map((c: any) => ({ hex: c.hex, rgb: c.rgba, hsl: '', type: c.type || 'auto', role: c.role, count: c.usageCount })),
                 spacing: response.spacing || [],
                 assets: response.assets || [],

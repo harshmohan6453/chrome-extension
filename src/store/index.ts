@@ -1,10 +1,21 @@
 import { create } from 'zustand';
 
+export interface FontSizeData {
+  value: string;
+  lineHeight: string;
+}
+
+export interface FontVariant {
+  weight: string;
+  style: 'normal' | 'italic';
+  sizes: FontSizeData[];
+}
+
 export interface FontData {
   family: string;
-  variants: string[];
-  sizes: string[];
-  count: number;
+  variants: FontVariant[];
+  source: 'google' | 'adobe' | 'system' | 'custom' | 'unknown';
+  elementCount: number;
 }
 
 export interface ColorData {

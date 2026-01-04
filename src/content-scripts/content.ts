@@ -172,6 +172,94 @@ chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
     sendResponse({ status: 'ok' });
   }
 
+  if (request.action === 'HIGHLIGHT_FONT') {
+    // Highlight all elements using a specific font family
+    try {
+      const targetFont = request.fontFamily.toLowerCase();
+      const elements = document.querySelectorAll('*');
+      const matchingElements: HTMLElement[] = [];
+
+      // Find all elements using this font
+      elements.forEach((el) => {
+        const computed = window.getComputedStyle(el as HTMLElement);
+        const fontFamily = computed.fontFamily.toLowerCase();
+
+        // Check if the target font is in the font-family stack
+        if (fontFamily.includes(targetFont.toLowerCase())) {
+          matchingElements.push(el as HTMLElement);
+        }
+      });
+
+      console.log(`Found ${matchingElements.length} elements using font "${request.fontFamily}"`);
+
+      if (matchingElements.length === 0) {
+        sendResponse({ status: 'not_found', count: 0 });
+        return true;
+      }
+
+      // Create highlight overlays for all matching elements
+      const highlights: HTMLElement[] = [];
+
+      matchingElements.forEach((el) => {
+        const rect = el.getBoundingClientRect();
+
+        // Skip elements that are too small or invisible
+        if (rect.width < 5 || rect.height < 5) return;
+
+        const highlight = document.createElement('div');
+        highlight.style.cssText = `
+          position: fixed;
+          top: ${rect.top}px;
+          left: ${rect.left}px;
+          width: ${rect.width}px;
+          height: ${rect.height}px;
+          border: 2px solid #a855f7;
+          background: rgba(168, 85, 247, 0.1);
+          pointer-events: none;
+          z-index: 999998;
+          box-shadow: 0 0 0 2px rgba(168, 85, 247, 0.2);
+          transition: all 0.3s ease;
+          animation: fontHighlightPulse 2s ease-in-out infinite;
+        `;
+
+        document.body.appendChild(highlight);
+        highlights.push(highlight);
+      });
+
+      // Add CSS animation if not already present
+      if (!document.getElementById('font-highlight-animation')) {
+        const style = document.createElement('style');
+        style.id = 'font-highlight-animation';
+        style.textContent = `
+          @keyframes fontHighlightPulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+          }
+        `;
+        document.head.appendChild(style);
+      }
+
+      // Scroll to first element
+      if (matchingElements[0]) {
+        matchingElements[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+
+      // Remove highlights after 5 seconds
+      setTimeout(() => {
+        highlights.forEach(h => {
+          h.style.opacity = '0';
+          setTimeout(() => h.remove(), 300);
+        });
+      }, 5000);
+
+      sendResponse({ status: 'highlighted', count: matchingElements.length });
+    } catch (err) {
+      console.error('Error highlighting font:', err);
+      sendResponse({ status: 'error', error: String(err) });
+    }
+    return true;
+  }
+
   // Lazy load Red Flags
   if (request.action === 'GET_RED_FLAGS') {
     console.log('🚩 Loading red flags on demand...');

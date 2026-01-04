@@ -4,67 +4,69 @@
 
 @layer base {
   :root {
-    /* Playful Modern Palette */
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
+    /* PostHog-Inspired Neubrutalism Palette */
+    --background: 40 22% 91%;       /* Warm beige #EEEBE4 */
+    --foreground: 220 20% 10%;      /* Dark charcoal #151515 */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    --card: 0 0% 100%;              /* Pure white */
+    --card-foreground: 220 20% 10%;
  
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 220 20% 10%;
  
-    /* Vibrant Violet Primary */
-    --primary: 260 100% 65%;
+    /* Vibrant PostHog Orange */
+    --primary: 18 100% 48%;         /* #F54E00 */
     --primary-foreground: 0 0% 100%;
  
-    --secondary: 255 100% 97%;
-    --secondary-foreground: 260 40% 40%;
+    --secondary: 40 25% 96%;        /* Light cream */
+    --secondary-foreground: 220 20% 25%;
  
-    --muted: 215 16% 90%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 40 15% 85%;
+    --muted-foreground: 220 10% 45%;
  
-    --accent: 290 100% 95%;
-    --accent-foreground: 290 60% 40%;
+    /* Yellow accent for highlights */
+    --accent: 48 96% 53%;           /* #FDC931 */
+    --accent-foreground: 220 20% 10%;
  
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 260 100% 65%;
+    /* Strong borders for neubrutalism */
+    --border: 220 15% 25%;          /* Dark borders */
+    --input: 220 15% 85%;
+    --ring: 18 100% 48%;
  
-    --radius: 1rem;
+    --radius: 0.5rem;               /* Slightly smaller radius */
   }
  
   .dark {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 98%;
+    --background: 220 25% 10%;      /* Deep charcoal */
+    --foreground: 40 22% 91%;       /* Warm beige text */
  
-    --card: 217 33% 17%;
-    --card-foreground: 210 40% 98%;
+    --card: 220 20% 15%;
+    --card-foreground: 40 22% 91%;
  
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 220 25% 10%;
+    --popover-foreground: 40 22% 91%;
  
-    --primary: 260 100% 75%;
-    --primary-foreground: 222 47% 11%;
+    --primary: 18 100% 55%;         /* Brighter orange for dark */
+    --primary-foreground: 220 20% 10%;
  
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 220 20% 18%;
+    --secondary-foreground: 40 22% 91%;
  
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
+    --muted: 220 20% 20%;
+    --muted-foreground: 40 15% 60%;
  
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 48 96% 53%;
+    --accent-foreground: 220 20% 10%;
  
-    --destructive: 0 62% 30%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 40 22% 91%;
  
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 260 100% 65%;
+    --border: 220 15% 30%;
+    --input: 220 20% 25%;
+    --ring: 18 100% 55%;
   }
 }
  
@@ -97,6 +99,49 @@
   animation: bounce-slow 3s infinite;
 }
 
+/* Neubrutalism Card Hover - Hard shadow effect */
 .card-hover {
-  @apply transition-all duration-300 hover:-translate-y-1 hover:shadow-xl hover:shadow-primary/10 hover:border-primary/30;
+  @apply transition-all duration-200;
 }
+.card-hover:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 hsl(var(--foreground) / 0.15);
+}
+
+/* Hard Neo Shadow - No blur, offset shadow */
+.neo-shadow {
+  box-shadow: 3px 3px 0 hsl(var(--foreground) / 0.12);
+}
+
+.neo-shadow-lg {
+  box-shadow: 5px 5px 0 hsl(var(--foreground) / 0.15);
+}
+
+/* Retro 3D Button effect */
+.neo-button {
+  @apply relative;
+  border-bottom-width: 3px;
+  border-right-width: 2px;
+  border-bottom-color: hsl(var(--foreground) / 0.2);
+  border-right-color: hsl(var(--foreground) / 0.1);
+}
+.neo-button:active {
+  transform: translate(1px, 1px);
+  border-bottom-width: 2px;
+  border-right-width: 1px;
+}
+
+/* Grain texture overlay */
+.grain-bg::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.03;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  z-index: 1;
+}
+

@@ -276,47 +276,114 @@ export default function App() {
       case 'settings': return <SettingsPanel />;
       case 'overview': return (
         <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-500 pb-20">
-            {/* Visual Inspector - Prominent Feature */}
+            {/* Visual Inspector Toggle - with switch button */}
             <div className={clsx(
-              "rounded-2xl border-2 overflow-hidden transition-all duration-300",
+              "rounded-lg border-2 overflow-hidden transition-all duration-200 neo-shadow",
               isInspecting 
-                ? "border-primary bg-primary shadow-lg shadow-primary/20" 
-                : "border-border bg-card hover:border-primary/50"
+                ? "border-primary bg-primary" 
+                : "border-foreground/20 bg-card hover:border-primary"
             )}>
               <button 
                 onClick={toggleInspector} 
-                className="w-full p-5 flex items-center justify-between text-left"
+                className="w-full p-4 flex items-center justify-between text-left"
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <div className={clsx(
-                    "p-3 rounded-xl transition-colors",
+                    "p-2.5 rounded-lg transition-colors",
                     isInspecting ? "bg-white/20" : "bg-primary/10"
                   )}>
-                    <MousePointer2 className={clsx("w-6 h-6", isInspecting ? "text-white" : "text-primary")} />
+                    <MousePointer2 className={clsx("w-5 h-5", isInspecting ? "text-white" : "text-primary")} />
                   </div>
                   <div>
-                    <h3 className={clsx("font-bold text-lg", isInspecting ? "text-white" : "text-foreground")}>
+                    <h3 className={clsx("font-bold", isInspecting ? "text-white" : "text-foreground")}>
                       Visual Inspector
                     </h3>
-                    <p className={clsx("text-sm", isInspecting ? "text-white/80" : "text-muted-foreground")}>
-                      {isInspecting ? 'Active — Click any element on page to inspect' : 'Click to enable element inspection'}
+                    <p className={clsx("text-xs", isInspecting ? "text-white/70" : "text-muted-foreground")}>
+                      {isInspecting ? 'Click any element to inspect' : 'Click to enable'}
                     </p>
                   </div>
                 </div>
+                {/* Toggle Switch */}
                 <div className={clsx(
-                  "px-4 py-2 rounded-xl font-bold text-sm transition-all",
-                  isInspecting 
-                    ? "bg-white text-primary" 
-                    : "bg-primary/10 text-primary hover:bg-primary hover:text-white"
+                  "w-12 h-7 rounded-full p-1 transition-colors",
+                  isInspecting ? "bg-white/30" : "bg-foreground/10"
                 )}>
-                  {isInspecting ? 'ON' : 'OFF'}
+                  <div className={clsx(
+                    "w-5 h-5 rounded-full transition-all shadow-sm",
+                    isInspecting 
+                      ? "bg-white translate-x-5" 
+                      : "bg-muted-foreground/60 translate-x-0"
+                  )} />
                 </div>
               </button>
             </div>
 
+            {/* Quick Stats Grid */}
+            <div className="grid grid-cols-2 gap-4">
+                <button onClick={() => setActiveTab('typography')} className="bg-card p-5 rounded-lg border-2 border-foreground/20 group hover:border-primary transition-all text-left card-hover neo-shadow">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="bg-blue-500/10 p-3 rounded-lg">
+                            <Type className="w-6 h-6 text-blue-500" />
+                        </div>
+                        <span className="bg-secondary text-foreground text-xs font-bold px-2 py-1 rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                            View
+                        </span>
+                    </div>
+                    <div className="space-y-1">
+                        <span className="text-4xl font-black text-foreground">{data.fonts.length}</span>
+                        <p className="text-sm font-medium text-muted-foreground">Font Families</p>
+                    </div>
+                </button>
+
+                <button onClick={() => setActiveTab('colors')} className="bg-card p-5 rounded-lg border-2 border-foreground/20 group hover:border-primary transition-all text-left card-hover neo-shadow">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="bg-primary/10 p-3 rounded-lg">
+                            <Palette className="w-6 h-6 text-primary" />
+                        </div>
+                         <span className="bg-secondary text-foreground text-xs font-bold px-2 py-1 rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                            View
+                        </span>
+                    </div>
+                    <div className="space-y-1">
+                        <span className="text-4xl font-black text-foreground">{data.colors.length}</span>
+                        <p className="text-sm font-medium text-muted-foreground">Color Palette</p>
+                    </div>
+                </button>
+
+                <button onClick={() => setActiveTab('spacing')} className="bg-card p-5 rounded-lg border-2 border-foreground/20 group hover:border-primary transition-all text-left card-hover neo-shadow">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="bg-green-500/10 p-3 rounded-lg">
+                            <Layout className="w-6 h-6 text-green-500" />
+                        </div>
+                        <span className="bg-secondary text-foreground text-xs font-bold px-2 py-1 rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                            View
+                        </span>
+                    </div>
+                    <div className="space-y-1">
+                        <span className="text-4xl font-black text-foreground">{data.spacing.length}</span>
+                        <p className="text-sm font-medium text-muted-foreground">Spacing Tokens</p>
+                    </div>
+                </button>
+
+                <button onClick={() => setActiveTab('assets')} className="bg-card p-5 rounded-lg border-2 border-foreground/20 group hover:border-primary transition-all text-left card-hover neo-shadow">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="bg-orange-500/10 p-3 rounded-lg">
+                            <ImageIcon className="w-6 h-6 text-orange-500" />
+                        </div>
+                        <span className="bg-secondary text-foreground text-xs font-bold px-2 py-1 rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                            View
+                        </span>
+                    </div>
+                    <div className="space-y-1">
+                        <span className="text-4xl font-black text-foreground">{data.assets.length}</span>
+                        <p className="text-sm font-medium text-muted-foreground">Assets</p>
+                    </div>
+                </button>
+            </div>
+
             {/* Current Page Info */}
             {data.meta?.title && (
-              <div className="bg-card rounded-2xl border border-border p-5 space-y-4">
+              <div className="bg-card rounded-lg border-2 border-foreground/20 p-5 space-y-4 neo-shadow">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-secondary rounded-xl flex items-center justify-center shrink-0">
                     <Layers className="w-6 h-6 text-muted-foreground" />
@@ -333,74 +400,11 @@ export default function App() {
                 )}
               </div>
             )}
-
-            {/* Quick Stats Grid */}
-            <div className="grid grid-cols-2 gap-4">
-                <button onClick={() => setActiveTab('typography')} className="bg-card p-5 rounded-2xl border border-border group hover:border-primary/50 transition-all text-left card-hover">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="bg-blue-500/10 p-3 rounded-xl">
-                            <Type className="w-6 h-6 text-blue-500" />
-                        </div>
-                        <span className="bg-secondary text-foreground text-xs font-bold px-2 py-1 rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                            View
-                        </span>
-                    </div>
-                    <div className="space-y-1">
-                        <span className="text-4xl font-black text-foreground">{data.fonts.length}</span>
-                        <p className="text-sm font-medium text-muted-foreground">Font Families</p>
-                    </div>
-                </button>
-
-                <button onClick={() => setActiveTab('colors')} className="bg-card p-5 rounded-2xl border border-border group hover:border-primary/50 transition-all text-left card-hover">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="bg-purple-500/10 p-3 rounded-xl">
-                            <Palette className="w-6 h-6 text-purple-500" />
-                        </div>
-                         <span className="bg-secondary text-foreground text-xs font-bold px-2 py-1 rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                            View
-                        </span>
-                    </div>
-                    <div className="space-y-1">
-                        <span className="text-4xl font-black text-foreground">{data.colors.length}</span>
-                        <p className="text-sm font-medium text-muted-foreground">Color Palette</p>
-                    </div>
-                </button>
-
-                <button onClick={() => setActiveTab('spacing')} className="bg-card p-5 rounded-2xl border border-border group hover:border-primary/50 transition-all text-left card-hover">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="bg-green-500/10 p-3 rounded-xl">
-                            <Layout className="w-6 h-6 text-green-500" />
-                        </div>
-                        <span className="bg-secondary text-foreground text-xs font-bold px-2 py-1 rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                            View
-                        </span>
-                    </div>
-                    <div className="space-y-1">
-                        <span className="text-4xl font-black text-foreground">{data.spacing.length}</span>
-                        <p className="text-sm font-medium text-muted-foreground">Spacing Tokens</p>
-                    </div>
-                </button>
-
-                <button onClick={() => setActiveTab('assets')} className="bg-card p-5 rounded-2xl border border-border group hover:border-primary/50 transition-all text-left card-hover">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="bg-orange-500/10 p-3 rounded-xl">
-                            <ImageIcon className="w-6 h-6 text-orange-500" />
-                        </div>
-                        <span className="bg-secondary text-foreground text-xs font-bold px-2 py-1 rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                            View
-                        </span>
-                    </div>
-                    <div className="space-y-1">
-                        <span className="text-4xl font-black text-foreground">{data.assets.length}</span>
-                        <p className="text-sm font-medium text-muted-foreground">Assets</p>
-                    </div>
-                </button>
-            </div>
             
             {/* Generate AI Prompt CTA */}
             <button 
               onClick={() => setActiveTab('prompt')}
-              className="w-full bg-gradient-to-r from-primary to-purple-600 text-white p-5 rounded-2xl flex items-center justify-between group hover:shadow-lg hover:shadow-primary/25 transition-all"
+              className="w-full bg-primary text-white p-5 rounded-lg border-2 border-foreground/20 flex items-center justify-between group neo-shadow-lg neo-button transition-all hover:bg-primary/90"
             >
               <div className="flex items-center gap-4">
                 <div className="bg-white/20 p-3 rounded-xl">
@@ -434,10 +438,10 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen bg-secondary/30 text-foreground font-sans antialiased overflow-hidden">
+    <div className="flex h-screen bg-background text-foreground font-sans antialiased overflow-hidden grain-bg">
       {/* Playful Floating Sidebar */}
       <div className="w-20 py-6 pl-4 flex flex-col gap-4 z-20">
-        <div className="w-14 h-14 bg-gradient-to-br from-primary to-purple-600 rounded-2xl shadow-lg shadow-primary/30 flex items-center justify-center mb-2 transform hover:rotate-6 transition-transform cursor-pointer">
+        <div className="w-14 h-14 bg-primary rounded-lg border-2 border-foreground/20 neo-shadow-lg flex items-center justify-center mb-2 transform hover:rotate-3 transition-transform cursor-pointer">
              <Code2 className="w-8 h-8 text-white" />
         </div>
 
@@ -452,10 +456,10 @@ export default function App() {
               onMouseEnter={(e) => handleMouseEnter(e, tab)}
               onMouseLeave={() => setHoveredTab(null)}
               className={clsx(
-                "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-300 relative group",
+                "w-14 h-14 rounded-lg flex items-center justify-center transition-all duration-200 relative group border-2",
                 activeTab === tab.id 
-                  ? "bg-white text-primary shadow-xl shadow-primary/10 translate-x-2" 
-                  : "bg-white/50 text-muted-foreground hover:bg-white hover:text-foreground hover:translate-x-1"
+                  ? "bg-card text-primary border-primary neo-shadow translate-x-2" 
+                  : "bg-card/50 border-transparent text-muted-foreground hover:bg-card hover:border-foreground/20 hover:text-foreground hover:translate-x-1"
               )}
             >
               <tab.icon className={clsx("w-6 h-6 transition-transform duration-300", activeTab === tab.id && "scale-110", "group-hover:scale-110")} />
@@ -475,7 +479,7 @@ export default function App() {
             {activeTab === 'overview' && (
                 <button 
                   onClick={() => fetchData(false)} 
-                  className="w-10 h-10 rounded-full bg-white border border-border flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-all shadow-sm hover:shadow-md"
+                  className="w-10 h-10 rounded-lg bg-card border-2 border-foreground/20 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-all neo-shadow"
                   title="Refresh Data"
                 >
                   <RefreshCw className={clsx("w-5 h-5", loading && "animate-spin")} />

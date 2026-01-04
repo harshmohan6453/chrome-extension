@@ -171,6 +171,9 @@ export default function App() {
       if (message.action === 'SCROLL_ANIMATIONS_UPDATED') {
         console.log('📨 Received delayed scroll animations update');
         setData({ scrollAnimations: message.scrollAnimations });
+      } else if (message.action === 'INSPECTOR_DISABLED') {
+        setInspecting(false);
+
       }
     };
     

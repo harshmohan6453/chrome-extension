@@ -64,7 +64,7 @@ export class Inspector {
       color: '#171d26',
       borderRadius: '8px',
       boxShadow: '4px 4px 0px 0px #171d26',
-      width: '320px',
+      width: '360px',
       padding: '0',
       fontFamily: 'system-ui, sans-serif',
       display: 'none',
@@ -72,6 +72,31 @@ export class Inspector {
       overflow: 'hidden',
     });
 
+    // Inject Custom Scrollbar Styles
+    const style = document.createElement('style');
+    style.textContent = `
+      .di-custom-scrollbar ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+      }
+      .di-custom-scrollbar ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .di-custom-scrollbar ::-webkit-scrollbar-thumb {
+        background: #9ca3af;
+        border-radius: 3px;
+      }
+      .di-custom-scrollbar ::-webkit-scrollbar-thumb:hover {
+        background: #6b7280;
+      }
+      .di-custom-scrollbar {
+        scrollbar-width: thin;
+        scrollbar-color: #9ca3af transparent;
+      }
+    `;
+    document.head.appendChild(style);
+
+    this.detailCard.classList.add('di-custom-scrollbar');
     document.body.appendChild(this.overlay);
     document.body.appendChild(this.tooltip);
     document.body.appendChild(this.detailCard);
@@ -562,16 +587,29 @@ ${videos.join('\n')}
     
     const rgbToHex = (rgb: string) => {
         if (rgb.startsWith('#')) return rgb;
-        const [r, g, b] = (rgb.match(/\d+/g) || []).map(Number);
-        if (r === undefined) return rgb;
-        return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+        if (rgb === 'transparent' || rgb === 'rgba(0, 0, 0, 0)') return 'transparent';
+        
+        const match = rgb.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+        if (!match) return rgb;
+        
+        const r = parseInt(match[1]);
+        const g = parseInt(match[2]);
+        const b = parseInt(match[3]);
+        const a = match[4] !== undefined ? parseFloat(match[4]) : 1;
+        
+        if (a === 0) return 'transparent';
+        
+        const toHex = (n: number) => n.toString(16).padStart(2, '0').toUpperCase();
+        if (a === 1) return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
+        
+        return rgb; // Return rgba for semi-transparent
     };
 
     const color = rgbToHex(computed.color);
     let bg = rgbToHex(computed.backgroundColor);
     const bgImage = computed.backgroundImage;
     const isGradient = bgImage !== 'none' && bgImage.includes('gradient');
-    const bgDisplay = isGradient ? 'Gradient' : (bg === 'rgba(0, 0, 0, 0)' ? 'None' : bg);
+    const bgDisplay = isGradient ? 'Gradient' : (bg === 'transparent' ? 'None' : bg);
     const font = computed.fontFamily.split(',')[0].replace(/['"]/g, '');
 
     // Dimensions Extraction
@@ -653,21 +691,18 @@ height: ${rect.height}px;
 
     this.detailCard.style.display = 'block';
     const fullSelector = el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (el.classList.length ? '.' + Array.from(el.classList).join('.') : '');
+    
+    let label = el.tagName.charAt(0).toUpperCase() + el.tagName.slice(1).toLowerCase();
+    const tag = el.tagName.toLowerCase();
+    if (/^h[1-6]$/.test(tag) || ['p', 'span', 'a', 'b', 'i', 'strong', 'em', 'label', 'small'].includes(tag)) label = 'Text';
 
     this.detailCard.innerHTML = `
       <div style="padding: 12px 16px; border-bottom: 2px solid #171d26; display: flex; justify-content: space-between; align-items: center; background: #EEEAE3;">
-        <div style="display: flex; gap: 8px; align-items: center; flex: 1; min-width: 0;">
-            <span style="font-weight: 800; font-size: 14px; text-transform: lowercase; color: #171d26; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;" title="${fullSelector}">${fullSelector}</span>
-            <div style="display: flex; gap: 4px; flex-shrink: 0;">
-                <button id="di-copy-css" style="background: #3b82f6; border: 2px solid #171d26; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; cursor: pointer; color: white; display: flex; align-items: center; gap: 4px; box-shadow: 2px 2px 0px 0px #171d26; transition: all 0.1s; flex-shrink: 0;">
-                    CSS
-                </button>
-                <button id="di-gen-prompt" style="background: #8b5cf6; border: 2px solid #171d26; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; cursor: pointer; color: white; display: flex; align-items: center; gap: 4px; box-shadow: 2px 2px 0px 0px #171d26; transition: all 0.1s; flex-shrink: 0;">
-                    PROMPT
-                </button>
-            </div>
+        <div style="display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0;">
+            <span style="font-size: 10px; font-weight: 700; color: #6b7280; text-transform: uppercase;">${label}</span>
+            <span style="font-weight: 800; font-size: 14px; text-transform: lowercase; color: #171d26; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${fullSelector}">${fullSelector}</span>
         </div>
-        <div style="display: flex; gap: 8px; align-items: center;">
+        <div style="display: flex; gap: 12px; align-items: center; padding-left: 12px;">
             <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; color: #171d26; cursor: pointer; font-weight: 700;" title="Toggle continuous inspection on hover">
                  <input type="checkbox" id="di-hover-toggle" style="accent-color: #171d26; width: 14px; height: 14px; border: 2px solid #171d26; border-radius: 2px; cursor: pointer;">
                  Hover
@@ -675,8 +710,25 @@ height: ${rect.height}px;
             <button id="di-close-btn" style="background: none; border: none; cursor: pointer; color: #171d26; font-size: 18px; font-weight: bold; line-height: 1;">&times;</button>
         </div>
       </div>
-      <div style="padding: 16px; font-size: 13px; display: flex; flex-direction: column; gap: 20px; max-height: 500px; overflow-y: auto; background: #FDFBF7;">
+      
+      <!-- Actions Toolbar -->
+      <div style="padding: 8px 16px; border-bottom: 2px solid #171d26; background: #FFFBF0; display: flex; gap: 8px;">
+        <button id="di-copy-css" style="background: #3b82f6; border: 2px solid #171d26; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; color: white; display: flex; align-items: center; gap: 6px; box-shadow: 2px 2px 0px 0px #171d26; transition: all 0.1s; flex: 1; justify-content: center;">
+            <span style="font-size: 14px;">📋</span> CSS
+        </button>
+        <button id="di-gen-prompt" style="background: #8b5cf6; border: 2px solid #171d26; padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; color: white; display: flex; align-items: center; gap: 6px; box-shadow: 2px 2px 0px 0px #171d26; transition: all 0.1s; flex: 1; justify-content: center;">
+            <span style="font-size: 13px;">✨</span> PROMPT
+        </button>
+      </div>
+
+      <div style="padding: 16px; font-size: 13px; display: flex; flex-direction: column; gap: 20px; max-height: 450px; overflow-y: auto; background: #FDFBF7;">
         
+        <!-- Spacing (Box Model) -->
+        <div>
+            <div style="font-weight: 800; color: #171d26; margin-bottom: 4px; font-size: 11px; text-transform: uppercase;">Spacing</div>
+            ${boxModelHtml}
+        </div>
+
         <!-- Text Properties -->
         <div>
            <div style="font-weight: 800; color: #171d26; margin-bottom: 8px; font-size: 11px; text-transform: uppercase;">Text properties</div>
@@ -709,14 +761,12 @@ height: ${rect.height}px;
             <div style="font-weight: 800; color: #171d26; margin-bottom: 8px; font-size: 11px; text-transform: uppercase;">Colors</div>
             <div style="display: flex; flex-direction: column; gap: 8px;">
                 <!-- Background Card -->
-                <div style="background: ${isGradient ? bgImage : bg}; padding: 12px; border-radius: 6px; border: 2px solid #171d26; box-shadow: 2px 2px 0px 0px #171d26; color: #171d26; position: relative; overflow: hidden;">
+                <div style="background: ${isGradient ? bgImage : (bg === 'transparent' ? 'repeating-conic-gradient(#e2e8f0 0% 25%, #ffffff 0% 50%) 50% / 10px 10px' : bg)}; padding: 12px; border-radius: 6px; border: 2px solid #171d26; box-shadow: 2px 2px 0px 0px #171d26; color: ${bg === 'transparent' || bg === '#FFFFFF' || bg.startsWith('rgba(255') ? '#171d26' : (bg.startsWith('#0') || bg.startsWith('#1') ? '#FFFFFF' : '#171d26')}; position: relative; overflow: hidden; min-height: 40px;">
                      <div style="position: relative; z-index: 1; background: rgba(255,255,255,0.9); display: inline-block; padding: 2px 6px; border-radius: 4px; border: 1px solid #171d26;">
-                        <span style="font-size: 10px; font-weight: 700;">Background</span>
-                        <div style="font-family: monospace; font-size: 12px; font-weight: 600;">${bgDisplay}</div>
+                        <span style="font-size: 10px; font-weight: 700; color: #171d26;">Background</span>
+                        <div style="font-family: monospace; font-size: 12px; font-weight: 600; color: #171d26;">${bgDisplay}</div>
                      </div>
                 </div>
-                <!-- Text Color Card (Small) -->
-                <!-- Use 'color' var -->
             </div>
         </div>
 
@@ -759,31 +809,13 @@ height: ${rect.height}px;
         </div>
         ` : ''}
 
-        <!-- Spacing (Box Model) -->
-        <div>
-            <div style="font-weight: 800; color: #171d26; margin-bottom: 4px; font-size: 11px; text-transform: uppercase;">Spacing</div>
-            ${boxModelHtml}
-        </div>
-
       </div>
     `;
 
     // Listeners for Card Controls
     this.detailCard.querySelector('#di-close-btn')?.addEventListener('click', () => {
-        // Hide detail card
-        if (this.detailCard) {
-            this.detailCard.style.display = 'none';
-        }
-        // Clear selection
-        this.selectedElement = null;
-        // Remove guides
-        if (this.guides) {
-            this.guides.innerHTML = '';
-        }
-        // Remove overlay
-        if (this.overlay) {
-            this.overlay.style.display = 'none';
-        }
+        this.disable();
+        chrome.runtime.sendMessage({ action: 'INSPECTOR_DISABLED' });
     });
 
     const hoverToggle = this.detailCard.querySelector('#di-hover-toggle') as HTMLInputElement;

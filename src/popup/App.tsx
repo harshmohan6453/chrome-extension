@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Type, Palette, Layout, MousePointer2, Code2, Settings, Sparkles, RefreshCw, Layers, Image as ImageIcon, Play, AlertTriangle, Workflow } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useStore } from '../store';
@@ -11,6 +11,7 @@ import { GeneratePanel } from './components/GeneratePanel';
 import ScrollInspectorPanel from './components/ScrollInspectorPanel';
 import RedFlagsPanel from './components/RedFlagsPanel';
 import FlowsPanel from './components/FlowsPanel';
+import { analytics } from '../analytics/analytics';
 
 type Tab = 'overview' | 'typography' | 'colors' | 'assets' | 'spacing' | 'scroll' | 'redflags' | 'flows' | 'prompt' | 'settings';
 
@@ -66,6 +67,7 @@ export default function App() {
   const { data, setData, isInspecting, setInspecting } = useStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const hasTrackedOpen = useRef(false);
 
   const injectContentScript = async (tabId: number) => {
     try {
@@ -120,6 +122,7 @@ export default function App() {
     } catch (e) {
       console.error('Failed to fetch data', e);
       setError("Please refresh the page you want to analyze.");
+      analytics.trackError('data_fetch_failed', (e as Error).message);
     }
     setLoading(false);
   };
@@ -143,6 +146,24 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    // Track popup opened (only once per session)
+    if (!hasTrackedOpen.current) {
+      hasTrackedOpen.current = true;
+      analytics.trackPopupOpened();
+      
+      // Track the domain being analyzed
+      chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
+        if (tab?.url) {
+          try {
+            const domain = new URL(tab.url).hostname;
+            analytics.trackWebsiteAnalyzed(domain);
+          } catch (e) {
+            // Ignore invalid URLs
+          }
+        }
+      });
+    }
+    
     fetchData();
     
     // Listen for delayed scroll animation updates
@@ -163,6 +184,7 @@ export default function App() {
   const toggleInspector = async () => {
     const newState = !isInspecting;
     setInspecting(newState);
+    analytics.trackInspectorToggled(newState);
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
     // Get the saved highlight color
@@ -423,7 +445,10 @@ export default function App() {
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as Tab)}
+              onClick={() => {
+                setActiveTab(tab.id as Tab);
+                analytics.trackTabViewed(tab.id, tab.label);
+              }}
               onMouseEnter={(e) => handleMouseEnter(e, tab)}
               onMouseLeave={() => setHoveredTab(null)}
               className={clsx(

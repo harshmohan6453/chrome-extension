@@ -6,14 +6,13 @@ import { TypographyPanel } from './components/TypographyPanel';
 import { ColorPanel } from './components/ColorPanel';
 import { SpacingPanel } from './components/SpacingPanel';
 import { SettingsPanel } from './components/SettingsPanel';
-import { TechPanel } from './components/TechPanel';
 import { AssetsPanel } from './components/AssetsPanel';
 import { GeneratePanel } from './components/GeneratePanel';
 import ScrollInspectorPanel from './components/ScrollInspectorPanel';
 import RedFlagsPanel from './components/RedFlagsPanel';
 import FlowsPanel from './components/FlowsPanel';
 
-type Tab = 'overview' | 'typography' | 'colors' | 'assets' | 'spacing' | 'scroll' | 'redflags' | 'flows' | 'technologies' | 'prompt' | 'settings';
+type Tab = 'overview' | 'typography' | 'colors' | 'assets' | 'spacing' | 'scroll' | 'redflags' | 'flows' | 'prompt' | 'settings';
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
@@ -44,10 +43,9 @@ export default function App() {
             const response = await chrome.tabs.sendMessage(tab.id, { action: 'GET_PAGE_DATA' });
             if (response) {
                 setData({
-                fonts: response.fonts.map((f: any) => ({ family: f.family, variants: [f.weight], sizes: [f.size], count: 1 })), 
+                fonts: response.fonts.map((f: any) => ({ family: f.family, variants: [f.weight], sizes: [f.size], count: 1 })),
                 colors: response.colors.map((c: any) => ({ hex: c.hex, rgb: c.rgba, hsl: '', type: c.type || 'auto', role: c.role, count: c.usageCount })),
                 spacing: response.spacing || [],
-                technologies: response.technologies || [],
                 assets: response.assets || [],
                 scrollAnimations: response.scrollAnimations || [],
                 redFlags: [], // Only red flags are lazy loaded
@@ -125,7 +123,6 @@ export default function App() {
     { id: 'scroll', icon: Play, label: 'Scroll Animations' },
     { id: 'redflags', icon: AlertTriangle, label: 'Red Flags' },
     { id: 'flows', icon: Workflow, label: 'User Flows' },
-    { id: 'technologies', icon: Code2, label: 'Tech Stack' },
     { id: 'prompt', icon: Sparkles, label: 'Generate' },
     { id: 'settings', icon: Settings, label: 'Settings' },
   ] as const;
@@ -176,7 +173,6 @@ export default function App() {
       case 'scroll': return <ScrollInspectorPanel />;
       case 'redflags': return <RedFlagsPanel />;
       case 'flows': return <FlowsPanel />;
-      case 'technologies': return <TechPanel />;
       case 'prompt': return <GeneratePanel />;
       case 'settings': return <SettingsPanel />;
       case 'overview': return (
@@ -233,21 +229,6 @@ export default function App() {
                     <div className="space-y-1">
                         <span className="text-4xl font-black text-foreground">{data.colors.length}</span>
                         <p className="text-sm font-medium text-muted-foreground">Color Palette</p>
-                    </div>
-                </button>
-
-                <button onClick={() => setActiveTab('technologies')} className="bg-card p-5 rounded-2xl border border-border group hover:border-primary/50 transition-all text-left card-hover col-span-2">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="bg-green-500/10 p-3 rounded-xl">
-                            <Code2 className="w-6 h-6 text-green-500" />
-                        </div>
-                         <span className="bg-secondary text-foreground text-xs font-bold px-2 py-1 rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                            View
-                        </span>
-                    </div>
-                    <div className="space-y-1">
-                        <span className="text-4xl font-black text-foreground">{data.technologies?.length || 0}</span>
-                        <p className="text-sm font-medium text-muted-foreground">Technologies Detected</p>
                     </div>
                 </button>
             </div>

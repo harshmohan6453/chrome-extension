@@ -83,7 +83,6 @@ export interface InspectionData {
   fonts: FontData[];
   colors: ColorData[];
   spacing: number[];
-  technologies: string[];
   assets: AssetData[];
   scrollAnimations: ScrollAnimationData[];
   redFlags: RedFlag[];
@@ -155,7 +154,6 @@ const initialData: InspectionData = {
   fonts: [],
   colors: [],
   spacing: [],
-  technologies: [],
   assets: [],
   scrollAnimations: [],
   redFlags: [],

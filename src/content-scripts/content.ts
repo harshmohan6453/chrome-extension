@@ -2,7 +2,6 @@ import { Inspector } from './inspector';
 import { extractFonts } from './extractors/fontExtractor';
 import { extractColors } from './extractors/colorExtractor';
 import { detectSpacingSystem } from './extractors/spacingExtractor';
-import { extractTechnologies } from './extractors/techExtractor';
 import { extractAssets } from './extractors/assetExtractor';
 import { detectAllScrollAnimations } from './extractors/scrollAnimationDetector';
 import { detectRedFlags } from './extractors/redFlagDetector';
@@ -185,7 +184,6 @@ chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
     const fonts = extractFonts();
     const colors = extractColors();
     const spacing = detectSpacingSystem();
-    const technologies = extractTechnologies();
     const assets = extractAssets();
     const htmlStructure = extractHTMLStructure();
     const siteCloneData = captureSiteCloneData();
@@ -248,7 +246,6 @@ chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
         fonts,
         colors,
         spacing,
-        technologies,
         assets,
         scrollAnimations,
         redFlags: [], // Lazy loaded

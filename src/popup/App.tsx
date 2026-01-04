@@ -224,28 +224,63 @@ export default function App() {
       case 'settings': return <SettingsPanel />;
       case 'overview': return (
         <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-500 pb-20">
-            {/* Hero Section */}
-            <div className="relative overflow-hidden bg-primary text-primary-foreground rounded-3xl p-8 card-hover">
-                <div className="relative z-10">
-                    <h2 className="text-3xl font-extrabold mb-2">Design Inspector</h2>
-                    <p className="text-primary-foreground/80 mb-6 max-w-[200px]">Unlock the secrets of any website's design system.</p>
-                    <button 
-                        onClick={() => setActiveTab('prompt')}
-                        className="bg-white text-primary px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg hover:bg-white/90 transition-colors inline-flex items-center gap-2"
-                    >
-                        <Sparkles className="w-4 h-4" />
-                        Generate AI Prompt
-                    </button>
+            {/* Visual Inspector - Prominent Feature */}
+            <div className={clsx(
+              "rounded-2xl border-2 overflow-hidden transition-all duration-300",
+              isInspecting 
+                ? "border-primary bg-primary shadow-lg shadow-primary/20" 
+                : "border-border bg-card hover:border-primary/50"
+            )}>
+              <button 
+                onClick={toggleInspector} 
+                className="w-full p-5 flex items-center justify-between text-left"
+              >
+                <div className="flex items-center gap-4">
+                  <div className={clsx(
+                    "p-3 rounded-xl transition-colors",
+                    isInspecting ? "bg-white/20" : "bg-primary/10"
+                  )}>
+                    <MousePointer2 className={clsx("w-6 h-6", isInspecting ? "text-white" : "text-primary")} />
+                  </div>
+                  <div>
+                    <h3 className={clsx("font-bold text-lg", isInspecting ? "text-white" : "text-foreground")}>
+                      Visual Inspector
+                    </h3>
+                    <p className={clsx("text-sm", isInspecting ? "text-white/80" : "text-muted-foreground")}>
+                      {isInspecting ? 'Active — Click any element on page to inspect' : 'Click to enable element inspection'}
+                    </p>
+                  </div>
                 </div>
-                
-                {/* Abstract Illustration */}
-                <div className="absolute top-0 right-0 w-64 h-64 translate-x-12 -translate-y-12 pointer-events-none">
-                     <div className="absolute top-10 right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-                     <div className="absolute top-24 right-24 w-16 h-16 bg-accent rounded-2xl rotate-12 opacity-80 animate-float"></div>
-                     <div className="absolute top-4 right-32 w-12 h-12 bg-white/20 rounded-full"></div>
-                     <Layout className="absolute bottom-10 right-20 w-24 h-24 text-white/10 rotate-[-12deg]" />
+                <div className={clsx(
+                  "px-4 py-2 rounded-xl font-bold text-sm transition-all",
+                  isInspecting 
+                    ? "bg-white text-primary" 
+                    : "bg-primary/10 text-primary hover:bg-primary hover:text-white"
+                )}>
+                  {isInspecting ? 'ON' : 'OFF'}
                 </div>
+              </button>
             </div>
+
+            {/* Current Page Info */}
+            {data.meta?.title && (
+              <div className="bg-card rounded-2xl border border-border p-5 space-y-4">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 bg-secondary rounded-xl flex items-center justify-center shrink-0">
+                    <Layers className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-bold text-foreground truncate">{data.meta.title}</h3>
+                    <p className="text-sm text-muted-foreground truncate">{data.meta.url}</p>
+                  </div>
+                </div>
+                {data.meta.description && (
+                  <p className="text-sm text-muted-foreground line-clamp-2 border-t border-border/50 pt-3">
+                    {data.meta.description}
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-2 gap-4">
@@ -278,33 +313,56 @@ export default function App() {
                         <p className="text-sm font-medium text-muted-foreground">Color Palette</p>
                     </div>
                 </button>
-            </div>
-            
-            {/* Inspector Toggle */}
-            <div className="bg-card rounded-2xl border border-border p-1">
-                <button 
-                  onClick={toggleInspector} 
-                  className={clsx(
-                    "w-full flex items-center justify-between p-4 rounded-xl transition-all duration-300",
-                    isInspecting ? "bg-primary text-primary-foreground shadow-lg" : "hover:bg-secondary"
-                  )}
-                >
-                    <div className="flex items-center gap-4">
-                        <div className={clsx("p-2 rounded-lg", isInspecting ? "bg-white/20" : "bg-primary/10")}>
-                            <MousePointer2 className={clsx("w-5 h-5", isInspecting ? "text-white" : "text-primary")} />
+
+                <button onClick={() => setActiveTab('spacing')} className="bg-card p-5 rounded-2xl border border-border group hover:border-primary/50 transition-all text-left card-hover">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="bg-green-500/10 p-3 rounded-xl">
+                            <Layout className="w-6 h-6 text-green-500" />
                         </div>
-                        <div className="text-left">
-                            <h3 className="font-bold">Visual Inspector</h3>
-                            <p className={clsx("text-xs", isInspecting ? "text-primary-foreground/80" : "text-muted-foreground")}>
-                                {isInspecting ? 'Active - Click elements to inspect' : 'Hover over elements to see details'}
-                            </p>
-                        </div>
+                        <span className="bg-secondary text-foreground text-xs font-bold px-2 py-1 rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                            View
+                        </span>
                     </div>
-                    <div className={clsx("w-10 h-6 rounded-full relative transition-colors", isInspecting ? "bg-white/30" : "bg-border")}>
-                         <div className={clsx("absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all duration-300", isInspecting ? "left-5" : "left-1")}></div>
+                    <div className="space-y-1">
+                        <span className="text-4xl font-black text-foreground">{data.spacing.length}</span>
+                        <p className="text-sm font-medium text-muted-foreground">Spacing Tokens</p>
+                    </div>
+                </button>
+
+                <button onClick={() => setActiveTab('assets')} className="bg-card p-5 rounded-2xl border border-border group hover:border-primary/50 transition-all text-left card-hover">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="bg-orange-500/10 p-3 rounded-xl">
+                            <ImageIcon className="w-6 h-6 text-orange-500" />
+                        </div>
+                        <span className="bg-secondary text-foreground text-xs font-bold px-2 py-1 rounded-lg group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                            View
+                        </span>
+                    </div>
+                    <div className="space-y-1">
+                        <span className="text-4xl font-black text-foreground">{data.assets.length}</span>
+                        <p className="text-sm font-medium text-muted-foreground">Assets</p>
                     </div>
                 </button>
             </div>
+            
+            {/* Generate AI Prompt CTA */}
+            <button 
+              onClick={() => setActiveTab('prompt')}
+              className="w-full bg-gradient-to-r from-primary to-purple-600 text-white p-5 rounded-2xl flex items-center justify-between group hover:shadow-lg hover:shadow-primary/25 transition-all"
+            >
+              <div className="flex items-center gap-4">
+                <div className="bg-white/20 p-3 rounded-xl">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-bold text-lg">Generate AI Prompt</h3>
+                  <p className="text-sm text-white/80">Create a prompt to replicate this design</p>
+                </div>
+              </div>
+              <span className="bg-white/20 px-4 py-2 rounded-xl font-bold text-sm group-hover:bg-white group-hover:text-primary transition-colors">
+                Go →
+              </span>
+            </button>
         </div>
       );
       default: return null;

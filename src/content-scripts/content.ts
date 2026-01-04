@@ -47,10 +47,15 @@ window.addEventListener('message', (event) => {
 chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
   if (request.action === 'TOGGLE_INSPECTOR') {
     if (request.payload) {
-      inspector.enable();
+      inspector.enable(request.highlightColor);
     } else {
       inspector.disable();
     }
+    sendResponse({ status: 'ok' });
+  }
+
+  if (request.action === 'UPDATE_HIGHLIGHT_COLOR') {
+    inspector.setHighlightColor(request.highlightColor);
     sendResponse({ status: 'ok' });
   }
 

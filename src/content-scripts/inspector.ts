@@ -6,15 +6,22 @@ export class Inspector {
   private tooltip: HTMLElement;
   private detailCard: HTMLElement;
   private guides: HTMLElement;
+  private highlightColor: string = '#8b5cf6'; // Default purple
 
   constructor() {
+    // Read saved highlight color from localStorage
+    const savedColor = localStorage.getItem('di-highlightColor');
+    if (savedColor) {
+      this.highlightColor = savedColor;
+    }
+
     this.overlay = document.createElement('div');
     Object.assign(this.overlay.style, {
       position: 'fixed',
       pointerEvents: 'none',
       zIndex: '999999',
-      border: '2px solid #7c3aed',
-      backgroundColor: 'rgba(124, 58, 237, 0.1)',
+      border: `2px solid ${this.highlightColor}`,
+      backgroundColor: this.hexToRgba(this.highlightColor, 0.1),
       transition: 'all 0.1s ease',
       display: 'none',
     });
@@ -74,7 +81,22 @@ export class Inspector {
     this.handleClick = this.handleClick.bind(this);
   }
 
-  public enable() {
+  // Convert hex to rgba
+  private hexToRgba(hex: string, alpha: number): string {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  public enable(highlightColor?: string) {
+    // Use provided color or fallback to default
+    if (highlightColor) {
+      this.highlightColor = highlightColor;
+    }
+    this.overlay.style.border = `2px solid ${this.highlightColor}`;
+    this.overlay.style.backgroundColor = this.hexToRgba(this.highlightColor, 0.1);
+
     this.isActive = true;
     document.addEventListener('mousemove', this.handleMouseMove, true);
     document.addEventListener('click', this.handleClick, true);
@@ -89,6 +111,13 @@ export class Inspector {
     this.selectedElement = null;
     document.removeEventListener('mousemove', this.handleMouseMove, true);
     document.removeEventListener('click', this.handleClick, true);
+  }
+
+  // Update highlight color in real-time
+  public setHighlightColor(color: string) {
+    this.highlightColor = color;
+    this.overlay.style.border = `2px solid ${this.highlightColor}`;
+    this.overlay.style.backgroundColor = this.hexToRgba(this.highlightColor, 0.1);
   }
 
   private handleClick(e: MouseEvent) {

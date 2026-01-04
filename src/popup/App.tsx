@@ -124,6 +124,24 @@ export default function App() {
     setLoading(false);
   };
 
+  // Initialize theme on app load
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('di-theme') as 'light' | 'dark' | 'system' | null;
+    
+    if (savedTheme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else if (savedTheme === 'light') {
+      document.documentElement.classList.remove('dark');
+    } else {
+      // System preference
+      if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+    }
+  }, []);
+
   useEffect(() => {
     fetchData();
     
@@ -146,13 +164,25 @@ export default function App() {
     const newState = !isInspecting;
     setInspecting(newState);
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    // Get the saved highlight color
+    const highlightColor = localStorage.getItem('di-highlightColor') || '#8b5cf6';
+    
     if (tab?.id) {
        try {
-           await chrome.tabs.sendMessage(tab.id, { action: 'TOGGLE_INSPECTOR', payload: newState });
+           await chrome.tabs.sendMessage(tab.id, { 
+             action: 'TOGGLE_INSPECTOR', 
+             payload: newState,
+             highlightColor 
+           });
        } catch (e) {
            await injectContentScript(tab.id);
            try {
-             await chrome.tabs.sendMessage(tab.id, { action: 'TOGGLE_INSPECTOR', payload: newState });
+             await chrome.tabs.sendMessage(tab.id, { 
+               action: 'TOGGLE_INSPECTOR', 
+               payload: newState,
+               highlightColor 
+             });
            } catch (retryError) {
              console.error('Failed to toggle inspector', retryError);
              setError("Please refresh the page to use the inspector.");

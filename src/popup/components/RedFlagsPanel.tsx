@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { AlertTriangle, XCircle, Info, AlertCircle, Download } from 'lucide-react';
+import { AlertTriangle, XCircle, Info, AlertCircle, Download, CheckCircle2, ChevronDown } from 'lucide-react';
 import { useStore } from '../../store';
 import type { RedFlag } from '../../store';
 
@@ -163,9 +163,9 @@ export default function RedFlagsPanel() {
   const healthScore = calculateHealthScore();
   
   const getScoreColor = (score: number) => {
-    if (score >= 90) return 'text-green-600 bg-green-50 border-2 border-green-200';
-    if (score >= 50) return 'text-yellow-600 bg-yellow-50 border-2 border-yellow-200';
-    return 'text-red-600 bg-red-50 border-2 border-red-200';
+    if (score >= 90) return 'text-green-600 bg-green-500/10 border-2 border-green-500/20';
+    if (score >= 50) return 'text-yellow-600 bg-yellow-500/10 border-2 border-yellow-500/20';
+    return 'text-red-600 bg-red-500/10 border-2 border-red-500/20';
   };
 
   // Grouping Logic
@@ -211,7 +211,7 @@ export default function RedFlagsPanel() {
         {/* Card Header - Clickable */}
         <div 
           onClick={() => toggleExpand(flag.id)}
-          className="p-4 cursor-pointer hover:bg-gray-50 transition-colors flex items-start gap-3"
+          className="p-4 cursor-pointer hover:bg-secondary/30 transition-colors flex items-start gap-3"
         >
           {getSeverityIcon(flag.severity)}
           <div className="flex-1">
@@ -227,9 +227,9 @@ export default function RedFlagsPanel() {
               )}
               {flag.impactScore && (
                 <span className={`px-2 py-0.5 rounded text-xs font-bold border ml-auto ${
-                  flag.impactScore >= 8 ? 'bg-red-100 text-red-800 border-red-200' : 
-                  flag.impactScore >= 5 ? 'bg-yellow-100 text-yellow-800 border-yellow-200' :
-                  'bg-blue-100 text-blue-800 border-blue-200'
+                  flag.impactScore >= 8 ? 'bg-red-500/10 text-red-600 border-red-500/20' : 
+                  flag.impactScore >= 5 ? 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' :
+                  'bg-blue-500/10 text-blue-600 border-blue-500/20'
                 }`}>
                   Impact: {flag.impactScore}/10
                 </span>
@@ -240,14 +240,14 @@ export default function RedFlagsPanel() {
             
             {/* Quick recommendation preview */}
             {!isExpanded && (
-               <div className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+               <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
                  Click to see fix and details
                </div>
             )}
           </div>
-          <div className={`text-gray-400 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
-             ▼
+          <div className={`text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
+             <ChevronDown className="w-5 h-5" />
           </div>
         </div>
 
@@ -256,9 +256,11 @@ export default function RedFlagsPanel() {
           <div className="px-4 pb-4 border-t-2 border-foreground/5 bg-secondary/20">
             {/* Impact Estimate */}
             {flag.estimatedImpact && (
-              <div className="mt-3 text-xs bg-white border border-gray-200 p-2 rounded text-gray-600 flex items-start gap-2">
+              <div className="mt-3 text-xs bg-card border-2 border-foreground/10 p-2 rounded-lg text-muted-foreground flex items-start gap-2 neo-shadow-sm">
                  <span className="text-lg">⚡</span>
-                 <span>{flag.estimatedImpact}</span>
+                 <div>
+                   <span className="font-bold text-foreground">Impact:</span> {flag.estimatedImpact}
+                 </div>
               </div>
             )}
 
@@ -353,7 +355,6 @@ export default function RedFlagsPanel() {
 
   return (
     <div className="p-4 space-y-6">
-      {/* Health Score & Header */}
       <div className="bg-card rounded-lg p-6 border-2 border-foreground/20 neo-shadow">
         <div className="flex justify-between items-start mb-6">
           <div>
@@ -364,7 +365,7 @@ export default function RedFlagsPanel() {
           </div>
           <button 
             onClick={downloadReport}
-            className="flex items-center gap-2 px-3 py-1.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg text-xs font-bold transition-colors border-2 border-foreground/10"
+            className="flex items-center gap-2 px-3 py-1.5 bg-primary text-primary-foreground neo-shadow neo-button hover:bg-primary/90 rounded-lg text-xs font-bold transition-all"
           >
             <Download className="w-3.5 h-3.5" />
             Export
@@ -384,36 +385,36 @@ export default function RedFlagsPanel() {
 
           {/* Stats */}
           <div className="flex-1 grid grid-cols-3 gap-2">
-            <div className="bg-red-50 rounded-lg p-2 text-center border-2 border-red-200 shadow-sm">
+            <div className="bg-red-500/10 rounded-lg p-2 text-center border-2 border-red-500/20 neo-shadow-sm">
               <div className="text-xl font-bold text-red-600">{criticalCount}</div>
-              <div className="text-xs text-red-700 font-bold">Critical</div>
+              <div className="text-xs text-red-600 font-bold">Critical</div>
             </div>
-            <div className="bg-yellow-50 rounded-lg p-2 text-center border-2 border-yellow-200 shadow-sm">
+            <div className="bg-yellow-500/10 rounded-lg p-2 text-center border-2 border-yellow-500/20 neo-shadow-sm">
               <div className="text-xl font-bold text-yellow-600">{warningCount}</div>
-              <div className="text-xs text-yellow-700 font-bold">Warnings</div>
+              <div className="text-xs text-yellow-600 font-bold">Warnings</div>
             </div>
-            <div className="bg-blue-50 rounded-lg p-2 text-center border-2 border-blue-200 shadow-sm">
+            <div className="bg-blue-500/10 rounded-lg p-2 text-center border-2 border-blue-500/20 neo-shadow-sm">
               <div className="text-xl font-bold text-blue-600">{infoCount}</div>
-              <div className="text-xs text-blue-700 font-bold">Hints</div>
+              <div className="text-xs text-blue-600 font-bold">Hints</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* View Toggle */}
-      <div className="flex bg-gray-100 p-1 rounded-lg">
+      <div className="flex bg-secondary p-1 rounded-lg border-2 border-foreground/10">
         <button
           onClick={() => setGroupBy('category')}
-          className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${
-            groupBy === 'category' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+          className={`flex-1 py-1.5 text-sm font-bold rounded-md transition-all ${
+            groupBy === 'category' ? 'bg-background text-foreground shadow-sm border border-foreground/10' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           Priority View
         </button>
         <button
           onClick={() => setGroupBy('section')}
-          className={`flex-1 py-1.5 text-sm font-medium rounded-md transition-all ${
-            groupBy === 'section' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+          className={`flex-1 py-1.5 text-sm font-bold rounded-md transition-all ${
+            groupBy === 'section' ? 'bg-background text-foreground shadow-sm border border-foreground/10' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           Page Structure
@@ -455,9 +456,9 @@ export default function RedFlagsPanel() {
           {/* Head */}
           {(groupedFlags as any).head.length > 0 && (
             <div>
-              <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-gray-200 pb-2">
+              <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-foreground/10 pb-2">
                 👾 Head & Metadata
-                <span className="ml-auto bg-gray-100 text-gray-600 px-2 rounded-full text-xs">{(groupedFlags as any).head.length}</span>
+                <span className="ml-auto bg-secondary text-muted-foreground px-2 rounded-full text-xs">{(groupedFlags as any).head.length}</span>
               </h3>
               {(groupedFlags as any).head.map(renderFlag)}
             </div>
@@ -465,9 +466,9 @@ export default function RedFlagsPanel() {
           {/* Body */}
           {(groupedFlags as any).body.length > 0 && (
             <div>
-              <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-gray-200 pb-2">
+              <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-foreground/10 pb-2">
                 🎨 Body & Content
-                <span className="ml-auto bg-gray-100 text-gray-600 px-2 rounded-full text-xs">{(groupedFlags as any).body.length}</span>
+                <span className="ml-auto bg-secondary text-muted-foreground px-2 rounded-full text-xs">{(groupedFlags as any).body.length}</span>
               </h3>
               {(groupedFlags as any).body.map(renderFlag)}
             </div>
@@ -475,9 +476,9 @@ export default function RedFlagsPanel() {
           {/* System */}
           {(groupedFlags as any).system.length > 0 && (
             <div>
-              <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-gray-200 pb-2">
+              <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-foreground/10 pb-2">
                 ⚡ System & Performance
-                <span className="ml-auto bg-gray-100 text-gray-600 px-2 rounded-full text-xs">{(groupedFlags as any).system.length}</span>
+                <span className="ml-auto bg-secondary text-muted-foreground px-2 rounded-full text-xs">{(groupedFlags as any).system.length}</span>
               </h3>
               {(groupedFlags as any).system.map(renderFlag)}
             </div>
@@ -486,11 +487,15 @@ export default function RedFlagsPanel() {
       )}
 
       {redFlags.length === 0 && (
-         <div className="p-12 text-center text-gray-500">
-           <div className="text-6xl mb-4">🏆</div>
-           <h3 className="text-xl font-bold text-gray-900 mb-2">Perfect Score!</h3>
-           <p>No red flags found. Amazing work!</p>
-         </div>
+        <div className="bg-card rounded-lg p-6 border-2 border-foreground/20 text-center neo-shadow">
+          <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-green-500/20">
+            <CheckCircle2 className="w-8 h-8 text-green-600" />
+          </div>
+          <h2 className="text-xl font-bold text-foreground mb-2">No Red Flags Found!</h2>
+          <p className="text-sm text-muted-foreground">
+            This page looks great! No major SEO, UX, or accessibility red flags detected.
+          </p>
+        </div>
       )}
     </div>
   );

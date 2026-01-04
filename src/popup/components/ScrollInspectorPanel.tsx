@@ -316,11 +316,11 @@ observer.observe(document.querySelector('${animation.element}'));`;
                       </span>
                     )}
                   </div>
-                  <p className="text-sm font-mono text-gray-700 font-semibold">{animation.element}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
+                  <p className="text-sm font-mono text-foreground font-bold">{animation.element}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
                     Animates: {animation.animation.properties.join(', ')}
                   </p>
-                  <p className="text-xs text-gray-400 mt-0.5">
+                  <p className="text-xs text-muted-foreground/70 mt-0.5">
                     Trigger: {animation.trigger.start} → {animation.trigger.end}
                   </p>
                 </div>
@@ -338,26 +338,26 @@ observer.observe(document.querySelector('${animation.element}'));`;
                 <div className="px-3 pb-3 space-y-3 border-t-2 border-foreground/5 bg-secondary/20">
                   {/* Trigger Info */}
                   <div className="pt-3">
-                    <p className="text-xs font-semibold text-gray-700 mb-2">Trigger Configuration</p>
+                    <p className="text-xs font-bold text-foreground mb-2">Trigger Configuration</p>
                     <div className="space-y-1 text-xs">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Start:</span>
-                        <span className="font-mono text-gray-900">{animation.trigger.start}</span>
+                        <span className="text-muted-foreground">Start:</span>
+                        <span className="font-mono text-foreground">{animation.trigger.start}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-gray-600">End:</span>
-                        <span className="font-mono text-gray-900">{animation.trigger.end}</span>
+                        <span className="text-muted-foreground">End:</span>
+                        <span className="font-mono text-foreground">{animation.trigger.end}</span>
                       </div>
                       {animation.trigger.scrub !== undefined && (
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Scrub:</span>
-                          <span className="font-mono text-gray-900">{String(animation.trigger.scrub)}</span>
+                          <span className="text-muted-foreground">Scrub:</span>
+                          <span className="font-mono text-foreground">{String(animation.trigger.scrub)}</span>
                         </div>
                       )}
                       {animation.trigger.pin && (
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Pin:</span>
-                          <span className="font-mono text-green-600">true</span>
+                          <span className="text-muted-foreground">Pin:</span>
+                          <span className="font-mono text-primary font-bold">true</span>
                         </div>
                       )}
                     </div>
@@ -365,22 +365,22 @@ observer.observe(document.querySelector('${animation.element}'));`;
 
                   {/* Animation Info */}
                   <div>
-                    <p className="text-xs font-semibold text-gray-700 mb-2">Animation Properties</p>
+                    <p className="text-xs font-bold text-foreground mb-2">Animation Properties</p>
                     <div className="space-y-1 text-xs">
                       <div className="flex justify-between">
-                        <span className="text-gray-600">Type:</span>
-                        <span className="font-mono text-gray-900">{animation.animation.type}</span>
+                        <span className="text-muted-foreground">Type:</span>
+                        <span className="font-mono text-foreground">{animation.animation.type}</span>
                       </div>
                       {animation.animation.duration !== null && (
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Duration:</span>
-                          <span className="font-mono text-gray-900">{animation.animation.duration}ms</span>
+                          <span className="text-muted-foreground">Duration:</span>
+                          <span className="font-mono text-foreground">{animation.animation.duration}ms</span>
                         </div>
                       )}
                       {animation.animation.easing && (
                         <div className="flex justify-between">
-                          <span className="text-gray-600">Easing:</span>
-                          <span className="font-mono text-gray-900">{animation.animation.easing}</span>
+                          <span className="text-muted-foreground">Easing:</span>
+                          <span className="font-mono text-foreground">{animation.animation.easing}</span>
                         </div>
                       )}
                     </div>
@@ -388,10 +388,10 @@ observer.observe(document.querySelector('${animation.element}'));`;
 
                   {/* Progress Slider - Only for GSAP and CSS Scroll Timeline */}
                   {(animation.library === 'gsap-scrolltrigger' || animation.library === 'css-scroll-timeline') && (
-                    <div className="pt-3 pb-2 border-t border-gray-100">
+                    <div className="pt-3 pb-2 border-t-2 border-foreground/5">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-semibold text-gray-700">Animation Progress</span>
-                        <span className="text-xs text-gray-500">Drag to scrub</span>
+                        <span className="text-xs font-bold text-foreground">Animation Progress</span>
+                        <span className="text-xs text-muted-foreground">Drag to scrub</span>
                       </div>
                       <input
                         type="range"

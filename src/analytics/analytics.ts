@@ -8,10 +8,10 @@
 import posthog from 'posthog-js';
 
 // =====================================================
-// CONFIGURATION
+// CONFIGURATION - Loaded from .env file
 // =====================================================
-const POSTHOG_API_KEY = 'phc_Io0hY0zBhMdYEa6ODawSqIpemnPWPOTfZ8KGHAzWML6';
-const POSTHOG_HOST = 'https://us.i.posthog.com';
+const POSTHOG_API_KEY = import.meta.env.VITE_POSTHOG_KEY || '';
+const POSTHOG_HOST = import.meta.env.VITE_POSTHOG_HOST || 'https://us.i.posthog.com';
 
 let isInitialized = false;
 

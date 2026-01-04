@@ -2,6 +2,11 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 import { copyFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export default defineConfig({
   plugins: [
@@ -33,6 +38,18 @@ export default defineConfig({
             return 'service-worker.js';
           }
           return 'assets/[name]-[hash].js';
+        },
+        chunkFileNames: 'assets/[name]-[hash].js',
+        manualChunks(id) {
+          // Only split chunks for popup, not for content/background scripts
+          if (id.includes('node_modules')) {
+            if (id.includes('posthog')) {
+              return 'posthog';
+            }
+            if (id.includes('react') || id.includes('framer-motion') || id.includes('zustand')) {
+              return 'vendor';
+            }
+          }
         },
       },
     },

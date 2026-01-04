@@ -60,15 +60,15 @@ export class Inspector {
       bottom: '20px',
       right: '20px',
       zIndex: '10000000',
-      backgroundColor: 'white',
-      color: '#0f172a',
-      borderRadius: '12px',
-      boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-      width: '300px',
+      backgroundColor: '#EEEAE3',
+      color: '#171d26',
+      borderRadius: '8px',
+      boxShadow: '4px 4px 0px 0px #171d26',
+      width: '320px',
       padding: '0',
       fontFamily: 'system-ui, sans-serif',
       display: 'none',
-      border: '1px solid #e2e8f0',
+      border: '2px solid #171d26',
       overflow: 'hidden',
     });
 
@@ -583,31 +583,32 @@ ${videos.join('\n')}
     const h = Math.round(rect.height);
 
     // Box Model HTML
+    // Box Model HTML (Neubrutalism)
     const boxModelHtml = `
-      <div style="font-size: 9px; color: #94a3b8; font-family: monospace; display: flex; flex-direction: column; align-items: center; margin: 12px 0;">
+      <div style="font-size: 9px; color: #171d26; font-family: monospace; display: flex; flex-direction: column; align-items: center; margin: 12px 0;">
         <!-- MARGIN -->
-        <div style="background: #fdf2f8; border: 1px dashed #fbcfe8; border-radius: 4px; padding: 2px; position: relative; width: 100%; box-sizing: border-box;">
-           <span style="position: absolute; top: 2px; left: 4px; font-size: 8px; color: #db2777;">margin</span>
+        <div style="background: #fdf2f8; border: 1px dashed #171d26; border-radius: 4px; padding: 2px; position: relative; width: 100%; box-sizing: border-box;">
+           <span style="position: absolute; top: 2px; left: 4px; font-size: 8px; color: #db2777; font-weight: bold;">margin</span>
            <div style="text-align: center; margin-bottom: 2px;">${mt}</div>
            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 4px;">
               <span>${ml}</span>
               
               <!-- BORDER -->
-              <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 2px; padding: 2px; flex: 1; margin: 0 4px; position: relative;">
-                 <span style="position: absolute; top: 0px; left: 2px; font-size: 8px; color: #d97706;">border</span>
+              <div style="background: #fffbeb; border: 1px solid #171d26; border-radius: 2px; padding: 2px; flex: 1; margin: 0 4px; position: relative;">
+                 <span style="position: absolute; top: 0px; left: 2px; font-size: 8px; color: #d97706; font-weight: bold;">border</span>
                  <div style="text-align: center; margin-bottom: 2px;">${bt}</div>
                  <div style="display: flex; justify-content: space-between; align-items: center;">
                     <span style="padding-left: 2px;">${bl}</span>
                     
                     <!-- PADDING -->
-                    <div style="background: #f0fdf4; border: 1px dashed #bbf7d0; border-radius: 2px; padding: 2px; flex: 1; margin: 0 4px; position: relative;">
-                       <span style="position: absolute; top: 0px; left: 2px; font-size: 8px; color: #16a34a;">padding</span>
+                    <div style="background: #f0fdf4; border: 1px dashed #171d26; border-radius: 2px; padding: 2px; flex: 1; margin: 0 4px; position: relative;">
+                       <span style="position: absolute; top: 0px; left: 2px; font-size: 8px; color: #16a34a; font-weight: bold;">padding</span>
                        <div style="text-align: center; margin-bottom: 2px;">${pt}</div>
                        <div style="display: flex; justify-content: space-between; align-items: center;">
                           <span style="padding-left: 2px;">${pl}</span>
                           
                           <!-- CONTENT -->
-                          <div style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1e3a8a; font-weight: bold; padding: 6px 12px; border-radius: 2px; margin: 2px 4px;">
+                          <div style="background: #eff6ff; border: 1px solid #171d26; color: #1e3a8a; font-weight: bold; padding: 6px 12px; border-radius: 2px; margin: 2px 4px;">
                              ${w} × ${h}
                           </div>
                           
@@ -651,73 +652,118 @@ height: ${rect.height}px;
 `;
 
     this.detailCard.style.display = 'block';
+    const fullSelector = el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (el.classList.length ? '.' + Array.from(el.classList).join('.') : '');
+
     this.detailCard.innerHTML = `
-      <div style="padding: 12px 16px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; background: #f8fafc;">
-        <div style="display: flex; gap: 8px; align-items: center;">
-            <span style="font-weight: 700; font-size: 14px; text-transform: lowercase; color: #64748b;">&lt;${el.tagName.toLowerCase()}&gt;</span>
-            <div style="display: flex; gap: 4px;">
-                <button id="di-copy-css" style="background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%); border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; cursor: pointer; color: white; display: flex; align-items: center; gap: 4px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);">
-                    📋 CSS
+      <div style="padding: 12px 16px; border-bottom: 2px solid #171d26; display: flex; justify-content: space-between; align-items: center; background: #EEEAE3;">
+        <div style="display: flex; gap: 8px; align-items: center; flex: 1; min-width: 0;">
+            <span style="font-weight: 800; font-size: 14px; text-transform: lowercase; color: #171d26; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 150px;" title="${fullSelector}">${fullSelector}</span>
+            <div style="display: flex; gap: 4px; flex-shrink: 0;">
+                <button id="di-copy-css" style="background: #3b82f6; border: 2px solid #171d26; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; cursor: pointer; color: white; display: flex; align-items: center; gap: 4px; box-shadow: 2px 2px 0px 0px #171d26; transition: all 0.1s; flex-shrink: 0;">
+                    CSS
                 </button>
-                <button id="di-gen-prompt" style="background: linear-gradient(135deg, #7c3aed 0%, #db2777 100%); border: none; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 600; cursor: pointer; color: white; display: flex; align-items: center; gap: 4px; transition: all 0.2s; box-shadow: 0 2px 4px rgba(124, 58, 237, 0.2);">
-                    ✨ PROMPT
+                <button id="di-gen-prompt" style="background: #8b5cf6; border: 2px solid #171d26; padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; cursor: pointer; color: white; display: flex; align-items: center; gap: 4px; box-shadow: 2px 2px 0px 0px #171d26; transition: all 0.1s; flex-shrink: 0;">
+                    PROMPT
                 </button>
             </div>
         </div>
         <div style="display: flex; gap: 8px; align-items: center;">
-            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; color: #64748b; cursor: pointer; font-weight: 600;" title="Toggle continuous inspection on hover">
-                 <input type="checkbox" id="di-hover-toggle" style="accent-color: #7c3aed;">
+            <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; color: #171d26; cursor: pointer; font-weight: 700;" title="Toggle continuous inspection on hover">
+                 <input type="checkbox" id="di-hover-toggle" style="accent-color: #171d26; width: 14px; height: 14px; border: 2px solid #171d26; border-radius: 2px; cursor: pointer;">
                  Hover
             </label>
-            <button id="di-close-btn" style="background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 18px;">&times;</button>
+            <button id="di-close-btn" style="background: none; border: none; cursor: pointer; color: #171d26; font-size: 18px; font-weight: bold; line-height: 1;">&times;</button>
         </div>
       </div>
-      <div style="padding: 16px; font-size: 13px; display: flex; flex-direction: column; gap: 12px; max-height: 500px; overflow-y: auto;">
+      <div style="padding: 16px; font-size: 13px; display: flex; flex-direction: column; gap: 20px; max-height: 500px; overflow-y: auto; background: #FDFBF7;">
         
-        <!-- Box Model -->
-        ${boxModelHtml}
-
-        <!-- Typography -->
-         <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-            <div>
-                 <div style="font-weight: 600; color: #64748b; margin-bottom: 2px; font-size: 11px; text-transform: uppercase;">Typography</div>
-                 <div style="font-weight: 500; color: #0f172a; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${font}">${font}</div>
-            </div>
-            <div style="text-align: right;">
-                 <div style="color: #64748b;">${computed.fontWeight} • ${Math.round(parseFloat(computed.fontSize))}px</div>
-                 <div style="color: #94a3b8; font-size: 11px;">${computed.lineHeight}</div>
-            </div>
-         </div>
+        <!-- Text Properties -->
+        <div>
+           <div style="font-weight: 800; color: #171d26; margin-bottom: 8px; font-size: 11px; text-transform: uppercase;">Text properties</div>
+           <div style="display: flex; flex-direction: column; gap: 6px;">
+               ${[
+                 ['Font Family', font],
+                 ['Font Size', `${Math.round(parseFloat(computed.fontSize))}px`],
+                 ['Line Height', computed.lineHeight],
+                 ['Font Weight', computed.fontWeight],
+                 ['Letter Spacing', computed.letterSpacing],
+                 ['Text Align', computed.textAlign]
+               ].map(([label, value]) => `
+                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                    <span style="color: #64748b;">${label}</span>
+                    <span style="color: #171d26; font-weight: 500; text-align: right; max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${value}">${value}</span>
+                 </div>
+               `).join('')}
+               <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                    <span style="color: #64748b;">Text Color</span>
+                    <div style="display: flex; align-items: center; gap: 6px;">
+                        <div style="width: 14px; height: 14px; background: ${color}; border: 1px solid #171d26; border-radius: 2px;"></div>
+                        <span style="color: #171d26; font-weight: 500;">${color}</span>
+                    </div>
+               </div>
+           </div>
+        </div>
 
         <!-- Colors -->
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; background: #f8fafc; padding: 8px; border-radius: 6px;">
-           <div style="display: flex; flex-direction: column; gap: 4px;">
-              <span style="font-size: 10px; font-weight: 600; color: #64748b;">TEXT</span>
-              <div style="display: flex; align-items: center; gap: 6px;">
-                 <div style="width: 14px; height: 14px; background: ${color}; border-radius: 3px; border: 1px solid #e2e8f0;"></div>
-                 <span style="font-family: monospace; font-size: 11px; color: #334155;">${color}</span>
-              </div>
-           </div>
-           <div style="display: flex; flex-direction: column; gap: 4px;">
-              <span style="font-size: 10px; font-weight: 600; color: #64748b;">BG</span>
-              <div style="display: flex; align-items: center; gap: 6px;">
-                 <div style="width: 14px; height: 14px; background: ${isGradient ? bgImage : bg}; border-radius: 3px; border: 1px solid #e2e8f0;"></div>
-                 <span style="font-family: monospace; font-size: 11px; color: #334155; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 60px;">${bgDisplay}</span>
-              </div>
+        <div>
+            <div style="font-weight: 800; color: #171d26; margin-bottom: 8px; font-size: 11px; text-transform: uppercase;">Colors</div>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <!-- Background Card -->
+                <div style="background: ${isGradient ? bgImage : bg}; padding: 12px; border-radius: 6px; border: 2px solid #171d26; box-shadow: 2px 2px 0px 0px #171d26; color: #171d26; position: relative; overflow: hidden;">
+                     <div style="position: relative; z-index: 1; background: rgba(255,255,255,0.9); display: inline-block; padding: 2px 6px; border-radius: 4px; border: 1px solid #171d26;">
+                        <span style="font-size: 10px; font-weight: 700;">Background</span>
+                        <div style="font-family: monospace; font-size: 12px; font-weight: 600;">${bgDisplay}</div>
+                     </div>
+                </div>
+                <!-- Text Color Card (Small) -->
+                <!-- Use 'color' var -->
+            </div>
+        </div>
+
+        <!-- Element Properties -->
+        <div>
+           <div style="font-weight: 800; color: #171d26; margin-bottom: 8px; font-size: 11px; text-transform: uppercase;">Element properties</div>
+           <div style="display: flex; flex-direction: column; gap: 6px;">
+               ${[
+                 ['Width', `${w}px`],
+                 ['Height', `${h}px`],
+                 ['Border Radius', borderRadius],
+                 ['Display', computed.display],
+                 ['Position', computed.position],
+                 ['Z-Index', computed.zIndex === 'auto' ? '-' : computed.zIndex]
+               ].map(([label, value]) => `
+                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                    <span style="color: #64748b;">${label}</span>
+                    <span style="color: #171d26; font-weight: 500; font-family: monospace;">${value}</span>
+                 </div>
+               `).join('')}
            </div>
         </div>
 
-        <!-- Effects (If Present) -->
-        ${(border !== 'None' || borderRadius !== '0' || boxShadow !== 'None') ? `
+        <!-- Effects (If any) -->
+         ${(border !== 'None' || boxShadow !== 'None') ? `
         <div>
-            <div style="font-weight: 600; color: #64748b; margin-bottom: 4px; font-size: 11px; text-transform: uppercase;">Effects</div>
-            <div style="display: flex; flex-direction: column; gap: 4px; color: #334155; font-size: 11px;">
-                ${border !== 'None' ? `<div style="display: flex; justify-content: space-between;"><span>Border</span> <span style="font-family: monospace;">${border}</span></div>` : ''}
-                ${borderRadius !== '0' ? `<div style="display: flex; justify-content: space-between;"><span>Radius</span> <span style="font-family: monospace;">${borderRadius}</span></div>` : ''}
-                ${boxShadow !== 'None' ? `<div style="display: flex; justify-content: space-between;"><span>Shadow</span> <span style="font-family: monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;" title="${boxShadow}">${boxShadow}</span></div>` : ''}
-            </div>
+           <div style="font-weight: 800; color: #171d26; margin-bottom: 8px; font-size: 11px; text-transform: uppercase;">Effects</div>
+           <div style="display: flex; flex-direction: column; gap: 6px;">
+               ${border !== 'None' ? `
+                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                    <span style="color: #64748b;">Border</span>
+                    <span style="color: #171d26; font-weight: 500; font-family: monospace; max-width: 150px; overflow: hidden; text-overflow: ellipsis;">${border}</span>
+                 </div>` : ''}
+               ${boxShadow !== 'None' ? `
+                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
+                    <span style="color: #64748b;">Shadow</span>
+                    <span style="color: #171d26; font-weight: 500; font-family: monospace; max-width: 150px; overflow: hidden; text-overflow: ellipsis;" title="${boxShadow}">${boxShadow}</span>
+                 </div>` : ''}
+           </div>
         </div>
         ` : ''}
+
+        <!-- Spacing (Box Model) -->
+        <div>
+            <div style="font-weight: 800; color: #171d26; margin-bottom: 4px; font-size: 11px; text-transform: uppercase;">Spacing</div>
+            ${boxModelHtml}
+        </div>
 
       </div>
     `;

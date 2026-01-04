@@ -19,16 +19,16 @@ const ScrollInspectorPanel = () => {
   // Library display names and icons
   const getLibraryInfo = (library: string) => {
     const info: { [key: string]: { name: string; color: string; emoji: string } } = {
-      'gsap-scrolltrigger': { name: 'GSAP ScrollTrigger', color: 'bg-green-100 text-green-800', emoji: '⚡' },
-      'framer-motion': { name: 'Framer Motion', color: 'bg-purple-100 text-purple-800', emoji: '🎬' },
-      'locomotive': { name: 'Locomotive Scroll', color: 'bg-blue-100 text-blue-800', emoji: '🚂' },
-      'aos': { name: 'AOS', color: 'bg-orange-100 text-orange-800', emoji: '✨' },
-      'scrollmagic': { name: 'ScrollMagic', color: 'bg-pink-100 text-pink-800', emoji: '🎪' },
-      'intersection-observer': { name: 'Intersection Observer', color: 'bg-indigo-100 text-indigo-800', emoji: '👁️' },
-      'css-scroll-timeline': { name: 'CSS Scroll Timeline', color: 'bg-teal-100 text-teal-800', emoji: '🎨' },
-      'custom': { name: 'Custom', color: 'bg-gray-100 text-gray-800', emoji: '🔧' },
+      'gsap-scrolltrigger': { name: 'GSAP ScrollTrigger', color: 'bg-green-500/10 text-green-600 border border-green-500/20', emoji: '⚡' },
+      'framer-motion': { name: 'Framer Motion', color: 'bg-purple-500/10 text-purple-600 border border-purple-500/20', emoji: '🎬' },
+      'locomotive': { name: 'Locomotive Scroll', color: 'bg-blue-500/10 text-blue-600 border border-blue-500/20', emoji: '🚂' },
+      'aos': { name: 'AOS', color: 'bg-orange-500/10 text-orange-600 border border-orange-500/20', emoji: '✨' },
+      'scrollmagic': { name: 'ScrollMagic', color: 'bg-pink-500/10 text-pink-600 border border-pink-500/20', emoji: '🎪' },
+      'intersection-observer': { name: 'Intersection Observer', color: 'bg-indigo-500/10 text-indigo-600 border border-indigo-500/20', emoji: '👁️' },
+      'css-scroll-timeline': { name: 'CSS Scroll Timeline', color: 'bg-teal-500/10 text-teal-600 border border-teal-500/20', emoji: '🎨' },
+      'custom': { name: 'Custom', color: 'bg-secondary text-muted-foreground border border-foreground/10', emoji: '🔧' },
     };
-    return info[library] || { name: library, color: 'bg-gray-100 text-gray-800', emoji: '📜' };
+    return info[library] || { name: library, color: 'bg-secondary text-muted-foreground border border-foreground/10', emoji: '📜' };
   };
 
   // Toggle animation expansion
@@ -191,15 +191,15 @@ observer.observe(document.querySelector('${animation.element}'));`;
       </div>
 
       {/* Badge Glossary */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs">
-        <p className="font-semibold text-blue-900 mb-1.5">Badge Meanings:</p>
-        <div className="space-y-1 text-blue-800">
+      <div className="bg-card border-2 border-foreground/20 rounded-lg p-3 text-xs neo-shadow">
+        <p className="font-semibold text-foreground mb-1.5">Badge Meanings:</p>
+        <div className="space-y-1 text-muted-foreground">
           <div className="flex items-start gap-2">
-            <span className="px-2 py-0.5 rounded bg-purple-100 text-purple-700 font-medium whitespace-nowrap">Scrubbed</span>
+            <span className="px-2 py-0.5 rounded bg-primary/10 text-primary font-bold border border-primary/20 whitespace-nowrap">Scrubbed</span>
             <span>Animation is linked to scroll position - scrub through it by scrolling</span>
           </div>
           <div className="flex items-start gap-2">
-            <span className="px-2 py-0.5 rounded bg-pink-100 text-pink-700 font-medium whitespace-nowrap">Pinned</span>
+            <span className="px-2 py-0.5 rounded bg-secondary text-secondary-foreground font-bold border border-border whitespace-nowrap">Pinned</span>
             <span>Element stays fixed in place during the animation</span>
           </div>
         </div>
@@ -237,12 +237,12 @@ observer.observe(document.querySelector('${animation.element}'));`;
       </div>
 
       {/* Timeline Visualization */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 rounded-lg p-4 border border-blue-200">
+      <div className="bg-card rounded-lg p-4 border-2 border-foreground/20 neo-shadow">
         <div className="flex items-center justify-between mb-2">
           <span className="text-xs font-semibold text-gray-700">Scroll Timeline</span>
           <span className="text-xs text-gray-500">{filteredAnimations.length} triggers</span>
         </div>
-        <div className="relative h-8 bg-white rounded-lg overflow-hidden border border-gray-200">
+        <div className="relative h-8 bg-secondary/50 rounded-lg overflow-hidden border border-border">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full h-0.5 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400"></div>
           </div>
@@ -293,7 +293,7 @@ observer.observe(document.querySelector('${animation.element}'));`;
           return (
             <div
               key={animation.id}
-              className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:border-blue-300 transition-colors"
+              className="bg-card border-2 border-foreground/20 rounded-lg overflow-hidden hover:border-primary transition-colors neo-shadow"
             >
               {/* Animation Header */}
               <div
@@ -306,12 +306,12 @@ observer.observe(document.querySelector('${animation.element}'));`;
                       {libraryInfo.emoji} {libraryInfo.name}
                     </span>
                     {animation.trigger.scrub && (
-                      <span className="px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-700">
+                      <span className="px-2 py-0.5 rounded text-xs font-bold bg-purple-500/10 text-purple-600 border border-purple-500/20">
                         Scrubbed
                       </span>
                     )}
                     {animation.trigger.pin && (
-                      <span className="px-2 py-0.5 rounded text-xs font-medium bg-pink-100 text-pink-700">
+                      <span className="px-2 py-0.5 rounded text-xs font-bold bg-pink-500/10 text-pink-600 border border-pink-500/20">
                         Pinned
                       </span>
                     )}
@@ -335,7 +335,7 @@ observer.observe(document.querySelector('${animation.element}'));`;
 
               {/* Expanded Details */}
               {isExpanded && (
-                <div className="px-3 pb-3 space-y-3 border-t border-gray-100 bg-gray-50">
+                <div className="px-3 pb-3 space-y-3 border-t-2 border-foreground/5 bg-secondary/20">
                   {/* Trigger Info */}
                   <div className="pt-3">
                     <p className="text-xs font-semibold text-gray-700 mb-2">Trigger Configuration</p>
@@ -471,21 +471,21 @@ observer.observe(document.querySelector('${animation.element}'));`;
       </div>
 
       {/* Footer Stats */}
-      <div className="pt-3 border-t border-gray-200">
+      <div className="pt-3 border-t border-border">
         <div className="grid grid-cols-3 gap-3 text-center">
-          <div className="bg-blue-50 rounded-lg p-2">
-            <div className="text-lg font-bold text-blue-700">{scrollAnimations.length}</div>
-            <div className="text-xs text-blue-600">Total</div>
+          <div className="bg-card border-2 border-foreground/20 rounded-lg p-2 neo-shadow">
+            <div className="text-lg font-bold text-foreground">{scrollAnimations.length}</div>
+            <div className="text-xs text-muted-foreground">Total</div>
           </div>
-          <div className="bg-purple-50 rounded-lg p-2">
-            <div className="text-lg font-bold text-purple-700">{libraries.length}</div>
-            <div className="text-xs text-purple-600">Libraries</div>
+          <div className="bg-card border-2 border-foreground/20 rounded-lg p-2 neo-shadow">
+            <div className="text-lg font-bold text-foreground">{libraries.length}</div>
+            <div className="text-xs text-muted-foreground">Libraries</div>
           </div>
-          <div className="bg-green-50 rounded-lg p-2">
-            <div className="text-lg font-bold text-green-700">
+          <div className="bg-card border-2 border-foreground/20 rounded-lg p-2 neo-shadow">
+            <div className="text-lg font-bold text-foreground">
               {scrollAnimations.filter(a => a.trigger.scrub).length}
             </div>
-            <div className="text-xs text-green-600">Scrubbed</div>
+            <div className="text-xs text-muted-foreground">Scrubbed</div>
           </div>
         </div>
       </div>

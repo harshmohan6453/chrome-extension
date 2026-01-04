@@ -97,19 +97,19 @@ export const SettingsPanel = () => {
                 </h3>
                 
                 {/* Theme */}
-                <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+                <div className="p-4 rounded-lg border-2 border-foreground/20 bg-card space-y-3 neo-shadow">
                     <div className="flex items-center justify-between">
                         <div>
                             <label className="text-sm font-bold">Theme</label>
                             <p className="text-xs text-muted-foreground">Choose your preferred appearance</p>
                         </div>
                     </div>
-                    <div className="flex bg-secondary p-1 rounded-lg">
+                    <div className="flex bg-secondary p-1 rounded-lg border-2 border-foreground/10">
                         <button
                             onClick={() => handleThemeChange('light')}
                             className={clsx(
                                 "flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-md transition-all",
-                                theme === 'light' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+                                theme === 'light' ? 'bg-background shadow-sm text-foreground border border-foreground/10' : 'text-muted-foreground hover:text-foreground'
                             )}
                         >
                             <Sun className="w-4 h-4" /> Light
@@ -118,7 +118,7 @@ export const SettingsPanel = () => {
                             onClick={() => handleThemeChange('dark')}
                             className={clsx(
                                 "flex-1 flex items-center justify-center gap-2 py-2 text-xs font-bold rounded-md transition-all",
-                                theme === 'dark' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+                                theme === 'dark' ? 'bg-background shadow-sm text-foreground border border-foreground/10' : 'text-muted-foreground hover:text-foreground'
                             )}
                         >
                             <Moon className="w-4 h-4" /> Dark
@@ -127,7 +127,7 @@ export const SettingsPanel = () => {
                             onClick={() => handleThemeChange('system')}
                             className={clsx(
                                 "flex-1 py-2 text-xs font-bold rounded-md transition-all",
-                                theme === 'system' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+                                theme === 'system' ? 'bg-background shadow-sm text-foreground border border-foreground/10' : 'text-muted-foreground hover:text-foreground'
                             )}
                         >
                             System
@@ -136,9 +136,9 @@ export const SettingsPanel = () => {
                 </div>
 
                 {/* Color Format */}
-                <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+                <div className="p-4 rounded-lg border-2 border-foreground/20 bg-card space-y-3 neo-shadow">
                     <label className="text-sm font-bold block">Color Format</label>
-                    <div className="flex bg-secondary p-1 rounded-lg">
+                    <div className="flex bg-secondary p-1 rounded-lg border-2 border-foreground/10">
                         {(['hex', 'rgb', 'hsl'] as const).map((fmt) => (
                             <button
                                 key={fmt}
@@ -146,7 +146,7 @@ export const SettingsPanel = () => {
                                 className={clsx(
                                     "flex-1 py-2 text-xs font-bold rounded-md transition-all uppercase",
                                     preferences.colorFormat === fmt 
-                                        ? 'bg-background shadow-sm text-foreground' 
+                                        ? 'bg-background shadow-sm text-foreground border border-foreground/10' 
                                         : 'text-muted-foreground hover:text-foreground'
                                 )}
                             >
@@ -157,12 +157,12 @@ export const SettingsPanel = () => {
                 </div>
 
                 {/* Unit Format */}
-                <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+                <div className="p-4 rounded-lg border-2 border-foreground/20 bg-card space-y-3 neo-shadow">
                     <div className="flex items-center gap-2">
                         <Ruler className="w-4 h-4 text-muted-foreground" />
                         <label className="text-sm font-bold">Size Units</label>
                     </div>
-                    <div className="flex bg-secondary p-1 rounded-lg">
+                    <div className="flex bg-secondary p-1 rounded-lg border-2 border-foreground/10">
                         {(['px', 'rem'] as const).map((fmt) => (
                             <button
                                 key={fmt}
@@ -170,7 +170,7 @@ export const SettingsPanel = () => {
                                 className={clsx(
                                     "flex-1 py-2 text-xs font-bold rounded-md transition-all uppercase",
                                     preferences.unitFormat === fmt 
-                                        ? 'bg-background shadow-sm text-foreground' 
+                                        ? 'bg-background shadow-sm text-foreground border border-foreground/10' 
                                         : 'text-muted-foreground hover:text-foreground'
                                 )}
                             >
@@ -188,7 +188,7 @@ export const SettingsPanel = () => {
                 </h3>
 
                 {/* Highlight Color */}
-                <div className="p-4 rounded-xl border border-border bg-card space-y-3">
+                <div className="p-4 rounded-lg border-2 border-foreground/20 bg-card space-y-3 neo-shadow">
                     <label className="text-sm font-bold block">Highlight Color</label>
                     <p className="text-xs text-muted-foreground">Color used when inspecting elements</p>
                     <div className="flex gap-2">
@@ -215,10 +215,10 @@ export const SettingsPanel = () => {
                 
                 <button 
                     onClick={handleExport}
-                    className="w-full flex items-center justify-between p-4 rounded-xl border border-border bg-card hover:bg-accent/50 transition-colors group"
+                    className="w-full flex items-center justify-between p-4 rounded-lg border-2 border-foreground/20 bg-card hover:border-primary hover:bg-accent/50 transition-all group neo-shadow"
                 >
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500">
+                        <div className="p-2 rounded-lg bg-blue-500/10 text-blue-500 border border-blue-500/20">
                             <Download className="w-5 h-5" />
                         </div>
                         <div className="text-left">
@@ -235,10 +235,10 @@ export const SettingsPanel = () => {
 
                 <button 
                     onClick={reset} 
-                    className="w-full flex items-center justify-between p-4 rounded-xl border border-border bg-card hover:border-destructive/50 hover:bg-destructive/5 transition-colors"
+                    className="w-full flex items-center justify-between p-4 rounded-lg border-2 border-foreground/20 bg-card hover:border-destructive hover:bg-destructive/5 transition-all neo-shadow"
                 >
                     <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-destructive/10 text-destructive">
+                        <div className="p-2 rounded-lg bg-destructive/10 text-destructive border border-destructive/20">
                             <Trash2 className="w-5 h-5" />
                         </div>
                         <div className="text-left">

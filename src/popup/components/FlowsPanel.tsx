@@ -97,9 +97,9 @@ export default function FlowsPanel() {
   return (
     <div className="p-4 space-y-6">
       {/* Header & Controls */}
-      <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm text-center">
-        <h2 className="text-xl font-bold text-gray-900 mb-2">User Flow Recorder</h2>
-        <p className="text-sm text-gray-500 mb-6">
+      <div className="bg-card rounded-lg p-6 border-2 border-foreground/20 text-center neo-shadow">
+        <h2 className="text-xl font-bold text-foreground mb-2">User Flow Recorder</h2>
+        <p className="text-sm text-muted-foreground mb-6">
           Record your clicks and generate instant flowcharts.
         </p>
 
@@ -108,7 +108,7 @@ export default function FlowsPanel() {
             onClick={toggleRecording}
             className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all transform hover:scale-105 ${
               isRecording 
-                ? 'bg-red-50 text-red-600 border border-red-200 shadow-red-100 hover:bg-red-100' 
+                ? 'bg-destructive/10 text-destructive border-2 border-destructive/20 hover:bg-destructive/20 neo-shadow-sm' 
                 : 'bg-primary text-white neo-shadow neo-button hover:bg-primary/90'
             }`}
           >
@@ -128,7 +128,7 @@ export default function FlowsPanel() {
           {steps.length > 0 && (
             <button
               onClick={clearFlow}
-              className="p-3 rounded-full bg-gray-50 text-gray-500 border border-gray-200 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+              className="p-3 rounded-full bg-secondary text-muted-foreground border-2 border-foreground/10 hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 transition-colors"
               title="Clear Flow"
             >
               <Trash2 className="w-5 h-5" />
@@ -143,22 +143,22 @@ export default function FlowsPanel() {
           <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Recorded Steps ({steps.length})</h3>
           <div className="relative pl-8 space-y-8">
             {/* Continuous Vertical Line */}
-            <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-gray-200 mx-auto" />
+            <div className="absolute left-3 top-3 bottom-3 w-0.5 bg-foreground/10 mx-auto" />
 
             {steps.map((step) => (
               <div key={step.id} className="relative">
                 {/* Timeline Dot */}
-                <div className="absolute left-[-26px] top-1.5 w-3.5 h-3.5 rounded-full bg-white border-[3px] border-primary z-10 shadow-sm transition-transform hover:scale-125" />
+                <div className="absolute left-[-26px] top-1.5 w-3.5 h-3.5 rounded-full bg-background border-[3px] border-primary z-10 neo-shadow-sm transition-transform hover:scale-125" />
                 
-                <div className="bg-white p-3.5 rounded-xl border border-gray-100 shadow-sm hover:border-primary/20 hover:shadow-md transition-all group">
+                <div className="bg-card p-3.5 rounded-lg border-2 border-foreground/20 hover:border-primary transition-all group neo-shadow-sm">
                   <div className="flex items-start gap-3">
                     <div className="mt-0.5 p-1.5 bg-primary/5 text-primary rounded-lg group-hover:bg-primary/10 transition-colors">
                       <MousePointer2 className="w-3.5 h-3.5" />
                     </div>
                     <div>
-                      <div className="font-bold text-gray-900 text-sm leading-tight">{step.description}</div>
+                      <div className="font-bold text-foreground text-sm leading-tight">{step.description}</div>
                       <div className="flex flex-wrap gap-2 mt-2">
-                         <div className="text-[10px] text-gray-500 font-mono bg-gray-50 px-2 py-1 rounded border border-gray-100/50">
+                         <div className="text-[10px] text-muted-foreground font-mono bg-secondary px-2 py-1 rounded border border-foreground/5">
                            {step.selector}
                          </div>
                          <div className="text-[10px] text-primary/70 font-medium bg-primary/5 px-2 py-1 rounded">
@@ -173,7 +173,7 @@ export default function FlowsPanel() {
           </div>
 
           {/* Export Section */}
-          <div className="bg-slate-900 rounded-xl p-4 text-slate-300 overflow-hidden">
+          <div className="bg-slate-900 rounded-lg p-4 text-slate-300 overflow-hidden border-2 border-slate-800 neo-shadow">
             <div className="flex justify-between items-center mb-3">
               <div className="flex items-center gap-2">
                 <Share2 className="w-4 h-4" />
@@ -198,7 +198,7 @@ export default function FlowsPanel() {
       )}
 
       {steps.length === 0 && !isRecording && (
-        <div className="text-center py-12 text-gray-400">
+        <div className="text-center py-12 text-muted-foreground">
           <MousePointer2 className="w-12 h-12 mx-auto mb-3 opacity-20" />
           <p>Click "Start Recording" and interact with the page.</p>
         </div>

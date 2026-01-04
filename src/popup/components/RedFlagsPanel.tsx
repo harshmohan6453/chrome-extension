@@ -63,30 +63,30 @@ export default function RedFlagsPanel() {
   const getSeverityColor = (severity: string) => {
     switch (severity) {
       case 'critical':
-        return 'border-l-red-600 bg-red-50';
+        return 'border-l-red-600 bg-red-500/10';
       case 'warning':
-        return 'border-l-yellow-500 bg-yellow-50';
+        return 'border-l-yellow-500 bg-yellow-500/10';
       case 'info':
-        return 'border-l-blue-500 bg-blue-50';
+        return 'border-l-blue-500 bg-blue-500/10';
       default:
-        return 'border-l-gray-400 bg-gray-50';
+        return 'border-l-gray-400 bg-foreground/5';
     }
   };
 
   const getCategoryInfo = (category: string) => {
     switch (category) {
       case 'seo':
-        return { emoji: '🔍', name: 'SEO', color: 'bg-green-100 text-green-800' };
+        return { emoji: '🔍', name: 'SEO', color: 'bg-green-500/10 text-green-600 border-green-500/20' };
       case 'ux':
-        return { emoji: '🎨', name: 'UX', color: 'bg-purple-100 text-purple-800' };
+        return { emoji: '🎨', name: 'UX', color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' };
       case 'accessibility':
-        return { emoji: '♿', name: 'Accessibility', color: 'bg-blue-100 text-blue-800' };
+        return { emoji: '♿', name: 'Accessibility', color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' };
       case 'mobile':
-        return { emoji: '📱', name: 'Mobile', color: 'bg-pink-100 text-pink-800' };
+        return { emoji: '📱', name: 'Mobile', color: 'bg-pink-500/10 text-pink-600 border-pink-500/20' };
       case 'performance':
-        return { emoji: '⚡', name: 'Performance', color: 'bg-orange-100 text-orange-800' };
+        return { emoji: '⚡', name: 'Performance', color: 'bg-orange-500/10 text-orange-600 border-orange-500/20' };
       default:
-        return { emoji: '🚩', name: 'Other', color: 'bg-gray-100 text-gray-800' };
+        return { emoji: '🚩', name: 'Other', color: 'bg-foreground/10 text-muted-foreground border-foreground/20' };
     }
   };
 
@@ -163,9 +163,9 @@ export default function RedFlagsPanel() {
   const healthScore = calculateHealthScore();
   
   const getScoreColor = (score: number) => {
-    if (score >= 90) return 'text-green-600 bg-green-50 border-green-200';
-    if (score >= 50) return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-    return 'text-red-600 bg-red-50 border-red-200';
+    if (score >= 90) return 'text-green-600 bg-green-50 border-2 border-green-200';
+    if (score >= 50) return 'text-yellow-600 bg-yellow-50 border-2 border-yellow-200';
+    return 'text-red-600 bg-red-50 border-2 border-red-200';
   };
 
   // Grouping Logic
@@ -206,7 +206,7 @@ export default function RedFlagsPanel() {
     return (
       <div
         key={flag.id}
-        className={`border-l-4 ${getSeverityColor(flag.severity)} rounded-r-lg mb-3 bg-white shadow-sm transition-all duration-200`}
+        className={`border-l-4 ${getSeverityColor(flag.severity)} rounded-r-lg mb-3 bg-card border-y-2 border-r-2 border-foreground/10 neo-shadow-sm transition-all duration-200`}
       >
         {/* Card Header - Clickable */}
         <div 
@@ -216,12 +216,12 @@ export default function RedFlagsPanel() {
           {getSeverityIcon(flag.severity)}
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <h3 className="font-semibold text-gray-900">{flag.title}</h3>
-              <span className={`px-2 py-0.5 rounded text-xs font-medium ${categoryInfo.color}`}>
+              <h3 className="font-bold text-foreground">{flag.title}</h3>
+              <span className={`px-2 py-0.5 rounded text-xs font-bold border ${categoryInfo.color}`}>
                 {categoryInfo.emoji} {categoryInfo.name}
               </span>
               {flag.count && (
-                <span className="px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                <span className="px-2 py-0.5 rounded text-xs font-bold bg-secondary text-muted-foreground border border-foreground/10">
                   {flag.count} found
                 </span>
               )}
@@ -236,7 +236,7 @@ export default function RedFlagsPanel() {
               )}
             </div>
             
-            <p className="text-sm text-gray-700">{flag.description}</p>
+            <p className="text-sm text-foreground/80">{flag.description}</p>
             
             {/* Quick recommendation preview */}
             {!isExpanded && (
@@ -253,7 +253,7 @@ export default function RedFlagsPanel() {
 
         {/* Expanded Details */}
         {isExpanded && (
-          <div className="px-4 pb-4 border-t border-gray-100 bg-gray-50/50">
+          <div className="px-4 pb-4 border-t-2 border-foreground/5 bg-secondary/20">
             {/* Impact Estimate */}
             {flag.estimatedImpact && (
               <div className="mt-3 text-xs bg-white border border-gray-200 p-2 rounded text-gray-600 flex items-start gap-2">
@@ -354,17 +354,17 @@ export default function RedFlagsPanel() {
   return (
     <div className="p-4 space-y-6">
       {/* Health Score & Header */}
-      <div className="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+      <div className="bg-card rounded-lg p-6 border-2 border-foreground/20 neo-shadow">
         <div className="flex justify-between items-start mb-6">
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Page Health</h2>
-            <p className="text-sm text-gray-500">
+            <h2 className="text-xl font-bold text-foreground mb-1">Page Health</h2>
+            <p className="text-sm text-muted-foreground">
               Found {redFlags.length} issue{redFlags.length !== 1 ? 's' : ''}
             </p>
           </div>
           <button 
             onClick={downloadReport}
-            className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 rounded-lg text-xs font-medium transition-colors border border-gray-200"
+            className="flex items-center gap-2 px-3 py-1.5 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg text-xs font-bold transition-colors border-2 border-foreground/10"
           >
             <Download className="w-3.5 h-3.5" />
             Export
@@ -373,28 +373,28 @@ export default function RedFlagsPanel() {
 
         <div className="flex items-center gap-6">
           {/* Circular Score */}
-          <div className={`relative flex items-center justify-center w-24 h-24 rounded-full border-4 ${getScoreColor(healthScore)}`}>
+          <div className={`relative flex items-center justify-center w-24 h-24 rounded-full ${getScoreColor(healthScore)} neo-shadow-sm`}>
             <div className="text-center">
-              <span className={`text-3xl font-bold block ${healthScore < 50 ? 'text-red-600' : healthScore < 90 ? 'text-yellow-600' : 'text-green-600'}`}>
+              <span className={`text-3xl font-black block`}>
                 {healthScore}
               </span>
-              <span className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">Score</span>
+              <span className="text-[10px] opacity-70 uppercase tracking-wider font-bold">Score</span>
             </div>
           </div>
 
           {/* Stats */}
           <div className="flex-1 grid grid-cols-3 gap-2">
-            <div className="bg-red-50 rounded-lg p-2 text-center border border-red-100">
+            <div className="bg-red-50 rounded-lg p-2 text-center border-2 border-red-200 shadow-sm">
               <div className="text-xl font-bold text-red-600">{criticalCount}</div>
-              <div className="text-xs text-red-700 font-medium">Critical</div>
+              <div className="text-xs text-red-700 font-bold">Critical</div>
             </div>
-            <div className="bg-yellow-50 rounded-lg p-2 text-center border border-yellow-100">
+            <div className="bg-yellow-50 rounded-lg p-2 text-center border-2 border-yellow-200 shadow-sm">
               <div className="text-xl font-bold text-yellow-600">{warningCount}</div>
-              <div className="text-xs text-yellow-700 font-medium">Warnings</div>
+              <div className="text-xs text-yellow-700 font-bold">Warnings</div>
             </div>
-            <div className="bg-blue-50 rounded-lg p-2 text-center border border-blue-100">
+            <div className="bg-blue-50 rounded-lg p-2 text-center border-2 border-blue-200 shadow-sm">
               <div className="text-xl font-bold text-blue-600">{infoCount}</div>
-              <div className="text-xs text-blue-700 font-medium">Hints</div>
+              <div className="text-xs text-blue-700 font-bold">Hints</div>
             </div>
           </div>
         </div>

@@ -81,7 +81,7 @@ export const TypographyCard = ({ font, index }: TypographyCardProps) => {
 
       {/* Expandable Content */}
       {isExpanded && (
-        <div className="border-t border-border/50 p-5 bg-background space-y-5 animate-in fade-in slide-in-from-top-2 duration-200">
+        <div className="border-t-2 border-foreground/10 p-5 bg-background space-y-5 animate-in fade-in slide-in-from-top-2 duration-200">
           {/* Font Preview */}
           <div className="space-y-3">
             <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
@@ -119,7 +119,7 @@ export const TypographyCard = ({ font, index }: TypographyCardProps) => {
               {font.variants.map((variant, vIdx) => (
                 <span
                   key={vIdx}
-                  className="bg-secondary border border-border px-2 py-1 rounded text-xs font-medium text-foreground"
+                  className="bg-secondary border-2 border-foreground/10 px-2 py-1 rounded-md text-xs font-bold text-foreground"
                 >
                   {variant.weight}
                   {variant.style !== 'normal' && <span className="text-muted-foreground italic ml-1">{variant.style}</span>}
@@ -136,7 +136,7 @@ export const TypographyCard = ({ font, index }: TypographyCardProps) => {
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {Array.from(new Set(font.variants.flatMap(v => v.sizes.map(s => s.value)))).map((size, sIdx) => (
-                  <span key={sIdx} className="bg-secondary/50 border border-border px-2 py-1 rounded text-xs font-mono text-foreground">
+                  <span key={sIdx} className="bg-secondary/50 border-2 border-foreground/10 px-2 py-1 rounded-md text-xs font-mono font-bold text-foreground">
                     {size}
                   </span>
                 ))}
@@ -145,10 +145,10 @@ export const TypographyCard = ({ font, index }: TypographyCardProps) => {
           )}
 
           {/* Copy Actions */}
-          <div className="pt-3 border-t border-border flex flex-wrap gap-2">
+          <div className="pt-3 border-t-2 border-foreground/10 flex flex-wrap gap-2">
             <button
               onClick={(e) => { e.stopPropagation(); copyToClipboard(fontFamilyCSS, `${index}-family`); }}
-              className="flex items-center gap-2 px-3 py-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg text-xs font-bold transition-all"
+              className="flex items-center gap-2 px-3 py-2 bg-secondary hover:bg-secondary/80 text-secondary-foreground rounded-lg text-xs font-bold transition-all border-2 border-foreground/10 hover:border-foreground/30"
             >
               {copiedId === `${index}-family` ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
               Copy CSS
@@ -157,7 +157,7 @@ export const TypographyCard = ({ font, index }: TypographyCardProps) => {
             {googleImport && (
               <button
                 onClick={(e) => { e.stopPropagation(); copyToClipboard(googleImport, `${index}-import`); }}
-                className="flex items-center gap-2 px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 rounded-lg text-xs font-bold transition-all border border-blue-500/20"
+                className="flex items-center gap-2 px-3 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 rounded-lg text-xs font-bold transition-all border-2 border-blue-500/20 hover:border-blue-500/40"
               >
                 {copiedId === `${index}-import` ? <Check className="w-3 h-3" /> : <ExternalLink className="w-3 h-3" />}
                 Copy Import

@@ -280,32 +280,32 @@ ${c?.spacing?.join(', ') || data.spacing.map(s => `${s}px`).join(', ')}
         
         {/* Stats */}
         <div className="grid grid-cols-5 gap-1.5 mt-3">
-          <div className="bg-green-50 border border-green-200 rounded p-1.5 text-center">
-            <div className="text-sm font-bold text-green-700">{h?.elementCount || '?'}</div>
-            <div className="text-[10px] text-green-600">Elements</div>
+          <div className="bg-card border-2 border-foreground/20 rounded-lg p-1.5 text-center neo-shadow">
+            <div className="text-sm font-bold text-foreground">{h?.elementCount || '?'}</div>
+            <div className="text-[10px] text-muted-foreground">Elements</div>
           </div>
-          <div className="bg-blue-50 border border-blue-200 rounded p-1.5 text-center">
-            <div className="text-sm font-bold text-blue-700">{c?.colors?.length || data.colors.length}</div>
-            <div className="text-[10px] text-blue-600">Colors</div>
+          <div className="bg-card border-2 border-foreground/20 rounded-lg p-1.5 text-center neo-shadow">
+            <div className="text-sm font-bold text-foreground">{c?.colors?.length || data.colors.length}</div>
+            <div className="text-[10px] text-muted-foreground">Colors</div>
           </div>
-          <div className="bg-purple-50 border border-purple-200 rounded p-1.5 text-center">
-            <div className="text-sm font-bold text-purple-700">{c?.fonts?.length || data.fonts.length}</div>
-            <div className="text-[10px] text-purple-600">Fonts</div>
+          <div className="bg-card border-2 border-foreground/20 rounded-lg p-1.5 text-center neo-shadow">
+            <div className="text-sm font-bold text-foreground">{c?.fonts?.length || data.fonts.length}</div>
+            <div className="text-[10px] text-muted-foreground">Fonts</div>
           </div>
-          <div className="bg-orange-50 border border-orange-200 rounded p-1.5 text-center">
-            <div className="text-sm font-bold text-orange-700">{data.scrollAnimations.length}</div>
-            <div className="text-[10px] text-orange-600">Anims</div>
+          <div className="bg-card border-2 border-foreground/20 rounded-lg p-1.5 text-center neo-shadow">
+            <div className="text-sm font-bold text-foreground">{data.scrollAnimations.length}</div>
+            <div className="text-[10px] text-muted-foreground">Anims</div>
           </div>
-          <div className="bg-pink-50 border border-pink-200 rounded p-1.5 text-center">
-            <div className="text-sm font-bold text-pink-700">{c?.images?.length || data.assets.length}</div>
-            <div className="text-[10px] text-pink-600">Assets</div>
+          <div className="bg-card border-2 border-foreground/20 rounded-lg p-1.5 text-center neo-shadow">
+            <div className="text-sm font-bold text-foreground">{c?.images?.length || data.assets.length}</div>
+            <div className="text-[10px] text-muted-foreground">Assets</div>
           </div>
         </div>
       </div>
 
       <div className="grid gap-3">
         {prompts.map((p) => (
-          <div key={p.id} className={clsx("bg-card rounded-xl border p-3 transition-all hover:shadow-md", p.border)}>
+          <div key={p.id} className={clsx("bg-card rounded-lg border-2 border-foreground/20 p-3 transition-all hover:border-primary neo-shadow")}>
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <div className={clsx("p-2 rounded-lg", p.bg)}>

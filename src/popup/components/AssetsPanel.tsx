@@ -82,7 +82,7 @@ export const AssetsPanel = () => {
             <button 
                 onClick={handleDownloadAll}
                 disabled={downloading}
-                className="bg-primary text-primary-foreground text-sm font-bold px-4 py-2 rounded-xl shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 transition-all flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
+                className="bg-primary text-primary-foreground text-sm font-bold px-4 py-2 rounded-lg neo-shadow neo-button transition-all flex items-center gap-2 disabled:opacity-50 disabled:pointer-events-none"
             >
                 {downloading ? <div className="animate-spin w-4 h-4 border-2 border-white/30 border-t-white rounded-full"></div> : <Package className="w-4 h-4" />}
                 Download All ({assets.slice(0,50).length})
@@ -105,7 +105,7 @@ export const AssetsPanel = () => {
                       </h3>
                       <div className="grid grid-cols-2 gap-4">
                           {images.map((img, i) => (
-                              <div key={i} className="group relative bg-card rounded-xl border border-border overflow-hidden aspect-square flex items-center justify-center p-2">
+                              <div key={i} className="group relative bg-card rounded-lg border-2 border-foreground/20 overflow-hidden aspect-square flex items-center justify-center p-2 neo-shadow">
                                   {/* Transparency Grid Config */}
                                   <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(#000 1px, transparent 1px)', backgroundSize: '10px 10px' }}></div>
                                   
@@ -151,7 +151,7 @@ export const AssetsPanel = () => {
                       </h3>
                       <div className="grid grid-cols-3 gap-3">
                           {svgs.map((svg, i) => (
-                              <div key={i} className="group relative bg-card rounded-xl border border-border overflow-hidden aspect-square flex items-center justify-center p-4">
+                              <div key={i} className="group relative bg-card rounded-lg border-2 border-foreground/20 overflow-hidden aspect-square flex items-center justify-center p-4 neo-shadow">
                                   <img src={svg.url} className="w-full h-full object-contain" alt="" />
                                   <button 
                                       onClick={() => handleDownload(svg.url, `vector_${i}.svg`)}

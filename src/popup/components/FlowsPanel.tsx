@@ -109,7 +109,7 @@ export default function FlowsPanel() {
             className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all transform hover:scale-105 ${
               isRecording 
                 ? 'bg-red-50 text-red-600 border border-red-200 shadow-red-100 hover:bg-red-100' 
-                : 'bg-primary text-white shadow-lg shadow-primary/30 hover:bg-primary/90'
+                : 'bg-primary text-white neo-shadow neo-button hover:bg-primary/90'
             }`}
           >
             {isRecording ? (

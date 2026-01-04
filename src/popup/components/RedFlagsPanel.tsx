@@ -327,7 +327,7 @@ export default function RedFlagsPanel() {
       <div className="p-6 text-center">
         <div className="relative w-16 h-16 mx-auto mb-4">
           <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse"></div>
-          <div className="relative bg-card p-3 rounded-2xl shadow-lg flex items-center justify-center border border-border/50">
+          <div className="relative bg-card p-3 rounded-lg neo-shadow-lg flex items-center justify-center border-2 border-foreground/20">
             <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
         </div>

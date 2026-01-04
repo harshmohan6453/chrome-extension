@@ -5,38 +5,39 @@
 @layer base {
   :root {
     /* PostHog-Inspired Neubrutalism Palette */
-    --background: 40 22% 91%;       /* Warm beige #EEEBE4 */
-    --foreground: 220 20% 10%;      /* Dark charcoal #151515 */
+    --background: 40 20% 92%;       /* Warm beige #EEEAE3 */
+    --foreground: 220 25% 12%;      /* Dark charcoal */
 
     --card: 0 0% 100%;              /* Pure white */
-    --card-foreground: 220 20% 10%;
+    --card-foreground: 220 25% 12%;
  
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 10%;
+    --popover-foreground: 220 25% 12%;
  
     /* Vibrant PostHog Orange */
     --primary: 18 100% 48%;         /* #F54E00 */
     --primary-foreground: 0 0% 100%;
  
-    --secondary: 40 25% 96%;        /* Light cream */
-    --secondary-foreground: 220 20% 25%;
+    /* Darker secondary for better contrast on active buttons */
+    --secondary: 40 18% 82%;        /* Darker cream - more visible */
+    --secondary-foreground: 220 25% 18%;
  
-    --muted: 40 15% 85%;
-    --muted-foreground: 220 10% 45%;
+    --muted: 40 12% 78%;            /* Even darker for inactive states */
+    --muted-foreground: 220 15% 40%;
  
     /* Yellow accent for highlights */
     --accent: 48 96% 53%;           /* #FDC931 */
-    --accent-foreground: 220 20% 10%;
+    --accent-foreground: 220 25% 12%;
  
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 98%;
 
     /* Strong borders for neubrutalism */
-    --border: 220 15% 25%;          /* Dark borders */
-    --input: 220 15% 85%;
+    --border: 220 12% 70%;          /* Visible but not harsh */
+    --input: 220 15% 80%;
     --ring: 18 100% 48%;
  
-    --radius: 0.5rem;               /* Slightly smaller radius */
+    --radius: 0.5rem;
   }
  
   .dark {

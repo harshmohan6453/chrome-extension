@@ -45,7 +45,7 @@ export const TypographyCard = ({ font, index }: TypographyCardProps) => {
   const fontFamilyCSS = getFontFamilyCSS(font);
 
   return (
-    <div className="rounded-2xl border border-border bg-card overflow-hidden transition-all duration-300 hover:border-primary/20">
+    <div className="rounded-lg border-2 border-foreground/20 bg-card overflow-hidden transition-all duration-200 hover:border-primary neo-shadow">
       {/* Collapsible Header - Click to expand */}
       <button
         onClick={() => setIsExpanded(!isExpanded)}

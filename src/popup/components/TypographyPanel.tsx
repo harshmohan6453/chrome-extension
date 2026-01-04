@@ -150,7 +150,7 @@ export const TypographyPanel = () => {
           {fonts.length > 0 && (
             <button
               onClick={exportFontsCSS}
-              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-primary/25 transition-all active:scale-95"
+              className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold neo-shadow neo-button transition-all active:scale-95"
             >
               <Download className="w-4 h-4" />
               <span className="hidden sm:inline">Export CSS</span>
@@ -160,7 +160,7 @@ export const TypographyPanel = () => {
 
         {/* Filters & Search */}
         {fonts.length > 0 && (
-          <div className="flex flex-wrap items-center gap-3 bg-card p-2 rounded-2xl border border-border shadow-sm">
+          <div className="flex flex-wrap items-center gap-3 bg-card p-2 rounded-lg border-2 border-foreground/20 neo-shadow">
             <div className="relative flex-1 min-w-[200px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <input
@@ -193,7 +193,7 @@ export const TypographyPanel = () => {
 
         {/* Typography Scale Analysis */}
         {scaleAnalysis && (
-          <div className={`rounded-2xl border overflow-hidden ${
+          <div className={`rounded-lg border-2 overflow-hidden ${
             scaleAnalysis.isConsistent
               ? 'border-green-500/20'
               : scaleAnalysis.isLooselyConsistent

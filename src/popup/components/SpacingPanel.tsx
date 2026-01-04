@@ -157,7 +157,7 @@ export const SpacingPanel = () => {
         {spacing.length > 0 && (
           <button
             onClick={exportCSSVariables}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-xl text-sm font-bold hover:shadow-lg hover:shadow-primary/25 transition-all active:scale-95 shrink-0"
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-bold neo-shadow neo-button transition-all active:scale-95 shrink-0"
           >
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Export CSS</span>
@@ -178,7 +178,7 @@ export const SpacingPanel = () => {
           
           {/* Scale Analysis Card */}
           {scaleAnalysis && (
-            <div className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm">
+            <div className="bg-card border-2 border-foreground/20 rounded-lg overflow-hidden neo-shadow">
               <div className="p-5 border-b border-border/50 bg-gradient-to-r from-transparent to-primary/5">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
@@ -236,7 +236,7 @@ export const SpacingPanel = () => {
 
           {/* Outliers Warning */}
           {scaleAnalysis && scaleAnalysis.outliers.length > 0 && (
-            <div className="bg-yellow-500/5 border border-yellow-500/20 rounded-2xl overflow-hidden">
+            <div className="bg-yellow-500/5 border-2 border-yellow-500/30 rounded-lg overflow-hidden">
               <button 
                 onClick={() => setShowOutliers(!showOutliers)}
                 className="w-full p-4 flex items-center justify-between hover:bg-yellow-500/5 transition-colors"

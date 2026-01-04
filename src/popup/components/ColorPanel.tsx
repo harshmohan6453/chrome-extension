@@ -122,7 +122,7 @@ export const ColorPanel = () => {
       ) : (
         <>
           {/* Color Strip - All Colors at a Glance */}
-          <div className="bg-card rounded-2xl border border-border p-4 space-y-3">
+          <div className="bg-card rounded-lg border-2 border-foreground/20 p-4 space-y-3 neo-shadow">
             <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
               Palette Overview
             </div>
@@ -145,7 +145,7 @@ export const ColorPanel = () => {
           </div>
 
           {/* Contrast Checker */}
-          <div className="bg-card rounded-2xl border border-border overflow-hidden">
+          <div className="bg-card rounded-lg border-2 border-foreground/20 overflow-hidden neo-shadow">
             <div className="p-4 border-b border-border/50 bg-secondary/30">
               <h3 className="font-bold text-sm">Contrast Checker</h3>
               <p className="text-xs text-muted-foreground">Select a background and text color to check accessibility</p>
@@ -238,7 +238,7 @@ export const ColorPanel = () => {
             {analysis?.sorted.map((color) => (
               <div 
                 key={color.hex} 
-                className="bg-card rounded-xl border border-border overflow-hidden transition-all hover:border-primary/30"
+                className="bg-card rounded-lg border-2 border-foreground/20 overflow-hidden transition-all hover:border-primary neo-shadow"
               >
                 {/* Collapsed Header */}
                 <button

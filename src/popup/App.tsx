@@ -11,7 +11,9 @@ import { GeneratePanel } from './components/GeneratePanel';
 import ScrollInspectorPanel from './components/ScrollInspectorPanel';
 import RedFlagsPanel from './components/RedFlagsPanel';
 import FlowsPanel from './components/FlowsPanel';
+import { UpdateRequiredScreen } from './components/UpdateRequiredScreen';
 import { analytics } from '../analytics/analytics';
+import { VERSION_API_URL } from '../config';
 
 type Tab = 'overview' | 'typography' | 'colors' | 'assets' | 'spacing' | 'scroll' | 'redflags' | 'flows' | 'prompt' | 'settings';
 
@@ -62,12 +64,41 @@ const aggregateFonts = (rawFonts: any[]): import('../store').FontData[] => {
   }));
 };
 
+// Helper to compare semver versions (e.g., "1.0" vs "1.1")
+const compareVersions = (current: string, minimum: string): boolean => {
+  const currentParts = current.split('.').map(Number);
+  const minimumParts = minimum.split('.').map(Number);
+  
+  for (let i = 0; i < Math.max(currentParts.length, minimumParts.length); i++) {
+    const curr = currentParts[i] || 0;
+    const min = minimumParts[i] || 0;
+    if (curr > min) return true;
+    if (curr < min) return false;
+  }
+  return true; // versions are equal
+};
+
+// Version info type
+interface VersionInfo {
+  minVersion: string;
+  latestVersion: string;
+  updateMessage: string;
+  forceUpdate: boolean;
+  storeUrl: string;
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const { data, setData, isInspecting, setInspecting } = useStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const hasTrackedOpen = useRef(false);
+  
+  // Version check state
+  const [updateRequired, setUpdateRequired] = useState(false);
+  const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
+  const [currentVersion, setCurrentVersion] = useState('1.0');
+  const [checkingVersion, setCheckingVersion] = useState(true);
 
   const injectContentScript = async (tabId: number) => {
     try {
@@ -126,6 +157,41 @@ export default function App() {
     }
     setLoading(false);
   };
+
+  // Check version on mount
+  const checkVersion = async () => {
+    setCheckingVersion(true);
+    try {
+      // Get current extension version from manifest
+      const manifest = chrome.runtime.getManifest();
+      const extVersion = manifest.version;
+      setCurrentVersion(extVersion);
+      
+      // Fetch version requirements from server
+      const response = await fetch(VERSION_API_URL);
+      if (!response.ok) throw new Error('Failed to fetch version info');
+      
+      const info: VersionInfo = await response.json();
+      setVersionInfo(info);
+      
+      // Check if update is required
+      if (info.forceUpdate && !compareVersions(extVersion, info.minVersion)) {
+        setUpdateRequired(true);
+      } else {
+        setUpdateRequired(false);
+      }
+    } catch (e) {
+      // If version check fails, allow the app to work (fail open)
+      console.warn('Version check failed:', e);
+      setUpdateRequired(false);
+    } finally {
+      setCheckingVersion(false);
+    }
+  };
+
+  useEffect(() => {
+    checkVersion();
+  }, []);
 
   // Initialize theme on app load
   useEffect(() => {
@@ -439,6 +505,20 @@ export default function App() {
       rect: e.currentTarget.getBoundingClientRect()
     });
   };
+
+  // Show update required screen if version is outdated
+  if (updateRequired && versionInfo) {
+    return (
+      <UpdateRequiredScreen
+        updateMessage={versionInfo.updateMessage}
+        storeUrl={versionInfo.storeUrl}
+        currentVersion={currentVersion}
+        minVersion={versionInfo.minVersion}
+        onRetry={checkVersion}
+        isChecking={checkingVersion}
+      />
+    );
+  }
 
   return (
     <div className="flex h-screen bg-background text-foreground font-sans antialiased overflow-hidden grain-bg">

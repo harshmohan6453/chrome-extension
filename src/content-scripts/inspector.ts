@@ -320,66 +320,148 @@ export var Inspector = class {
       this.guides.style.display = 'block';
       this.guides.innerHTML = '';
       
-      const r1 = selected.getBoundingClientRect(); // Selected (Red)
-      const r2 = target.getBoundingClientRect();   // Hover (Blue)
+      const r1 = selected.getBoundingClientRect(); // Selected element
+      const r2 = target.getBoundingClientRect();   // Hovered element
 
-      // Styles
-      const lineColor = '#ef4444'; // Red-500
-      const labelBg = '#ef4444';
-      const labelColor = '#ffffff';
-
-      const createLine = (x: number, y: number, w: number, h: number, text?: string) => {
-          const el = document.createElement('div');
-          Object.assign(el.style, {
-              position: 'absolute',
-              backgroundColor: lineColor,
-              left: `${x}px`,
-              top: `${y}px`,
-              width: `${w}px`,
-              height: `${h}px`
+      // Create a dashed line with label
+      const createDashedLine = (
+        x1: number, y1: number, 
+        x2: number, y2: number, 
+        label: string,
+        isVertical: boolean
+      ) => {
+          if (parseInt(label) <= 0) return;
+          
+          const line = document.createElement('div');
+          const length = isVertical ? Math.abs(y2 - y1) : Math.abs(x2 - x1);
+          
+          Object.assign(line.style, {
+              position: 'fixed',
+              left: `${Math.min(x1, x2)}px`,
+              top: `${Math.min(y1, y2)}px`,
+              width: isVertical ? '1px' : `${length}px`,
+              height: isVertical ? `${length}px` : '1px',
+              background: isVertical 
+                ? 'repeating-linear-gradient(to bottom, #ef4444 0, #ef4444 4px, transparent 4px, transparent 8px)'
+                : 'repeating-linear-gradient(to right, #ef4444 0, #ef4444 4px, transparent 4px, transparent 8px)',
+              pointerEvents: 'none',
+              zIndex: '999997'
           });
           
-          if (text) {
-              const label = document.createElement('div');
-              label.textContent = text;
-              Object.assign(label.style, {
-                  position: 'absolute',
-                  backgroundColor: labelBg,
-                  color: labelColor,
-                  borderRadius: '2px',
-                  padding: '1px 3px',
-                  fontSize: '9px',
-                  fontWeight: 'bold',
-                  fontFamily: 'monospace',
-                  pointerEvents: 'none',
-                  whiteSpace: 'nowrap',
-                  zIndex: '1',
-                  transform: 'translate(-50%, -50%)',
-                  left: '50%',
-                  top: '50%'
-              });
-              el.appendChild(label);
-          }
-          this.guides.appendChild(el);
+          // Label
+          const labelEl = document.createElement('div');
+          labelEl.textContent = label;
+          Object.assign(labelEl.style, {
+              position: 'absolute',
+              backgroundColor: '#ef4444',
+              color: '#ffffff',
+              borderRadius: '3px',
+              padding: '2px 6px',
+              fontSize: '10px',
+              fontWeight: 'bold',
+              fontFamily: 'system-ui, sans-serif',
+              pointerEvents: 'none',
+              whiteSpace: 'nowrap',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.3)',
+              transform: 'translate(-50%, -50%)',
+              left: '50%',
+              top: '50%',
+              zIndex: '999998'
+          });
+          line.appendChild(labelEl);
+          this.guides.appendChild(line);
       };
 
-      // Calculate gaps (simplified Figma-like logic)
-      // Vertical Gap
-      if (r1.bottom < r2.top) { // Selected is above Target
-          // Draw line from bottom of R1 to top of R2
+      // Get hovered element center (used for guide line positioning)
+      const r2CenterX = r2.left + r2.width / 2;
+      const r2CenterY = r2.top + r2.height / 2;
+
+      // VERTICAL MEASUREMENTS
+
+      // Distance from selected BOTTOM to hovered TOP (hovered is below)
+      if (r2.top > r1.bottom) {
           const dist = Math.round(r2.top - r1.bottom);
-          const x = r1.left + (r1.width / 2); // Center x
-          createLine(x, r1.bottom, 1, dist, `${dist}px`);
-      } else if (r1.top > r2.bottom) { // Selected is below Target
+          const x = r2CenterX; // Use hovered element's center
+          createDashedLine(x, r1.bottom, x, r2.top, `${dist}px`, true);
+      }
+      
+      // Distance from selected TOP to hovered BOTTOM (hovered is above)
+      if (r2.bottom < r1.top) {
           const dist = Math.round(r1.top - r2.bottom);
-          const x = r1.left + (r1.width / 2);
-          createLine(x, r2.bottom, 1, dist, `${dist}px`);
+          const x = r2CenterX;
+          createDashedLine(x, r2.bottom, x, r1.top, `${dist}px`, true);
       }
 
-      // Check right
-      if (r2.right > r1.right && r2.left < r1.right) {
-           const dist = Math.round(r2.right - r1.right);
-           if (dist > 0) createLine(r1.right, r1.top + r1.height/2, dist, 1, `${dist}`);
+      // HORIZONTAL MEASUREMENTS
+
+      // Distance from selected RIGHT to hovered LEFT (hovered is to the right)
+      if (r2.left > r1.right) {
+          const dist = Math.round(r2.left - r1.right);
+          const y = r2CenterY;
+          createDashedLine(r1.right, y, r2.left, y, `${dist}px`, false);
+      }
+      
+      // Distance from selected LEFT to hovered RIGHT (hovered is to the left)
+      if (r2.right < r1.left) {
+          const dist = Math.round(r1.left - r2.right);
+          const y = r2CenterY;
+          createDashedLine(r2.right, y, r1.left, y, `${dist}px`, false);
+      }
+
+      // ALIGNMENT GUIDES - Show when elements partially overlap or are aligned
+      
+      // Vertical alignment line (when horizontally overlapping)
+      if (!(r2.right < r1.left || r2.left > r1.right)) {
+          // Show vertical distance from hovered top to selected bottom (if hovered extends above)
+          if (r2.top < r1.top) {
+              const dist = Math.round(r1.top - r2.top);
+              createDashedLine(r2CenterX, r2.top, r2CenterX, r1.top, `${dist}px`, true);
+          }
+          // Show vertical distance from selected bottom to hovered bottom (if hovered extends below)
+          if (r2.bottom > r1.bottom) {
+              const dist = Math.round(r2.bottom - r1.bottom);
+              createDashedLine(r2CenterX, r1.bottom, r2CenterX, r2.bottom, `${dist}px`, true);
+          }
+      }
+
+      // Horizontal alignment line (when vertically overlapping)
+      if (!(r2.bottom < r1.top || r2.top > r1.bottom)) {
+          // Show horizontal distance from hovered left to selected left (if hovered extends left)
+          if (r2.left < r1.left) {
+              const dist = Math.round(r1.left - r2.left);
+              createDashedLine(r2.left, r2CenterY, r1.left, r2CenterY, `${dist}px`, false);
+          }
+          // Show horizontal distance from selected right to hovered right (if hovered extends right)
+          if (r2.right > r1.right) {
+              const dist = Math.round(r2.right - r1.right);
+              createDashedLine(r1.right, r2CenterY, r2.right, r2CenterY, `${dist}px`, false);
+          }
+      }
+
+      // EDGE-TO-EDGE for nested/overlapping elements
+      // When hovered is inside selected or vice versa, show padding distances
+      const isHoveredInsideSelected = r2.left >= r1.left && r2.right <= r1.right && r2.top >= r1.top && r2.bottom <= r1.bottom;
+      const isSelectedInsideHovered = r1.left >= r2.left && r1.right <= r2.right && r1.top >= r2.top && r1.bottom <= r2.bottom;
+      
+      if (isHoveredInsideSelected || isSelectedInsideHovered) {
+          const outer = isHoveredInsideSelected ? r1 : r2;
+          const inner = isHoveredInsideSelected ? r2 : r1;
+          
+          // Top distance
+          const topDist = Math.round(inner.top - outer.top);
+          if (topDist > 0) createDashedLine(inner.left + inner.width/2, outer.top, inner.left + inner.width/2, inner.top, `${topDist}px`, true);
+          
+          // Bottom distance
+          const bottomDist = Math.round(outer.bottom - inner.bottom);
+          if (bottomDist > 0) createDashedLine(inner.left + inner.width/2, inner.bottom, inner.left + inner.width/2, outer.bottom, `${bottomDist}px`, true);
+          
+          // Left distance
+          const leftDist = Math.round(inner.left - outer.left);
+          if (leftDist > 0) createDashedLine(outer.left, inner.top + inner.height/2, inner.left, inner.top + inner.height/2, `${leftDist}px`, false);
+          
+          // Right distance
+          const rightDist = Math.round(outer.right - inner.right);
+          if (rightDist > 0) createDashedLine(inner.right, inner.top + inner.height/2, outer.right, inner.top + inner.height/2, `${rightDist}px`, false);
       }
   }
 

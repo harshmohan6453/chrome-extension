@@ -159,6 +159,7 @@ interface AppState {
   setRedFlagsLoaded: (loaded: boolean) => void;
   setScrollAnimationsLoaded: (loaded: boolean) => void;
   reset: () => void;
+  resetPreferences: () => void;
 }
 
 const initialData: InspectionData = {
@@ -191,5 +192,18 @@ export const useStore = create<AppState>((set) => ({
   setPreferences: (newPrefs) => set((state) => ({ preferences: { ...state.preferences, ...newPrefs } })),
   setRedFlagsLoaded: (loaded) => set({ redFlagsLoaded: loaded }),
   setScrollAnimationsLoaded: (loaded) => set({ scrollAnimationsLoaded: loaded }),
-  reset: () => set({ data: initialData, isInspecting: false, redFlagsLoaded: false, scrollAnimationsLoaded: false }),
+  reset: () => {
+    // Only reset data and session flags, preserve preferences and localStorage
+    set({ 
+        data: initialData, 
+        isInspecting: false, 
+        redFlagsLoaded: false, 
+        scrollAnimationsLoaded: false 
+    });
+  },
+  resetPreferences: () => {
+    localStorage.removeItem('di-highlightColor');
+    localStorage.removeItem('di-theme');
+    set({ preferences: initialPreferences });
+  }
 }));

@@ -257,7 +257,7 @@ export default function App() {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
     // Get the saved highlight color
-    const highlightColor = localStorage.getItem('di-highlightColor') || '#8b5cf6';
+    const highlightColor = localStorage.getItem('di-highlightColor') || '#3b82f6';
     
     if (tab?.id) {
        try {

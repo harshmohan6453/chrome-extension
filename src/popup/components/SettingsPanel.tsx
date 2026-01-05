@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../../store';
-import { Trash2, Download, FileJson, Check, Moon, Sun, Palette, Ruler, Eye } from 'lucide-react';
+import { Trash2, Download, FileJson, Check, Moon, Sun, Palette, Ruler, Eye, RotateCcw } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const SettingsPanel = () => {
-    const { reset, preferences, setPreferences, data } = useStore();
+    const { reset, resetPreferences, preferences, setPreferences, data } = useStore();
     const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
     const [highlightColor, setHighlightColor] = useState('#8b5cf6');
     const [exportSuccess, setExportSuccess] = useState(false);
@@ -89,7 +89,7 @@ export const SettingsPanel = () => {
         setTimeout(() => setExportSuccess(false), 2000);
     };
 
-    const highlightColors = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
+    const highlightColors = ['#3b82f6', '#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
 
     return (
         <div className="space-y-6 pb-6">
@@ -247,8 +247,26 @@ export const SettingsPanel = () => {
                             <Trash2 className="w-5 h-5" />
                         </div>
                         <div className="text-left">
-                            <div className="font-medium text-destructive">Reset All Data</div>
-                            <div className="text-xs text-muted-foreground">Clear cache and preferences</div>
+                            <div className="font-medium text-destructive">Reset Data Only</div>
+                            <div className="text-xs text-muted-foreground">Clear only analysis data</div>
+                        </div>
+                    </div>
+                </button>
+
+                <button 
+                    onClick={() => {
+                        resetPreferences();
+                        window.location.reload(); // Reload to apply theme reset
+                    }}
+                    className="w-full flex items-center justify-between p-4 rounded-lg border-2 border-foreground/20 bg-card hover:border-orange-500 hover:bg-orange-500/5 transition-all neo-shadow"
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-orange-500/10 text-orange-500 border border-orange-500/20">
+                            <RotateCcw className="w-5 h-5" />
+                        </div>
+                        <div className="text-left">
+                            <div className="font-medium text-orange-600">Reset Settings</div>
+                            <div className="text-xs text-muted-foreground">Reset theme & colors</div>
                         </div>
                     </div>
                 </button>

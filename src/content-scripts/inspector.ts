@@ -7,15 +7,12 @@ export class Inspector {
   private tooltip: HTMLElement;
   private detailCard: HTMLElement;
   private guides: HTMLElement;
-  private highlightColor: string = '#8b5cf6'; // Default purple for hover
+  private highlightColor: string = '#3b82f6'; // Default blue for hover
   private selectionColor: string = '#10b981'; // Computed complementary color
 
   constructor() {
-    // Read saved highlight color from localStorage
-    const savedColor = localStorage.getItem('di-highlightColor');
-    if (savedColor) {
-      this.highlightColor = savedColor;
-    }
+    // Get the saved highlight color
+    this.highlightColor = localStorage.getItem('di-highlightColor') || '#3b82f6';
 
     this.overlay = document.createElement('div');
     Object.assign(this.overlay.style, {

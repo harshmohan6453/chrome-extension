@@ -8,7 +8,7 @@ export class Inspector {
   private detailCard: HTMLElement;
   private guides: HTMLElement;
   private highlightColor: string = '#8b5cf6'; // Default purple for hover
-  private selectionColor: string = '#10b981'; // Green for selected element
+  private selectionColor: string = '#10b981'; // Computed complementary color
 
   constructor() {
     // Read saved highlight color from localStorage
@@ -28,18 +28,17 @@ export class Inspector {
       display: 'none',
     });
 
-    // Selection overlay - green to distinguish from hover
+    // Selection overlay - auto-contrast color, visible on any background
     this.selectionOverlay = document.createElement('div');
+    this.updateSelectionColor(); // Compute initial selection color
     Object.assign(this.selectionOverlay.style, {
       position: 'fixed',
       pointerEvents: 'none',
-      zIndex: '999998', // Below hover overlay
-      border: `3px solid ${this.selectionColor}`,
-      backgroundColor: this.hexToRgba(this.selectionColor, 0.15),
-      boxShadow: `0 0 0 2px ${this.hexToRgba(this.selectionColor, 0.3)}`,
+      zIndex: '999998',
       transition: 'all 0.15s ease',
       display: 'none',
     });
+    this.applySelectionOverlayStyles();
     
     this.tooltip = document.createElement('div');
     Object.assign(this.tooltip.style, {
@@ -130,6 +129,66 @@ export class Inspector {
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   }
 
+  // Generate complementary color (opposite on color wheel)
+  private getComplementaryColor(hex: string): string {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    
+    // Convert to HSL
+    const rNorm = r / 255, gNorm = g / 255, bNorm = b / 255;
+    const max = Math.max(rNorm, gNorm, bNorm), min = Math.min(rNorm, gNorm, bNorm);
+    let h = 0, s = 0;
+    const l = (max + min) / 2;
+    
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case rNorm: h = ((gNorm - bNorm) / d + (gNorm < bNorm ? 6 : 0)) / 6; break;
+        case gNorm: h = ((bNorm - rNorm) / d + 2) / 6; break;
+        case bNorm: h = ((rNorm - gNorm) / d + 4) / 6; break;
+      }
+    }
+    
+    // Shift hue by 180 degrees for complementary, boost saturation
+    h = (h + 0.5) % 1;
+    s = Math.min(1, s + 0.2); // Boost saturation for visibility
+    
+    // Convert back to RGB
+    const hue2rgb = (p: number, q: number, t: number) => {
+      if (t < 0) t += 1;
+      if (t > 1) t -= 1;
+      if (t < 1/6) return p + (q - p) * 6 * t;
+      if (t < 1/2) return q;
+      if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+      return p;
+    };
+    
+    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+    const p = 2 * l - q;
+    
+    const newR = Math.round(hue2rgb(p, q, h + 1/3) * 255);
+    const newG = Math.round(hue2rgb(p, q, h) * 255);
+    const newB = Math.round(hue2rgb(p, q, h - 1/3) * 255);
+    
+    return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
+  }
+
+  // Update selection color based on highlight color
+  private updateSelectionColor() {
+    this.selectionColor = this.getComplementaryColor(this.highlightColor);
+  }
+
+  // Apply selection overlay styles without glow
+  private applySelectionOverlayStyles() {
+    Object.assign(this.selectionOverlay.style, {
+      border: `3px solid ${this.selectionColor}`,
+      backgroundColor: this.hexToRgba(this.selectionColor, 0.15),
+      boxShadow: 'none',
+    });
+  }
+
   public enable(highlightColor?: string) {
     // Use provided color or fallback to default
     if (highlightColor) {
@@ -160,6 +219,9 @@ export class Inspector {
     this.highlightColor = color;
     this.overlay.style.border = `2px solid ${this.highlightColor}`;
     this.overlay.style.backgroundColor = this.hexToRgba(this.highlightColor, 0.1);
+    // Update selection color to stay complementary
+    this.updateSelectionColor();
+    this.applySelectionOverlayStyles();
   }
 
   private handleClick(e: MouseEvent) {

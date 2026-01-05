@@ -19,6 +19,7 @@ export var Inspector = class {
   private guides: HTMLElement;
   private highlightColor: string = '#3b82f6'; // Default blue for hover
   private selectionColor: string = '#10b981'; // Computed complementary color
+  private sidebarMode: boolean = false; // When true, send data to sidebar instead of showing card
 
   constructor() {
     // Get the saved highlight color
@@ -218,11 +219,12 @@ export var Inspector = class {
     });
   }
 
-  public enable(highlightColor?: string) {
+  public enable(highlightColor?: string, sidebarMode?: boolean) {
     // Use provided color or fallback to default
     if (highlightColor) {
       this.highlightColor = highlightColor;
     }
+    this.sidebarMode = sidebarMode || false;
     this.overlay.style.border = `2px solid ${this.highlightColor}`;
     this.overlay.style.backgroundColor = this.hexToRgba(this.highlightColor, 0.1);
 
@@ -739,9 +741,81 @@ ${videos.join('\n')}
     const getVal = (p: string) => parseInt(computed.getPropertyValue(p), 10) || 0;
     const mt = getVal('margin-top'), mr = getVal('margin-right'), mb = getVal('margin-bottom'), ml = getVal('margin-left');
     const pt = getVal('padding-top'), pr = getVal('padding-right'), pb = getVal('padding-bottom'), pl = getVal('padding-left');
-    const bt = getVal('border-top-width'), br = getVal('border-right-width'), bb = getVal('border-bottom-width'), bl = getVal('border-left-width');
+    const bt = getVal('border-top-width'), br = getVal('border-right-width'), bb = getVal('border-bottom-width'), blVal = getVal('border-left-width');
     const w = Math.round(rect.width);
     const h = Math.round(rect.height);
+
+    // If in sidebar mode, send data to sidebar instead of showing floating card
+    if (this.sidebarMode) {
+      const tagName = el.tagName.toLowerCase();
+      const selector = el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (el.classList.length ? '.' + Array.from(el.classList).join('.') : '');
+      
+      // Determine element type label
+      let label = el.tagName.charAt(0).toUpperCase() + el.tagName.slice(1).toLowerCase();
+      if (/^h[1-6]$/.test(tagName) || ['p', 'span', 'a', 'b', 'i', 'strong', 'em', 'label', 'small'].includes(tagName)) label = 'Text';
+
+      const border = computed.border !== '0px none rgb(0, 0, 0)' && computed.borderWidth !== '0px' ? computed.border : 'None';
+      const borderRadius = computed.borderRadius !== '0px' ? computed.borderRadius : '0';
+      const boxShadow = computed.boxShadow !== 'none' ? computed.boxShadow : 'None';
+
+      // Generate CSS string
+      const cssString = `/* ${tagName} styles */
+font-family: ${computed.fontFamily};
+font-size: ${computed.fontSize};
+font-weight: ${computed.fontWeight};
+line-height: ${computed.lineHeight};
+color: ${computed.color};
+background: ${isGradient ? bgImage : computed.backgroundColor};
+border: ${border};
+border-radius: ${borderRadius};
+box-shadow: ${boxShadow};
+padding: ${computed.padding};
+margin: ${computed.margin};
+width: ${rect.width}px;
+height: ${rect.height}px;
+`;
+
+      // Send to sidebar
+      chrome.runtime.sendMessage({
+        action: 'INSPECTOR_ELEMENT_SELECTED',
+        data: {
+          tagName,
+          selector,
+          label,
+          dimensions: { width: w, height: h },
+          margin: { top: mt, right: mr, bottom: mb, left: ml },
+          padding: { top: pt, right: pr, bottom: pb, left: pl },
+          border: { top: bt, right: br, bottom: bb, left: blVal },
+          typography: {
+            fontFamily: font,
+            fontSize: Math.round(parseFloat(computed.fontSize)),
+            lineHeight: computed.lineHeight,
+            fontWeight: computed.fontWeight,
+            letterSpacing: computed.letterSpacing,
+            textAlign: computed.textAlign,
+            color: color
+          },
+          colors: {
+            background: bgDisplay,
+            backgroundRaw: bg,
+            isGradient,
+            gradientValue: isGradient ? bgImage : null
+          },
+          element: {
+            display: computed.display,
+            position: computed.position,
+            zIndex: computed.zIndex === 'auto' ? '-' : computed.zIndex,
+            borderRadius,
+            border: border !== 'None' ? border : null,
+            boxShadow: boxShadow !== 'None' ? boxShadow : null
+          },
+          cssString,
+          prompt: this.generatePrompt(el)
+        }
+      }).catch(() => {});
+      
+      return; // Don't show floating card
+    }
 
     // Box Model HTML
     // Box Model HTML (Neubrutalism)
@@ -759,7 +833,7 @@ ${videos.join('\n')}
                  <span style="position: absolute; top: 0px; left: 2px; font-size: 8px; color: #d97706; font-weight: bold;">border</span>
                  <div style="text-align: center; margin-bottom: 2px;">${bt}</div>
                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <span style="padding-left: 2px;">${bl}</span>
+                    <span style="padding-left: 2px;">${blVal}</span>
                     
                     <!-- PADDING -->
                     <div style="background: #f0fdf4; border: 1px dashed #171d26; border-radius: 2px; padding: 2px; flex: 1; margin: 0 4px; position: relative;">

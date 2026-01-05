@@ -51,7 +51,7 @@ if (!(window as any).di_contentScriptInjected) {
   chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
     if (request.action === 'TOGGLE_INSPECTOR') {
       if (request.payload) {
-        inspector.enable(request.highlightColor);
+        inspector.enable(request.highlightColor, request.sidebarMode);
       } else {
         inspector.disable();
       }

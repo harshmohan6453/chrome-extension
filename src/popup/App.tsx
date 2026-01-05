@@ -12,10 +12,11 @@ import ScrollInspectorPanel from './components/ScrollInspectorPanel';
 import RedFlagsPanel from './components/RedFlagsPanel';
 import FlowsPanel from './components/FlowsPanel';
 import { UpdateRequiredScreen } from './components/UpdateRequiredScreen';
+import { InspectorPanel, InspectorData } from './components/InspectorPanel';
 import { analytics } from '../analytics/analytics';
 import { VERSION_API_URL } from '../config';
 
-type Tab = 'overview' | 'typography' | 'colors' | 'assets' | 'spacing' | 'scroll' | 'redflags' | 'flows' | 'prompt' | 'settings';
+type Tab = 'overview' | 'typography' | 'colors' | 'assets' | 'spacing' | 'scroll' | 'redflags' | 'flows' | 'prompt' | 'settings' | 'inspector';
 
 // Helper function to aggregate fonts by family
 const aggregateFonts = (rawFonts: any[]): import('../store').FontData[] => {
@@ -99,6 +100,9 @@ export default function App() {
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const [currentVersion, setCurrentVersion] = useState('1.0');
   const [checkingVersion, setCheckingVersion] = useState(true);
+  
+  // Inspector data for sidebar mode
+  const [inspectorData, setInspectorData] = useState<InspectorData | null>(null);
   
   // Detect if we're in sidebar mode
   const isSidePanel = window.location.pathname.includes('sidepanel');
@@ -257,6 +261,10 @@ export default function App() {
       } else if (message.action === 'INSPECTOR_DISABLED') {
         setInspecting(false);
 
+      } else if (message.action === 'INSPECTOR_ELEMENT_SELECTED') {
+        // Received element data from content script in sidebar mode
+        setInspectorData(message.data);
+        setActiveTab('inspector');
       }
     };
     
@@ -276,12 +284,13 @@ export default function App() {
     // Get the saved highlight color
     const highlightColor = localStorage.getItem('di-highlightColor') || '#3b82f6';
     
-    if (tab?.id) {
+     if (tab?.id) {
        try {
            await chrome.tabs.sendMessage(tab.id, { 
              action: 'TOGGLE_INSPECTOR', 
              payload: newState,
-             highlightColor 
+             highlightColor,
+             sidebarMode: isSidePanel
            });
        } catch (e) {
            await injectContentScript(tab.id);
@@ -289,12 +298,19 @@ export default function App() {
              await chrome.tabs.sendMessage(tab.id, { 
                action: 'TOGGLE_INSPECTOR', 
                payload: newState,
-               highlightColor 
+               highlightColor,
+               sidebarMode: isSidePanel
              });
            } catch (retryError) {
              console.error('Failed to toggle inspector', retryError);
              setError("Please refresh the page to use the inspector.");
            }
+       }
+       
+       // Clear inspector data when disabling
+       if (!newState) {
+         setInspectorData(null);
+         if (activeTab === 'inspector') setActiveTab('overview');
        }
     }
   };
@@ -360,6 +376,7 @@ export default function App() {
       case 'flows': return <FlowsPanel />;
       case 'prompt': return <GeneratePanel />;
       case 'settings': return <SettingsPanel />;
+      case 'inspector': return <InspectorPanel data={inspectorData} onClear={() => { setInspectorData(null); setActiveTab('overview'); }} />;
       case 'overview': return (
         <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-500 pb-6">
             {/* Visual Inspector Toggle - with switch button */}
@@ -586,7 +603,15 @@ export default function App() {
                     <RefreshCw className={clsx("w-5 h-5", loading && "animate-spin")} />
                   </button>
               )}
-              {!isSidePanel && (
+              {isSidePanel ? (
+                <button
+                  onClick={() => window.close()}
+                  className="h-10 px-2 rounded-lg bg-primary/10 border-2 border-primary/30 flex items-center justify-center gap-2 text-primary hover:bg-primary/20 transition-colors cursor-pointer"
+                  title="Click to close sidebar"
+                >
+                  <PanelRightOpen className="w-5 h-5" />
+                </button>
+              ) : (
                 <button
                   onClick={openSidePanel}
                   className="w-10 h-10 rounded-lg bg-card border-2 border-foreground/20 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-all neo-shadow"

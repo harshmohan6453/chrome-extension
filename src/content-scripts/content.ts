@@ -63,6 +63,66 @@ if (!(window as any).di_contentScriptInjected) {
       sendResponse({ status: 'ok' });
     }
 
+    // Color Picker using native EyeDropper API
+    if (request.action === 'PICK_COLOR') {
+      (async () => {
+        try {
+          // Check if EyeDropper API is available
+          if (!('EyeDropper' in window)) {
+            sendResponse({ status: 'error', error: 'EyeDropper API not supported in this browser' });
+            return;
+          }
+
+          const eyeDropper = new (window as any).EyeDropper();
+          const result = await eyeDropper.open();
+          
+          // Convert sRGBHex to different formats
+          const hex = result.sRGBHex;
+          
+          // Extract RGB values
+          const r = parseInt(hex.slice(1, 3), 16);
+          const g = parseInt(hex.slice(3, 5), 16);
+          const b = parseInt(hex.slice(5, 7), 16);
+          const rgb = `rgb(${r}, ${g}, ${b})`;
+          
+          // Convert to HSL
+          const rNorm = r / 255;
+          const gNorm = g / 255;
+          const bNorm = b / 255;
+          const cmax = Math.max(rNorm, gNorm, bNorm);
+          const cmin = Math.min(rNorm, gNorm, bNorm);
+          const delta = cmax - cmin;
+          
+          let h = 0;
+          if (delta !== 0) {
+            if (cmax === rNorm) h = ((gNorm - bNorm) / delta) % 6;
+            else if (cmax === gNorm) h = (bNorm - rNorm) / delta + 2;
+            else h = (rNorm - gNorm) / delta + 4;
+          }
+          h = Math.round(h * 60);
+          if (h < 0) h += 360;
+          
+          const l = (cmax + cmin) / 2;
+          const s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+          const hsl = `hsl(${h}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`;
+          
+          sendResponse({ 
+            status: 'ok', 
+            color: { hex, rgb, hsl }
+          });
+        } catch (err: any) {
+          // User cancelled or error occurred
+          if (err.name === 'AbortError') {
+            sendResponse({ status: 'cancelled' });
+          } else {
+            sendResponse({ status: 'error', error: err.message });
+          }
+        }
+      })();
+      return true; // Keep message channel open for async response
+    }
+
+
     if (request.action === 'HIGHLIGHT_ELEMENT') {
       // Highlight the element on the page
       try {

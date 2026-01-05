@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Copy, Check, Download, ChevronDown, ChevronUp, Palette, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Copy, Check, Download, ChevronDown, ChevronUp, Palette, AlertTriangle, CheckCircle2, Pipette, X } from 'lucide-react';
 import { useStore } from '../../store';
 import { clsx } from 'clsx';
 
@@ -39,6 +39,7 @@ const hexToHSL = (hex: string): string => {
     g = parseInt("0x" + hex[3] + hex[4]);
     b = parseInt("0x" + hex[5] + hex[6]);
   }
+  
   r /= 255; g /= 255; b /= 255;
   const cmin = Math.min(r,g,b), cmax = Math.max(r,g,b), delta = cmax - cmin;
   let h = 0, s = 0, l = 0;
@@ -64,6 +65,68 @@ export const ColorPanel = () => {
   const [expandedColor, setExpandedColor] = useState<string | null>(null);
   const [selectedBg, setSelectedBg] = useState<string | null>(null);
   const [selectedText, setSelectedText] = useState<string | null>(null);
+  const [pickedColor, setPickedColor] = useState<{ hex: string; rgb: string; hsl: string } | null>(null);
+  const [isPicking, setIsPicking] = useState(false);
+  const [pickerError, setPickerError] = useState<string | null>(null);
+
+  // Color picker function using EyeDropper API directly from popup
+  const pickColor = async () => {
+    setIsPicking(true);
+    setPickerError(null);
+    
+    try {
+      // Check if EyeDropper API is available
+      if (!('EyeDropper' in window)) {
+        setPickerError('EyeDropper not supported in this browser');
+        setIsPicking(false);
+        return;
+      }
+
+      const eyeDropper = new (window as any).EyeDropper();
+      const result = await eyeDropper.open();
+      
+      // Convert sRGBHex to different formats
+      const hex = result.sRGBHex;
+      
+      // Extract RGB values
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      const rgb = `rgb(${r}, ${g}, ${b})`;
+      
+      // Convert to HSL
+      const rNorm = r / 255;
+      const gNorm = g / 255;
+      const bNorm = b / 255;
+      const cmax = Math.max(rNorm, gNorm, bNorm);
+      const cmin = Math.min(rNorm, gNorm, bNorm);
+      const delta = cmax - cmin;
+      
+      let h = 0;
+      if (delta !== 0) {
+        if (cmax === rNorm) h = ((gNorm - bNorm) / delta) % 6;
+        else if (cmax === gNorm) h = (bNorm - rNorm) / delta + 2;
+        else h = (rNorm - gNorm) / delta + 4;
+      }
+      h = Math.round(h * 60);
+      if (h < 0) h += 360;
+      
+      const l = (cmax + cmin) / 2;
+      const s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+      const hsl = `hsl(${h}, ${Math.round(s * 100)}%, ${Math.round(l * 100)}%)`;
+      
+      setPickedColor({ hex, rgb, hsl });
+    } catch (err: any) {
+      // User cancelled the picker
+      if (err.name !== 'AbortError') {
+        console.error('Color picker error:', err);
+        setPickerError(err.message);
+      }
+    } finally {
+      setIsPicking(false);
+    }
+  };
+
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -116,17 +179,30 @@ export const ColorPanel = () => {
   return (
     <div className="space-y-6 pb-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-3">
           <h2 className="text-2xl font-black tracking-tight">Colors</h2>
           <span className="bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full border border-primary/20">
             {data.colors.length} Colors
           </span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          <button 
+            onClick={pickColor}
+            disabled={isPicking}
+            className={clsx(
+              "p-2 rounded-lg transition-all flex items-center justify-center",
+              isPicking 
+                ? "bg-primary text-white" 
+                : "text-primary hover:bg-primary/10"
+            )}
+            title={isPicking ? "Picking color..." : "Pick color from screen"}
+          >
+            <Pipette className={clsx("w-4 h-4", isPicking && "animate-pulse")} />
+          </button>
           <button 
             onClick={() => handleExport('css')} 
-            className="text-sm font-bold text-primary hover:bg-primary/10 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
+            className="text-sm font-bold text-muted-foreground hover:bg-secondary px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
           >
             <Download className="w-4 h-4" /> CSS
           </button>
@@ -138,6 +214,85 @@ export const ColorPanel = () => {
           </button>
         </div>
       </div>
+
+
+      {/* Picker Error Message */}
+      {pickerError && (
+        <div className="bg-red-500/10 border border-red-500/30 text-red-600 rounded-lg p-3 text-sm flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>{pickerError}</span>
+          <button 
+            onClick={() => setPickerError(null)}
+            className="ml-auto p-1 hover:bg-red-500/10 rounded"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
+
+      {/* Picker Active Tip */}
+      {isPicking && (
+        <div className="bg-primary/10 border border-primary/30 text-primary rounded-lg p-3 text-sm flex items-center gap-2 animate-pulse">
+          <Pipette className="w-4 h-4 shrink-0" />
+          <span>Click anywhere on your screen to pick a color...</span>
+        </div>
+      )}
+
+      {/* Picked Color Modal */}
+      {pickedColor && (
+        <div className="bg-card rounded-lg border-2 border-primary p-4 space-y-3 neo-shadow animate-in slide-in-from-top-2 duration-300">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div 
+                className="w-12 h-12 rounded-xl border-2 border-border shadow-lg" 
+                style={{ backgroundColor: pickedColor.hex }}
+              />
+              <div>
+                <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Picked Color</div>
+                <div className="font-mono font-bold text-lg">{pickedColor.hex}</div>
+              </div>
+            </div>
+            <button 
+              onClick={() => setPickedColor(null)}
+              className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="grid grid-cols-3 gap-2">
+            <button 
+              onClick={() => copyToClipboard(pickedColor.hex)}
+              className="relative p-3 bg-secondary/50 rounded-lg text-center hover:bg-secondary transition-colors group"
+            >
+              <div className="absolute top-2 right-2">
+                {copied === pickedColor.hex ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
+              </div>
+              <div className="text-xs text-muted-foreground mb-1">HEX</div>
+              <div className="font-mono font-bold text-sm">{pickedColor.hex}</div>
+            </button>
+            <button 
+              onClick={() => copyToClipboard(pickedColor.rgb)}
+              className="relative p-3 bg-secondary/50 rounded-lg text-center hover:bg-secondary transition-colors group"
+            >
+              <div className="absolute top-2 right-2">
+                {copied === pickedColor.rgb ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
+              </div>
+              <div className="text-xs text-muted-foreground mb-1">RGB</div>
+              <div className="font-mono font-bold text-sm truncate">{pickedColor.rgb}</div>
+            </button>
+            <button 
+              onClick={() => copyToClipboard(pickedColor.hsl)}
+              className="relative p-3 bg-secondary/50 rounded-lg text-center hover:bg-secondary transition-colors group"
+            >
+              <div className="absolute top-2 right-2">
+                {copied === pickedColor.hsl ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
+              </div>
+              <div className="text-xs text-muted-foreground mb-1">HSL</div>
+              <div className="font-mono font-bold text-sm truncate">{pickedColor.hsl}</div>
+            </button>
+          </div>
+        </div>
+      )}
 
       {data.colors.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-muted-foreground bg-card/50 rounded-3xl border border-dashed border-border/50">

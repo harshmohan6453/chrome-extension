@@ -106,7 +106,7 @@ export const SpacingPanel = () => {
   // Export CSS Variables
   const exportCSSVariables = () => {
     const sorted = [...spacing].sort((a, b) => a - b);
-    let css = '/* Spacing System - Extracted by Design Inspector */\n:root {\n';
+    let css = '/* Spacing System - Extracted by Snatch */\n:root {\n';
     sorted.forEach((s, i) => {
       css += `  --space-${i + 1}: ${s}px; /* ${(s / 16).toFixed(3).replace(/\.?0+$/, '')}rem */\n`;
     });

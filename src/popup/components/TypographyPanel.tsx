@@ -24,7 +24,7 @@ export const TypographyPanel = () => {
 
   // Export all fonts as CSS
   const exportFontsCSS = () => {
-    let css = '/* Typography Extracted from Design Inspector */\n\n';
+    let css = '/* Typography Extracted by Snatch */\n\n';
 
     // Add Google Fonts imports
     const googleFonts = fonts.filter(f => f.source === 'google');

@@ -275,9 +275,9 @@ export const SettingsPanel = () => {
             {/* About */}
             <div className="pt-4 border-t border-border">
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Design Inspector v{version}</span>
+                    <span>Snatch v{version}</span>
                     <a 
-                        href="mailto:harshmohan6453@gmail.com?subject=Design Inspector - Issue Report" 
+                        href="mailto:harshmohan6453@gmail.com?subject=Snatch - Issue Report" 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="hover:text-primary transition-colors"

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Design Inspector",
+  "name": "Snatch",
   "version": "1.0.0",
   "description": "Extract design systems and generate AI prompts from any website.",
   "permissions": [

@@ -1,6 +1,6 @@
 {
-  "minVersion": "1.0",
-  "latestVersion": "1.0",
+  "minVersion": "1.0.0",
+  "latestVersion": "1.0.0",
   "updateMessage": "A new version is available with important updates. Please update to continue using the extension.",
   "forceUpdate": false,
   "storeUrl": "https://chrome.google.com/webstore/detail/YOUR_EXTENSION_ID"

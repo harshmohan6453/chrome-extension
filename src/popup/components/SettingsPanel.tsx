@@ -8,14 +8,19 @@ export const SettingsPanel = () => {
     const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
     const [highlightColor, setHighlightColor] = useState('#8b5cf6');
     const [exportSuccess, setExportSuccess] = useState(false);
+    const [version, setVersion] = useState('1.0.0');
 
-    // Load settings from localStorage
+    // Load settings from localStorage and version from manifest
     useEffect(() => {
         const savedTheme = localStorage.getItem('di-theme') as 'light' | 'dark' | 'system' | null;
         const savedHighlightColor = localStorage.getItem('di-highlightColor');
         
         if (savedTheme) setTheme(savedTheme);
         if (savedHighlightColor) setHighlightColor(savedHighlightColor);
+        
+        // Get version from manifest
+        const manifest = chrome.runtime.getManifest();
+        setVersion(manifest.version);
     }, []);
 
     // Save theme preference
@@ -60,7 +65,7 @@ export const SettingsPanel = () => {
     // Export all data as JSON
     const handleExport = () => {
         const exportData = {
-            version: '1.0.0',
+            version: version,
             exportedAt: new Date().toISOString(),
             preferences,
             data: {
@@ -252,7 +257,7 @@ export const SettingsPanel = () => {
             {/* About */}
             <div className="pt-4 border-t border-border">
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Design Inspector v1.0.0</span>
+                    <span>Design Inspector v{version}</span>
                     <a 
                         href="https://github.com" 
                         target="_blank" 

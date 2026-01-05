@@ -1,4 +1,4 @@
-import { Download, RefreshCw, Sparkles } from 'lucide-react';
+import { Download, RefreshCw, ArrowUpCircle } from 'lucide-react';
 
 interface UpdateRequiredScreenProps {
   updateMessage: string;
@@ -31,7 +31,7 @@ export function UpdateRequiredScreen({
         <div className="relative mx-auto w-28 h-28">
           <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse"></div>
           <div className="relative w-full h-full bg-card rounded-3xl border-2 border-primary neo-shadow-lg flex items-center justify-center">
-            <Sparkles className="w-12 h-12 text-primary" />
+            <ArrowUpCircle className="w-12 h-12 text-primary" />
           </div>
         </div>
 

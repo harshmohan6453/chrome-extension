@@ -20,7 +20,7 @@ if (!(window as any).di_contentScriptInjected) {
     const script = document.createElement('script');
     script.src = chrome.runtime.getURL('pageContext.js');
     script.onload = () => {
-      console.log('✅ Page context script injected');
+      // console.log('✅ Page context script injected');
       script.remove();
     };
     (document.head || document.documentElement).appendChild(script);
@@ -43,7 +43,7 @@ if (!(window as any).di_contentScriptInjected) {
   window.addEventListener('message', (event) => {
     if (event.data.type === 'SCROLL_ANIMATIONS_DETECTED') {
       pageContextAnimations = event.data.animations || [];
-      console.log(`📨 Received ${pageContextAnimations.length} animations from page context`);
+      // console.log(`📨 Received ${pageContextAnimations.length} animations from page context`);
     }
   });
 
@@ -259,7 +259,7 @@ if (!(window as any).di_contentScriptInjected) {
           }
         });
 
-        console.log(`Found ${matchingElements.length} elements using font "${request.fontFamily}"`);
+        // console.log(`Found ${matchingElements.length} elements using font "${request.fontFamily}"`);
 
         if (matchingElements.length === 0) {
           sendResponse({ status: 'not_found', count: 0 });
@@ -331,7 +331,7 @@ if (!(window as any).di_contentScriptInjected) {
 
     // Lazy load Red Flags
     if (request.action === 'GET_RED_FLAGS') {
-      console.log('🚩 Loading red flags on demand...');
+      // console.log('🚩 Loading red flags on demand...');
       const redFlags = detectRedFlags();
       sendResponse({ redFlags });
       return true;
@@ -356,7 +356,7 @@ if (!(window as any).di_contentScriptInjected) {
         
         // If still no animations, retry after delays
         if (scrollAnimations.length === 0) {
-          console.log('⏳ No animations found initially, will retry after 2s and 4s...');
+          // console.log('⏳ No animations found initially, will retry after 2s and 4s...');
           
           // First retry after 2 seconds
           setTimeout(() => {
@@ -368,7 +368,7 @@ if (!(window as any).di_contentScriptInjected) {
                 : detectAllScrollAnimations();
                 
               if (retryAnimations.length > 0) {
-                console.log('✅ Found animations after 2s delay!');
+                // console.log('✅ Found animations after 2s delay!');
                 chrome.runtime.sendMessage({
                   action: 'SCROLL_ANIMATIONS_UPDATED',
                   scrollAnimations: retryAnimations
@@ -384,13 +384,13 @@ if (!(window as any).di_contentScriptInjected) {
                       : detectAllScrollAnimations();
                       
                      if (finalRetry.length > 0) {
-                      console.log('✅ Found animations after 4s delay!');
+                      // console.log('✅ Found animations after 4s delay!');
                       chrome.runtime.sendMessage({
                         action: 'SCROLL_ANIMATIONS_UPDATED',
                         scrollAnimations: finalRetry
                       }).catch(() => {});
                     } else {
-                      console.log('ℹ️ No scroll animations detected after multiple retries');
+                      // console.log('ℹ️ No scroll animations detected after multiple retries');
                     }
                   }, 200);
                 }, 2000);
@@ -422,5 +422,5 @@ if (!(window as any).di_contentScriptInjected) {
     return true; // Keep message channel open for async response
   });
 
-  console.log('Design Inspector Content Script Ready');
+  // console.log('Design Inspector Content Script Ready');
 }

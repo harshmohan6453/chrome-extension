@@ -74,7 +74,7 @@ export const FlowRecorder = {
   start: () => {
     if (isListening) return;
     isListening = true;
-    console.log('🔴 Flow Recorder Started');
+    // console.log('🔴 Flow Recorder Started');
 
     clickListener = (e: MouseEvent) => {
       // Don't record clicks on the extension sidebar (if injected) or similar tools
@@ -94,7 +94,7 @@ export const FlowRecorder = {
         description: `Clicked on ${getLabel(interactive)}`
       };
 
-      console.log('📸 Recorded:', step);
+      // console.log('📸 Recorded:', step);
 
       // Save to storage
       chrome.storage.local.get(['flowSteps'], (result) => {
@@ -110,7 +110,7 @@ export const FlowRecorder = {
   stop: () => {
     if (!isListening) return;
     isListening = false;
-    console.log('⏹️ Flow Recorder Stopped');
+    // console.log('⏹️ Flow Recorder Stopped');
     if (clickListener) {
       document.removeEventListener('click', clickListener, true);
       clickListener = null;

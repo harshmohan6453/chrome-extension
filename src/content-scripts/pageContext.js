@@ -2,7 +2,7 @@
 // It can access window.ScrollTrigger and other page variables
 
 (function() {
-  console.log('🌍 Page context detector loaded');
+  // console.log('🌍 Page context detector loaded');
   
   // Helper to get element selector (only serializable data)
   function getElementSelector(element) {
@@ -33,7 +33,7 @@
       
       if (ScrollTrigger) {
         const triggers = ScrollTrigger.getAll() || [];
-        console.log(`📊 Found ${triggers.length} ScrollTrigger instances`);
+        // console.log(`📊 Found ${triggers.length} ScrollTrigger instances`);
         
         triggers.forEach((trigger, index) => {
           try {
@@ -127,7 +127,7 @@
           if (action === 'scrollTo') {
             if (targetElement) {
               targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-              console.log('📜 Scrolled to:', targetSelector);
+              // console.log('📜 Scrolled to:', targetSelector);
             } else {
               console.warn('❌ Element not found:', targetSelector);
             }
@@ -165,7 +165,7 @@
               if (trigger?.animation) {
                 trigger.animation.progress(0);
                 trigger.animation.restart();
-                console.log('🔄 Restarted animation');
+                // console.log('🔄 Restarted animation');
               } else if (targetElement) {
                 // No trigger found - try scrolling away and back to re-trigger
                 const rect = targetElement.getBoundingClientRect();
@@ -173,7 +173,7 @@
                 window.scrollTo({ top: Math.max(0, scrollBack - window.innerHeight), behavior: 'instant' });
                 setTimeout(() => {
                   targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                  console.log('🔄 Re-triggered via scroll');
+                  // console.log('🔄 Re-triggered via scroll');
                 }, 100);
               }
             }, 400);
@@ -183,7 +183,7 @@
           if (action === 'setProgress') {
             if (trigger?.animation) {
               trigger.animation.progress(value);
-              console.log(`⏩ Set progress to ${Math.round(value * 100)}%`);
+              // console.log(`⏩ Set progress to ${Math.round(value * 100)}%`);
             }
             return;
           }
@@ -191,7 +191,7 @@
           if (action === 'play') {
             if (trigger?.animation) {
               trigger.animation.play();
-              console.log('▶️ Playing animation');
+              // console.log('▶️ Playing animation');
             }
             return;
           }
@@ -229,7 +229,7 @@
               anim.cancel();
               anim.play();
             });
-            console.log('🔄 Restarted CSS animation');
+            // console.log('🔄 Restarted CSS animation');
           }
           
           if (action === 'setProgress') {
@@ -239,7 +239,7 @@
                 anim.currentTime = duration * value;
               }
             });
-            console.log(`⏩ Set CSS animation progress to ${Math.round(value * 100)}%`);
+            // console.log(`⏩ Set CSS animation progress to ${Math.round(value * 100)}%`);
           }
         }
       } catch (err) {
@@ -248,5 +248,5 @@
     }
   });
   
-  console.log('✅ Page context detector ready');
+  // console.log('✅ Page context detector ready');
 })();

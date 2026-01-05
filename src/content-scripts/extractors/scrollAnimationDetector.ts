@@ -16,17 +16,17 @@ function detectGSAPScrollTrigger(): ScrollAnimationData[] {
     // Check window.ScrollTrigger
     if (typeof window !== 'undefined' && (window as any).ScrollTrigger) {
       ScrollTrigger = (window as any).ScrollTrigger;
-      console.log('📍 Found ScrollTrigger at window.ScrollTrigger');
+      // console.log('📍 Found ScrollTrigger at window.ScrollTrigger');
     }
     // Check gsap.ScrollTrigger (common on gsap.com)
     else if (typeof window !== 'undefined' && (window as any).gsap?.ScrollTrigger) {
       ScrollTrigger = (window as any).gsap.ScrollTrigger;
-      console.log('📍 Found ScrollTrigger at gsap.ScrollTrigger');
+      // console.log('📍 Found ScrollTrigger at gsap.ScrollTrigger');
     }
     
     if (ScrollTrigger) {
       const triggers = ScrollTrigger.getAll();
-      console.log(`📊 Found ${triggers?.length || 0} ScrollTrigger instances`);
+      // console.log(`📊 Found ${triggers?.length || 0} ScrollTrigger instances`);
       
       if (!triggers || triggers.length === 0) {
         return animations;
@@ -73,7 +73,7 @@ function detectGSAPScrollTrigger(): ScrollAnimationData[] {
         }
       });
     } else {
-      console.log('❌ ScrollTrigger not found on window or gsap object');
+      // console.log('❌ ScrollTrigger not found on window or gsap object');
     }
   } catch (error) {
     console.warn('Error detecting GSAP ScrollTrigger:', error);
@@ -380,7 +380,7 @@ function getElementSelector(element: Element): string {
 
 // Main Export: Detect all scroll animations
 export function detectAllScrollAnimations(): ScrollAnimationData[] {
-  console.log('🔍 Starting scroll animation detection...');
+  // console.log('🔍 Starting scroll animation detection...');
   
   const allAnimations: ScrollAnimationData[] = [];
   
@@ -399,7 +399,7 @@ export function detectAllScrollAnimations(): ScrollAnimationData[] {
     try {
       const detected = fn();
       if (detected.length > 0) {
-        console.log(`✅ ${name}: Found ${detected.length} animations`);
+        // console.log(`✅ ${name}: Found ${detected.length} animations`);
         allAnimations.push(...detected);
       }
     } catch (error) {
@@ -407,7 +407,7 @@ export function detectAllScrollAnimations(): ScrollAnimationData[] {
     }
   });
   
-  console.log(`🎉 Total scroll animations detected: ${allAnimations.length}`);
+  // console.log(`🎉 Total scroll animations detected: ${allAnimations.length}`);
   
   return allAnimations;
 }

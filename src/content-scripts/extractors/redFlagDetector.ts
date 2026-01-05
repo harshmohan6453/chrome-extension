@@ -977,6 +977,6 @@ export function detectRedFlags(): RedFlag[] {
     });
   }
 
-  console.log(`🚩 Detected ${flags.length} red flags`);
+  // console.log(`🚩 Detected ${flags.length} red flags`);
   return flags;
 }

@@ -157,14 +157,14 @@ observer.observe(document.querySelector('${animation.element}'));`;
     return (
       <div className="p-6 text-center">
         <div className="text-6xl mb-4">📜</div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
+        <h3 className="text-lg font-semibold text-foreground mb-2">
           No Scroll Animations Detected
         </h3>
-        <p className="text-sm text-gray-600 mb-4">
+        <p className="text-sm text-muted-foreground mb-4">
           This page doesn't appear to use any scroll-based animations, or they may not be detectable.
         </p>
-        <div className="text-xs text-gray-500 bg-gray-50 p-3 rounded-lg">
-          <p className="font-semibold mb-2">Supported Libraries:</p>
+        <div className="text-xs text-muted-foreground bg-secondary p-3 rounded-lg">
+          <p className="font-semibold mb-2 text-foreground">Supported Libraries:</p>
           <ul className="space-y-1">
             <li>⚡ GSAP ScrollTrigger</li>
             <li>🎬 Framer Motion</li>
@@ -179,12 +179,12 @@ observer.observe(document.querySelector('${animation.element}'));`;
   }
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="space-y-6 pb-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-gray-900">Scroll Animations</h2>
-          <p className="text-sm text-gray-600">
+          <h2 className="text-2xl font-black tracking-tight">Scroll Animations</h2>
+          <p className="text-sm text-muted-foreground">
             {scrollAnimations.length} animation{scrollAnimations.length !== 1 ? 's' : ''} detected
           </p>
         </div>
@@ -211,8 +211,8 @@ observer.observe(document.querySelector('${animation.element}'));`;
           onClick={() => setSelectedLibrary('all')}
           className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
             selectedLibrary === 'all'
-              ? 'bg-blue-600 text-white'
-              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80'
           }`}
         >
           All ({scrollAnimations.length})
@@ -227,7 +227,7 @@ observer.observe(document.querySelector('${animation.element}'));`;
               className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
                 selectedLibrary === lib
                   ? info.color
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80'
               }`}
             >
               {info.emoji} {info.name} ({count})
@@ -239,8 +239,8 @@ observer.observe(document.querySelector('${animation.element}'));`;
       {/* Timeline Visualization */}
       <div className="bg-card rounded-lg p-4 border-2 border-foreground/20 neo-shadow">
         <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-semibold text-gray-700">Scroll Timeline</span>
-          <span className="text-xs text-gray-500">{filteredAnimations.length} triggers</span>
+          <span className="text-xs font-semibold text-foreground">Scroll Timeline</span>
+          <span className="text-xs text-muted-foreground">{filteredAnimations.length} triggers</span>
         </div>
         <div className="relative h-8 bg-secondary/50 rounded-lg overflow-hidden border border-border">
           <div className="absolute inset-0 flex items-center">
@@ -278,7 +278,7 @@ observer.observe(document.querySelector('${animation.element}'));`;
             );
           })}
         </div>
-        <div className="flex justify-between mt-1 text-xs text-gray-400">
+        <div className="flex justify-between mt-1 text-xs text-muted-foreground">
           <span>Top of page</span>
           <span>Bottom of page</span>
         </div>
@@ -409,8 +409,8 @@ observer.observe(document.querySelector('${animation.element}'));`;
                         }}
                       />
                       <div className="flex justify-between mt-1">
-                        <span className="text-xs text-gray-400">0%</span>
-                        <span className="text-xs text-gray-400">100%</span>
+                        <span className="text-xs text-muted-foreground">0%</span>
+                        <span className="text-xs text-muted-foreground">100%</span>
                       </div>
                     </div>
                   )}

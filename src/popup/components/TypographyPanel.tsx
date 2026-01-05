@@ -136,7 +136,7 @@ export const TypographyPanel = () => {
   const sources = ['all', ...Array.from(new Set(fonts.map(f => f.source)))];
 
   return (
-    <div className="space-y-6 pb-20">
+    <div className="space-y-6 pb-6">
       {/* Header Area */}
       <div className="flex flex-col gap-4">
         <div className="flex items-center justify-between">

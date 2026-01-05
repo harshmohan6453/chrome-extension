@@ -268,7 +268,7 @@ ${c?.spacing?.join(', ') || data.spacing.map(s => `${s}px`).join(', ')}
   ];
 
   return (
-    <div className="space-y-5 pb-20">
+    <div className="space-y-5 pb-6">
       <div>
         <h2 className="text-xl font-black tracking-tight mb-1 flex items-center gap-2">
           <Sparkles className="w-5 h-5 text-yellow-500 fill-yellow-500" />

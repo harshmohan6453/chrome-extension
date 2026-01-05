@@ -354,7 +354,7 @@ export default function RedFlagsPanel() {
   }
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="space-y-6 pb-6">
       <div className="bg-card rounded-lg p-6 border-2 border-foreground/20 neo-shadow">
         <div className="flex justify-between items-start mb-6">
           <div>

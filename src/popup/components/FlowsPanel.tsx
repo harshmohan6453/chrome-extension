@@ -95,7 +95,7 @@ export default function FlowsPanel() {
   };
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="space-y-6 pb-6">
       {/* Header & Controls */}
       <div className="bg-card rounded-lg p-6 border-2 border-foreground/20 text-center neo-shadow">
         <h2 className="text-xl font-bold text-foreground mb-2">User Flow Recorder</h2>

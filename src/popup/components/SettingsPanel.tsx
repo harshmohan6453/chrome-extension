@@ -92,7 +92,7 @@ export const SettingsPanel = () => {
     const highlightColors = ['#8b5cf6', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899'];
 
     return (
-        <div className="space-y-6 pb-20">
+        <div className="space-y-6 pb-6">
             <h2 className="text-2xl font-black tracking-tight">Settings</h2>
             
             {/* Display Preferences */}
@@ -259,7 +259,7 @@ export const SettingsPanel = () => {
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
                     <span>Design Inspector v{version}</span>
                     <a 
-                        href="https://github.com" 
+                        href="mailto:harshmohan6453@gmail.com?subject=Design Inspector - Issue Report" 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="hover:text-primary transition-colors"

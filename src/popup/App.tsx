@@ -344,7 +344,7 @@ export default function App() {
       case 'prompt': return <GeneratePanel />;
       case 'settings': return <SettingsPanel />;
       case 'overview': return (
-        <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-500 pb-20">
+        <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-500 pb-6">
             {/* Visual Inspector Toggle - with switch button */}
             <div className={clsx(
               "rounded-lg border-2 overflow-hidden transition-all duration-200 neo-shadow",

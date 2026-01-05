@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Type, Palette, Layout, MousePointer2, Code2, Settings, Sparkles, RefreshCw, Layers, Image as ImageIcon, Play, AlertTriangle, Workflow } from 'lucide-react';
+import { Type, Palette, Layout, MousePointer2, Code2, Settings, Sparkles, RefreshCw, Layers, Image as ImageIcon, Play, AlertTriangle, Workflow, PanelRightOpen } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useStore } from '../store';
 import { TypographyPanel } from './components/TypographyPanel';
@@ -99,6 +99,23 @@ export default function App() {
   const [versionInfo, setVersionInfo] = useState<VersionInfo | null>(null);
   const [currentVersion, setCurrentVersion] = useState('1.0');
   const [checkingVersion, setCheckingVersion] = useState(true);
+  
+  // Detect if we're in sidebar mode
+  const isSidePanel = window.location.pathname.includes('sidepanel');
+  
+  // Open sidebar panel
+  const openSidePanel = async () => {
+    try {
+      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (tab?.windowId) {
+        await chrome.sidePanel.open({ windowId: tab.windowId });
+        // Close popup after opening sidebar
+        window.close();
+      }
+    } catch (e) {
+      console.error('Failed to open side panel:', e);
+    }
+  };
 
   const injectContentScript = async (tabId: number) => {
     try {
@@ -559,15 +576,26 @@ export default function App() {
                     {tabs.find(t => t.id === activeTab)?.label}
                 </h1>
             </div>
-            {activeTab === 'overview' && (
-                <button 
-                  onClick={() => fetchData(false)} 
+            <div className="flex items-center gap-2">
+              {activeTab === 'overview' && (
+                  <button 
+                    onClick={() => fetchData(false)} 
+                    className="w-10 h-10 rounded-lg bg-card border-2 border-foreground/20 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-all neo-shadow"
+                    title="Refresh Data"
+                  >
+                    <RefreshCw className={clsx("w-5 h-5", loading && "animate-spin")} />
+                  </button>
+              )}
+              {!isSidePanel && (
+                <button
+                  onClick={openSidePanel}
                   className="w-10 h-10 rounded-lg bg-card border-2 border-foreground/20 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-all neo-shadow"
-                  title="Refresh Data"
+                  title="Pin as Sidebar"
                 >
-                  <RefreshCw className={clsx("w-5 h-5", loading && "animate-spin")} />
+                  <PanelRightOpen className="w-5 h-5" />
                 </button>
-            )}
+              )}
+            </div>
          </header>
 
          <div className="flex-1 overflow-y-auto overflow-x-hidden p-8 pt-4">

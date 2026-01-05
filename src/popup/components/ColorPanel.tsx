@@ -27,6 +27,37 @@ const getWCAGLevel = (ratio: number): { level: string; color: string } => {
   return { level: 'Fail', color: 'text-red-600' };
 };
 
+// Convert Hex to HSL
+const hexToHSL = (hex: string): string => {
+  let r = 0, g = 0, b = 0;
+  if (hex.length === 4) {
+    r = parseInt("0x" + hex[1] + hex[1]);
+    g = parseInt("0x" + hex[2] + hex[2]);
+    b = parseInt("0x" + hex[3] + hex[3]);
+  } else if (hex.length === 7) {
+    r = parseInt("0x" + hex[1] + hex[2]);
+    g = parseInt("0x" + hex[3] + hex[4]);
+    b = parseInt("0x" + hex[5] + hex[6]);
+  }
+  r /= 255; g /= 255; b /= 255;
+  const cmin = Math.min(r,g,b), cmax = Math.max(r,g,b), delta = cmax - cmin;
+  let h = 0, s = 0, l = 0;
+
+  if (delta === 0) h = 0;
+  else if (cmax === r) h = ((g - b) / delta) % 6;
+  else if (cmax === g) h = (b - r) / delta + 2;
+  else h = (r - g) / delta + 4;
+
+  h = Math.round(h * 60);
+  if (h < 0) h += 360;
+  l = (cmax + cmin) / 2;
+  s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+  s = +(s * 100).toFixed(1);
+  l = +(l * 100).toFixed(1);
+
+  return `hsl(${h}, ${Math.round(s)}%, ${Math.round(l)}%)`;
+};
+
 export const ColorPanel = () => {
   const { data, preferences } = useStore();
   const [copied, setCopied] = useState<string | null>(null);
@@ -42,10 +73,7 @@ export const ColorPanel = () => {
 
   const getDisplayColor = (color: typeof data.colors[0]) => {
     if (preferences?.colorFormat === 'rgb') return color.rgb;
-    if (preferences?.colorFormat === 'hsl' && color.hsl && typeof color.hsl === 'object') {
-      const { h, s, l } = color.hsl as any;
-      return `hsl(${Math.round(h)}, ${Math.round(s)}%, ${Math.round(l)}%)`;
-    }
+    if (preferences?.colorFormat === 'hsl') return color.hsl || hexToHSL(color.hex);
     return color.hex;
   };
 
@@ -250,7 +278,7 @@ export const ColorPanel = () => {
                     style={{ backgroundColor: color.hex }}
                   />
                   <div className="flex-1 min-w-0">
-                    <p className="font-bold font-mono text-lg">{color.hex}</p>
+                    <p className="font-bold font-mono text-lg">{getDisplayColor(color)}</p>
                     <div className="flex gap-2 text-xs text-muted-foreground mt-0.5">
                       <span className="bg-secondary px-2 py-0.5 rounded capitalize">{color.type}</span>
                       {color.role && <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">{color.role}</span>}
@@ -274,24 +302,36 @@ export const ColorPanel = () => {
                     <div className="grid grid-cols-3 gap-2 pt-3">
                       <button 
                         onClick={() => copyToClipboard(color.hex)}
-                        className="p-3 bg-secondary/50 rounded-lg text-center hover:bg-secondary transition-colors"
+                        className="relative p-3 bg-secondary/50 rounded-lg text-center hover:bg-secondary transition-colors group"
                       >
+                        <div className="absolute top-2 right-2">
+                          {copied === color.hex ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
+                        </div>
                         <div className="text-xs text-muted-foreground mb-1">HEX</div>
                         <div className="font-mono font-bold text-sm">{color.hex}</div>
                       </button>
                       <button 
                         onClick={() => copyToClipboard(color.rgb)}
-                        className="p-3 bg-secondary/50 rounded-lg text-center hover:bg-secondary transition-colors"
+                        className="relative p-3 bg-secondary/50 rounded-lg text-center hover:bg-secondary transition-colors group"
                       >
+                        <div className="absolute top-2 right-2">
+                          {copied === color.rgb ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
+                        </div>
                         <div className="text-xs text-muted-foreground mb-1">RGB</div>
                         <div className="font-mono font-bold text-sm truncate">{color.rgb}</div>
                       </button>
                       <button 
-                        onClick={() => copyToClipboard(color.hsl || color.rgb)}
-                        className="p-3 bg-secondary/50 rounded-lg text-center hover:bg-secondary transition-colors"
+                        onClick={() => {
+                          const hslValue = color.hsl || hexToHSL(color.hex);
+                          copyToClipboard(hslValue);
+                        }}
+                        className="relative p-3 bg-secondary/50 rounded-lg text-center hover:bg-secondary transition-colors group"
                       >
+                        <div className="absolute top-2 right-2">
+                          {copied === (color.hsl || hexToHSL(color.hex)) ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />}
+                        </div>
                         <div className="text-xs text-muted-foreground mb-1">HSL</div>
-                        <div className="font-mono font-bold text-sm truncate">{color.hsl || '—'}</div>
+                        <div className="font-mono font-bold text-sm truncate">{color.hsl || hexToHSL(color.hex)}</div>
                       </button>
                     </div>
                   </div>

@@ -1,4 +1,4 @@
-export class Inspector {
+export var Inspector = class {
   private overlay: HTMLElement;
   private selectionOverlay: HTMLElement; // New: separate overlay for selected element
   private isActive: boolean = false;
@@ -24,6 +24,8 @@ export class Inspector {
       transition: 'all 0.1s ease',
       display: 'none',
     });
+    this.overlay.id = 'di-overlay';
+    this.cleanupOldElement('di-overlay');
 
     // Selection overlay - auto-contrast color, visible on any background
     this.selectionOverlay = document.createElement('div');
@@ -35,6 +37,8 @@ export class Inspector {
       transition: 'all 0.15s ease',
       display: 'none',
     });
+    this.selectionOverlay.id = 'di-selection-overlay';
+    this.cleanupOldElement('di-selection-overlay');
     this.applySelectionOverlayStyles();
     
     this.tooltip = document.createElement('div');
@@ -56,6 +60,8 @@ export class Inspector {
       transform: 'translateY(6px)', // Slight offset from element
       backdropFilter: 'saturate(180%) blur(2px)', // Subtle glass effect if color has opacity
     });
+    this.tooltip.id = 'di-tooltip';
+    this.cleanupOldElement('di-tooltip');
 
     // Measurement Guides Layer
     this.guides = document.createElement('div');
@@ -69,6 +75,8 @@ export class Inspector {
         zIndex: '999998',
         display: 'none' 
     });
+    this.guides.id = 'di-guides';
+    this.cleanupOldElement('di-guides');
 
     // Persistent Detail Card
     this.detailCard = document.createElement('div');
@@ -88,6 +96,8 @@ export class Inspector {
       border: '2px solid #171d26',
       overflow: 'hidden',
     });
+    this.detailCard.id = 'di-detail-card';
+    this.cleanupOldElement('di-detail-card');
 
     // Inject Custom Scrollbar Styles
     const style = document.createElement('style');
@@ -122,6 +132,12 @@ export class Inspector {
 
     this.handleMouseMove = this.handleMouseMove.bind(this);
     this.handleClick = this.handleClick.bind(this);
+  }
+
+  // Helper to remove orphaned elements from previous injections
+  private cleanupOldElement(id: string) {
+    const old = document.getElementById(id);
+    if (old) old.remove();
   }
 
   // Convert hex to rgba

@@ -1,3 +1,13 @@
+// HTML escape function to prevent XSS/injection
+const escapeHtml = (unsafe: string): string => {
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+};
+
 export var Inspector = class {
   private overlay: HTMLElement;
   private selectionOverlay: HTMLElement; // New: separate overlay for selected element
@@ -803,7 +813,8 @@ height: ${rect.height}px;
 `;
 
     this.detailCard.style.display = 'block';
-    const fullSelector = el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (el.classList.length ? '.' + Array.from(el.classList).join('.') : '');
+    const rawSelector = el.tagName.toLowerCase() + (el.id ? '#' + el.id : '') + (el.classList.length ? '.' + Array.from(el.classList).join('.') : '');
+    const fullSelector = escapeHtml(rawSelector);
     
     let label = el.tagName.charAt(0).toUpperCase() + el.tagName.slice(1).toLowerCase();
     const tag = el.tagName.toLowerCase();
@@ -847,11 +858,11 @@ height: ${rect.height}px;
            <div style="font-weight: 800; color: #171d26; margin-bottom: 8px; font-size: 11px; text-transform: uppercase;">Text properties</div>
            <div style="display: flex; flex-direction: column; gap: 6px;">
                ${[
-                 ['Font Family', font],
+                 ['Font Family', escapeHtml(font)],
                  ['Font Size', `${Math.round(parseFloat(computed.fontSize))}px`],
-                 ['Line Height', computed.lineHeight],
+                 ['Line Height', escapeHtml(computed.lineHeight)],
                  ['Font Weight', computed.fontWeight],
-                 ['Letter Spacing', computed.letterSpacing],
+                 ['Letter Spacing', escapeHtml(computed.letterSpacing)],
                  ['Text Align', computed.textAlign]
                ].map(([label, value]) => `
                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
@@ -862,8 +873,8 @@ height: ${rect.height}px;
                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
                     <span style="color: #64748b;">Text Color</span>
                     <div style="display: flex; align-items: center; gap: 6px;">
-                        <div style="width: 14px; height: 14px; background: ${color}; border: 1px solid #171d26; border-radius: 2px;"></div>
-                        <span style="color: #171d26; font-weight: 500;">${color}</span>
+                        <div style="width: 14px; height: 14px; background: ${escapeHtml(color)}; border: 1px solid #171d26; border-radius: 2px;"></div>
+                        <span style="color: #171d26; font-weight: 500;">${escapeHtml(color)}</span>
                     </div>
                </div>
            </div>
@@ -874,7 +885,7 @@ height: ${rect.height}px;
             <div style="font-weight: 800; color: #171d26; margin-bottom: 8px; font-size: 11px; text-transform: uppercase;">Colors</div>
             <div style="display: flex; flex-direction: column; gap: 8px;">
                 <!-- Background Card -->
-                <div style="background: ${isGradient ? bgImage : (bg === 'transparent' ? 'repeating-conic-gradient(#e2e8f0 0% 25%, #ffffff 0% 50%) 50% / 10px 10px' : bg)}; padding: 12px; border-radius: 6px; border: 2px solid #171d26; box-shadow: 2px 2px 0px 0px #171d26; color: ${bg === 'transparent' || bg === '#FFFFFF' || bg.startsWith('rgba(255') ? '#171d26' : (bg.startsWith('#0') || bg.startsWith('#1') ? '#FFFFFF' : '#171d26')}; position: relative; overflow: hidden; min-height: 40px;">
+                <div style="background: ${isGradient ? escapeHtml(bgImage) : (bg === 'transparent' ? 'repeating-conic-gradient(#e2e8f0 0% 25%, #ffffff 0% 50%) 50% / 10px 10px' : escapeHtml(bg))}; padding: 12px; border-radius: 6px; border: 2px solid #171d26; box-shadow: 2px 2px 0px 0px #171d26; color: ${bg === 'transparent' || bg === '#FFFFFF' || bg.startsWith('rgba(255') ? '#171d26' : (bg.startsWith('#0') || bg.startsWith('#1') ? '#FFFFFF' : '#171d26')}; position: relative; overflow: hidden; min-height: 40px;">
                      <div style="position: relative; z-index: 1; background: rgba(255,255,255,0.9); display: inline-block; padding: 2px 6px; border-radius: 4px; border: 1px solid #171d26;">
                         <span style="font-size: 10px; font-weight: 700; color: #171d26;">Background</span>
                         <div style="font-family: monospace; font-size: 12px; font-weight: 600; color: #171d26;">${bgDisplay}</div>
@@ -911,12 +922,12 @@ height: ${rect.height}px;
                ${border !== 'None' ? `
                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
                     <span style="color: #64748b;">Border</span>
-                    <span style="color: #171d26; font-weight: 500; font-family: monospace; max-width: 150px; overflow: hidden; text-overflow: ellipsis;">${border}</span>
+                    <span style="color: #171d26; font-weight: 500; font-family: monospace; max-width: 150px; overflow: hidden; text-overflow: ellipsis;">${escapeHtml(border)}</span>
                  </div>` : ''}
                ${boxShadow !== 'None' ? `
                  <div style="display: flex; justify-content: space-between; align-items: center; font-size: 12px;">
                     <span style="color: #64748b;">Shadow</span>
-                    <span style="color: #171d26; font-weight: 500; font-family: monospace; max-width: 150px; overflow: hidden; text-overflow: ellipsis;" title="${boxShadow}">${boxShadow}</span>
+                    <span style="color: #171d26; font-weight: 500; font-family: monospace; max-width: 150px; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(boxShadow)}">${escapeHtml(boxShadow)}</span>
                  </div>` : ''}
            </div>
         </div>

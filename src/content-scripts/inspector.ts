@@ -19,7 +19,7 @@ export class Inspector {
 
     this.overlay = document.createElement('div');
     Object.assign(this.overlay.style, {
-      position: 'fixed',
+      position: 'absolute',
       pointerEvents: 'none',
       zIndex: '999999',
       border: `2px solid ${this.highlightColor}`,
@@ -32,7 +32,7 @@ export class Inspector {
     this.selectionOverlay = document.createElement('div');
     this.updateSelectionColor(); // Compute initial selection color
     Object.assign(this.selectionOverlay.style, {
-      position: 'fixed',
+      position: 'absolute',
       pointerEvents: 'none',
       zIndex: '999998',
       transition: 'all 0.15s ease',
@@ -42,7 +42,7 @@ export class Inspector {
     
     this.tooltip = document.createElement('div');
     Object.assign(this.tooltip.style, {
-      position: 'fixed',
+      position: 'absolute',
       zIndex: '9999999',
       backgroundColor: '#1e293b',
       color: 'white',
@@ -183,7 +183,7 @@ export class Inspector {
   // Apply selection overlay styles without glow
   private applySelectionOverlayStyles() {
     Object.assign(this.selectionOverlay.style, {
-      border: `3px solid ${this.selectionColor}`,
+      border: `2px solid ${this.selectionColor}`,
       backgroundColor: this.hexToRgba(this.selectionColor, 0.15),
       boxShadow: 'none',
     });
@@ -248,8 +248,8 @@ export class Inspector {
     const rect = el.getBoundingClientRect();
     Object.assign(this.selectionOverlay.style, {
       display: 'block',
-      top: `${rect.top}px`,
-      left: `${rect.left}px`,
+      top: `${rect.top + window.scrollY}px`,
+      left: `${rect.left + window.scrollX}px`,
       width: `${rect.width}px`,
       height: `${rect.height}px`,
     });
@@ -956,8 +956,8 @@ height: ${rect.height}px;
     const rect = element.getBoundingClientRect();
     
     this.overlay.style.display = 'block';
-    this.overlay.style.top = `${rect.top}px`;
-    this.overlay.style.left = `${rect.left}px`;
+    this.overlay.style.top = `${rect.top + window.scrollY}px`;
+    this.overlay.style.left = `${rect.left + window.scrollX}px`;
     this.overlay.style.width = `${rect.width}px`;
     this.overlay.style.height = `${rect.height}px`;
 
@@ -976,7 +976,7 @@ height: ${rect.height}px;
     if (top < 0) top = rect.bottom + 8;
     if (left + tooltipRect.width > window.innerWidth) left = window.innerWidth - tooltipRect.width - 8;
 
-    this.tooltip.style.top = `${top}px`;
-    this.tooltip.style.left = `${left}px`;
+    this.tooltip.style.top = `${top + window.scrollY}px`;
+    this.tooltip.style.left = `${left + window.scrollX}px`;
   }
 }

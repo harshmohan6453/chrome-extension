@@ -1,12 +1,14 @@
 export class Inspector {
   private overlay: HTMLElement;
+  private selectionOverlay: HTMLElement; // New: separate overlay for selected element
   private isActive: boolean = false;
   private hoveredElement: HTMLElement | null = null;
   private selectedElement: HTMLElement | null = null;
   private tooltip: HTMLElement;
   private detailCard: HTMLElement;
   private guides: HTMLElement;
-  private highlightColor: string = '#8b5cf6'; // Default purple
+  private highlightColor: string = '#8b5cf6'; // Default purple for hover
+  private selectionColor: string = '#10b981'; // Green for selected element
 
   constructor() {
     // Read saved highlight color from localStorage
@@ -23,6 +25,19 @@ export class Inspector {
       border: `2px solid ${this.highlightColor}`,
       backgroundColor: this.hexToRgba(this.highlightColor, 0.1),
       transition: 'all 0.1s ease',
+      display: 'none',
+    });
+
+    // Selection overlay - green to distinguish from hover
+    this.selectionOverlay = document.createElement('div');
+    Object.assign(this.selectionOverlay.style, {
+      position: 'fixed',
+      pointerEvents: 'none',
+      zIndex: '999998', // Below hover overlay
+      border: `3px solid ${this.selectionColor}`,
+      backgroundColor: this.hexToRgba(this.selectionColor, 0.15),
+      boxShadow: `0 0 0 2px ${this.hexToRgba(this.selectionColor, 0.3)}`,
+      transition: 'all 0.15s ease',
       display: 'none',
     });
     
@@ -98,6 +113,7 @@ export class Inspector {
 
     this.detailCard.classList.add('di-custom-scrollbar');
     document.body.appendChild(this.overlay);
+    document.body.appendChild(this.selectionOverlay);
     document.body.appendChild(this.tooltip);
     document.body.appendChild(this.detailCard);
     document.body.appendChild(this.guides);
@@ -130,6 +146,7 @@ export class Inspector {
   public disable() {
     this.isActive = false;
     this.overlay.style.display = 'none';
+    this.selectionOverlay.style.display = 'none';
     this.tooltip.style.display = 'none';
     this.detailCard.style.display = 'none';
     this.guides.style.display = 'none';
@@ -157,8 +174,23 @@ export class Inspector {
     // Set selection
     this.selectedElement = this.hoveredElement;
     
+    // Update selection overlay position
+    this.updateSelectionOverlay(this.hoveredElement);
+    
     // Show details
     this.showDetails(this.hoveredElement);
+  }
+
+  // Update selection overlay position
+  private updateSelectionOverlay(el: HTMLElement) {
+    const rect = el.getBoundingClientRect();
+    Object.assign(this.selectionOverlay.style, {
+      display: 'block',
+      top: `${rect.top}px`,
+      left: `${rect.left}px`,
+      width: `${rect.width}px`,
+      height: `${rect.height}px`,
+    });
   }
 
   // Add property to track hover mode

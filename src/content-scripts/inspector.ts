@@ -41,17 +41,23 @@ export class Inspector {
     this.applySelectionOverlayStyles();
     
     this.tooltip = document.createElement('div');
+    this.tooltip = document.createElement('div');
     Object.assign(this.tooltip.style, {
       position: 'absolute',
       zIndex: '9999999',
-      backgroundColor: '#1e293b',
+      backgroundColor: this.highlightColor, // Dynamic background
       color: 'white',
-      padding: '4px 8px',
-      borderRadius: '4px',
-      fontSize: '12px',
+      padding: '3px 8px 4px 8px', // Adjusted padding for pill shape
+      borderRadius: '6px',
+      fontSize: '11px',
+      fontWeight: 'bold',
       fontFamily: 'system-ui, sans-serif',
       pointerEvents: 'none',
       display: 'none',
+      whiteSpace: 'nowrap',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', // Nicer shadow
+      transform: 'translateY(6px)', // Slight offset from element
+      backdropFilter: 'saturate(180%) blur(2px)', // Subtle glass effect if color has opacity
     });
 
     // Measurement Guides Layer
@@ -962,21 +968,49 @@ height: ${rect.height}px;
     this.overlay.style.height = `${rect.height}px`;
 
     const tagName = element.tagName.toLowerCase();
-    const className = element.classList.length > 0 ? `.${element.classList[0]}` : '';
-    const dimensions = `${Math.round(rect.width)} × ${Math.round(rect.height)}`;
-
-    this.tooltip.style.display = 'block';
-    this.tooltip.textContent = `${tagName}${className} | ${dimensions}`;
     
-    // Position tooltip
+    // Determine type label/icon
+    const iconStyle = 'width: 11px; height: 11px; fill: currentColor; opacity: 1; display: block;';
+    const icons = {
+        text: `<svg style="${iconStyle}" viewBox="0 0 24 24"><path d="M2.5 4v3h5v12h3V7h5V4h-13zm19 5h-9v3h3v7h3v-7h3V9z"/></svg>`,
+        image: `<svg style="${iconStyle}" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>`, 
+        box: `<svg style="${iconStyle}" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14z"/></svg>`,
+        action: `<svg style="${iconStyle}" viewBox="0 0 24 24"><path d="M3.5 3.5L9 20.5 12.5 13.5 19.5 10 3.5 3.5z"/></svg>`,
+    };
+
+    let typeIcon = icons.box; // Box (default)
+    const tag = tagName;
+    if (/^h[1-6]$/.test(tag) || ['p', 'span', 'strong', 'em', 'label', 'small', 'li', 'blockquote', 'i', 'b', 'u'].includes(tag)) typeIcon = icons.text;
+    if (tag === 'img' || tag === 'svg' || tag === 'video' || tag === 'canvas') typeIcon = icons.image;
+    if (tag === 'button' || tag === 'a' || tag === 'input' || tag === 'select' || tag === 'textarea') typeIcon = icons.action;
+    
+    this.tooltip.style.display = 'flex';
+    this.tooltip.style.alignItems = 'center';
+    this.tooltip.style.gap = '6px';
+    
+    this.tooltip.style.backgroundColor = this.highlightColor; // Use active highlight color
+    
+    this.tooltip.innerHTML = `
+      <span style="opacity: 1; display: flex; align-items: center;">${typeIcon}</span>
+      <span style="font-family: system-ui, sans-serif; font-weight: 600; letter-spacing: 0.2px;">${tagName}</span>
+    `;
+    
+    // Position tooltip at bottom-left of element
     const tooltipRect = this.tooltip.getBoundingClientRect();
-    let top = rect.top - tooltipRect.height - 8;
-    let left = rect.left;
+    let top = rect.bottom + window.scrollY; // Default: below bottom-left
+    let left = rect.left + window.scrollX;
 
-    if (top < 0) top = rect.bottom + 8;
-    if (left + tooltipRect.width > window.innerWidth) left = window.innerWidth - tooltipRect.width - 8;
+    // Flip to top if close to bottom edge
+    if (rect.bottom > window.innerHeight - 30) {
+       top = rect.top + window.scrollY - tooltipRect.height - 4;
+    }
+    
+    // Clamp horizontally
+    if (left + tooltipRect.width > window.innerWidth) {
+       left = window.innerWidth - tooltipRect.width - 8;
+    }
 
-    this.tooltip.style.top = `${top + window.scrollY}px`;
-    this.tooltip.style.left = `${left + window.scrollX}px`;
+    this.tooltip.style.top = `${top}px`;
+    this.tooltip.style.left = `${left}px`;
   }
 }

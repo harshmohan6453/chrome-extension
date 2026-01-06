@@ -273,16 +273,27 @@ export const SettingsPanel = () => {
             </div>
 
             {/* About */}
-            <div className="pt-4 border-t border-border">
+            <div className="pt-4 border-t border-border space-y-3">
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Snatch v{version}</span>
+                    <span>WebSnatch v{version}</span>
                     <a 
-                        href="mailto:harshmohan6453@gmail.com?subject=Snatch - Issue Report" 
+                        href="mailto:sales@divtechnosoft.com?subject=WebSnatch - Issue Report" 
                         target="_blank" 
                         rel="noopener noreferrer"
                         className="hover:text-primary transition-colors"
                     >
                         Report Issue
+                    </a>
+                </div>
+                <div className="text-center text-sm text-muted-foreground">
+                    Powered by{' '}
+                    <a 
+                        href="https://www.divtechnosoft.com/" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="font-semibold hover:text-primary transition-colors"
+                    >
+                        Divtechnosoft
                     </a>
                 </div>
             </div>

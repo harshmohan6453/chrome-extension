@@ -590,7 +590,7 @@ export default function App() {
          <header className="h-20 flex items-center justify-between px-8 pt-6 pb-2 shrink-0">
             <div>
                 <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
-                    Snatch
+                    WebSnatch
                 </h1>
             </div>
             <div className="flex items-center gap-2">

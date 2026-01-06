@@ -6,7 +6,7 @@ import { clsx } from 'clsx';
 export const SettingsPanel = () => {
     const { reset, resetPreferences, preferences, setPreferences, data } = useStore();
     const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
-    const [highlightColor, setHighlightColor] = useState('#8b5cf6');
+    const [highlightColor, setHighlightColor] = useState('#3b82f6');
     const [exportSuccess, setExportSuccess] = useState(false);
     const [version, setVersion] = useState('1.0.0');
 

@@ -18,6 +18,26 @@ import { VERSION_API_URL } from '../config';
 
 type Tab = 'overview' | 'typography' | 'colors' | 'assets' | 'spacing' | 'scroll' | 'redflags' | 'flows' | 'prompt' | 'settings' | 'inspector';
 
+// Helper to check if a URL is analyzable (not a restricted browser page)
+const isAnalyzableUrl = (url: string | undefined): boolean => {
+  if (!url) return false;
+  
+  // List of restricted URL prefixes where content scripts cannot run
+  const restrictedPrefixes = [
+    'chrome://',
+    'chrome-extension://',
+    'edge://',
+    'about:',
+    'moz-extension://',
+    'file://',
+    'view-source:',
+    'data:',
+    'javascript:',
+  ];
+  
+  return !restrictedPrefixes.some(prefix => url.startsWith(prefix));
+};
+
 // Helper function to aggregate fonts by family
 const aggregateFonts = (rawFonts: any[]): import('../store').FontData[] => {
   const fontFamilies = new Map<string, any>();
@@ -139,6 +159,14 @@ export default function App() {
     setError(null);
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      
+      // Check if URL is analyzable before attempting to communicate
+      if (!isAnalyzableUrl(tab?.url)) {
+        setLoading(false);
+        setError("Cannot analyze this page. WebSnatch works on regular web pages only.");
+        return;
+      }
+      
       if (tab?.id) {
         try {
             const response = await chrome.tabs.sendMessage(tab.id, { action: 'GET_PAGE_DATA' });
@@ -276,10 +304,17 @@ export default function App() {
   }, []);
 
   const toggleInspector = async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    
+    // Check if URL is analyzable before attempting to toggle inspector
+    if (!isAnalyzableUrl(tab?.url)) {
+      setError("Cannot use inspector on this page. WebSnatch works on regular web pages only.");
+      return;
+    }
+    
     const newState = !isInspecting;
     setInspecting(newState);
     analytics.trackInspectorToggled(newState);
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     
     // Get the saved highlight color
     const highlightColor = localStorage.getItem('di-highlightColor') || '#3b82f6';

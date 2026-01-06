@@ -28,21 +28,17 @@ export default defineConfig({
         popup: resolve(__dirname, 'popup.html'),
         sidepanel: resolve(__dirname, 'sidepanel.html'),
         content: resolve(__dirname, 'src/content-scripts/content.ts'),
-        background: resolve(__dirname, 'src/background/service-worker.ts'),
       },
       output: {
         entryFileNames: (chunkInfo) => {
           if (chunkInfo.name === 'content') {
             return 'content.js';
           }
-          if (chunkInfo.name === 'background') {
-            return 'service-worker.js';
-          }
           return 'assets/[name]-[hash].js';
         },
         chunkFileNames: 'assets/[name]-[hash].js',
         manualChunks(id) {
-          // Only split chunks for popup, not for content/background scripts
+          // Only split chunks for popup, not for content scripts
           if (id.includes('node_modules')) {
             if (id.includes('posthog')) {
               return 'posthog';

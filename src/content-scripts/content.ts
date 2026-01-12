@@ -1,6 +1,7 @@
 import { Inspector } from './inspector';
 import { extractFonts } from './extractors/fontExtractor';
 import { extractColors } from './extractors/colorExtractor';
+import { extractGradients } from './extractors/gradientExtractor';
 import { detectSpacingSystem } from './extractors/spacingExtractor';
 import { extractAssets } from './extractors/assetExtractor';
 import { detectAllScrollAnimations } from './extractors/scrollAnimationDetector';
@@ -8,6 +9,25 @@ import { detectRedFlags } from './extractors/redFlagDetector';
 import { extractHTMLStructure } from './extractors/htmlExtractor';
 import { captureSiteCloneData } from './extractors/siteCloneExtractor';
 import { FlowRecorder } from './extractors/flowRecorder';
+
+const rgbToHex = (rgb: string): string => {
+  if (rgb.startsWith('#')) return rgb;
+
+  const values = rgb.match(/\d+/g);
+  if (!values) return rgb;
+
+  const r = parseInt(values[0]);
+  const g = parseInt(values[1]);
+  const b = parseInt(values[2]);
+
+  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+};
+
+const colorsMatch = (color1: string, color2: string): boolean => {
+  const hex1 = rgbToHex(color1);
+  const hex2 = rgbToHex(color2);
+  return hex1.toLowerCase() === hex2.toLowerCase();
+};
 
 // Check if already injected
 if (!(window as any).di_contentScriptInjected) {
@@ -340,6 +360,7 @@ if (!(window as any).di_contentScriptInjected) {
     if (request.action === 'GET_PAGE_DATA') {
       const fonts = extractFonts();
       const colors = extractColors();
+      const gradients = extractGradients();
       const spacing = detectSpacingSystem();
       const assets = extractAssets();
       const htmlStructure = extractHTMLStructure();
@@ -402,6 +423,7 @@ if (!(window as any).di_contentScriptInjected) {
         sendResponse({
           fonts,
           colors,
+          gradients,
           spacing,
           assets,
           scrollAnimations,
@@ -418,7 +440,81 @@ if (!(window as any).di_contentScriptInjected) {
       
       return true; // Keep channel open for async response
     }
-    
+
+    if (request.action === 'APPLY_COLOR_MODIFICATION') {
+      const { originalColor, newColor, type } = request;
+      let modifiedCount = 0;
+
+      const elements = document.querySelectorAll('*');
+
+      elements.forEach((el) => {
+        const htmlEl = el as HTMLElement;
+        const computed = window.getComputedStyle(el);
+
+        if (type === 'text' && colorsMatch(computed.color, originalColor)) {
+          htmlEl.style.setProperty('color', newColor, 'important');
+          modifiedCount++;
+        }
+
+        if (type === 'background' && colorsMatch(computed.backgroundColor, originalColor)) {
+          htmlEl.style.setProperty('background-color', newColor, 'important');
+          modifiedCount++;
+        }
+
+        if (type === 'border' && colorsMatch(computed.borderColor, originalColor)) {
+          htmlEl.style.setProperty('border-color', newColor, 'important');
+          modifiedCount++;
+        }
+      });
+
+      sendResponse({ success: true, modifiedCount });
+      return true;
+    }
+
+    if (request.action === 'RESET_COLOR_MODIFICATION') {
+      const { originalColor, type } = request;
+      let resetCount = 0;
+
+      const elements = document.querySelectorAll('*');
+
+      elements.forEach((el) => {
+        const htmlEl = el as HTMLElement;
+        const computed = window.getComputedStyle(el);
+
+        if (type === 'text' && colorsMatch(computed.color, originalColor)) {
+          htmlEl.style.removeProperty('color');
+          resetCount++;
+        }
+
+        if (type === 'background' && colorsMatch(computed.backgroundColor, originalColor)) {
+          htmlEl.style.removeProperty('background-color');
+          resetCount++;
+        }
+
+        if (type === 'border' && colorsMatch(computed.borderColor, originalColor)) {
+          htmlEl.style.removeProperty('border-color');
+          resetCount++;
+        }
+      });
+
+      sendResponse({ success: true, resetCount });
+      return true;
+    }
+
+    if (request.action === 'RESET_ALL_COLOR_MODIFICATIONS') {
+      const elements = document.querySelectorAll('*');
+
+      elements.forEach((el) => {
+        const htmlEl = el as HTMLElement;
+        htmlEl.style.removeProperty('color');
+        htmlEl.style.removeProperty('background-color');
+        htmlEl.style.removeProperty('border-color');
+      });
+
+      sendResponse({ success: true });
+      return true;
+    }
+
     return true; // Keep message channel open for async response
   });
 

@@ -25,6 +25,31 @@ export interface ColorData {
   type: 'text' | 'background' | 'border' | 'auto';
   role?: string;
   count: number;
+  modifiedTo?: string;
+}
+
+export interface GradientColor {
+  index: number;
+  color: string;
+  hex: string;
+  position?: number;
+  modifiedTo?: string;
+}
+
+export interface GradientData {
+  id: string;
+  type: 'linear' | 'radial' | 'conical';
+  original: string;
+  elementCount: number;
+  colors: GradientColor[];
+  modifiedTo?: string;
+  modifiedColors?: Map<number, string>;
+}
+
+export interface ColorModification {
+  originalColor: string;
+  newColor: string;
+  type: 'text' | 'background' | 'border';
 }
 
 export interface AssetData {
@@ -93,6 +118,7 @@ export interface FlowStep {
 export interface InspectionData {
   fonts: FontData[];
   colors: ColorData[];
+  gradients: GradientData[];
   spacing: number[];
   assets: AssetData[];
   scrollAnimations: ScrollAnimationData[];
@@ -153,11 +179,17 @@ interface AppState {
   preferences: UserPreferences;
   redFlagsLoaded: boolean;
   scrollAnimationsLoaded: boolean;
+  colorEditMode: boolean;
+  colorModifications: Map<string, ColorModification>;
   setInspecting: (isInspecting: boolean) => void;
   setData: (data: Partial<InspectionData>) => void;
   setPreferences: (prefs: Partial<UserPreferences>) => void;
   setRedFlagsLoaded: (loaded: boolean) => void;
   setScrollAnimationsLoaded: (loaded: boolean) => void;
+  setColorEditMode: (enabled: boolean) => void;
+  setColorModification: (originalHex: string, modification: ColorModification) => void;
+  removeColorModification: (originalHex: string) => void;
+  resetColorModifications: () => void;
   reset: () => void;
   resetPreferences: () => void;
 }
@@ -165,6 +197,7 @@ interface AppState {
 const initialData: InspectionData = {
   fonts: [],
   colors: [],
+  gradients: [],
   spacing: [],
   assets: [],
   scrollAnimations: [],
@@ -187,18 +220,34 @@ export const useStore = create<AppState>((set) => ({
   preferences: initialPreferences,
   redFlagsLoaded: false,
   scrollAnimationsLoaded: false,
+  colorEditMode: false,
+  colorModifications: new Map<string, ColorModification>(),
   setInspecting: (isInspecting) => set({ isInspecting }),
   setData: (newData) => set((state) => ({ data: { ...state.data, ...newData } })),
   setPreferences: (newPrefs) => set((state) => ({ preferences: { ...state.preferences, ...newPrefs } })),
   setRedFlagsLoaded: (loaded) => set({ redFlagsLoaded: loaded }),
   setScrollAnimationsLoaded: (loaded) => set({ scrollAnimationsLoaded: loaded }),
+  setColorEditMode: (enabled) => set({ colorEditMode: enabled }),
+  setColorModification: (originalHex, modification) => set((state) => {
+    const newModifications = new Map(state.colorModifications);
+    newModifications.set(originalHex, modification);
+    return { colorModifications: newModifications };
+  }),
+  removeColorModification: (originalHex) => set((state) => {
+    const newModifications = new Map(state.colorModifications);
+    newModifications.delete(originalHex);
+    return { colorModifications: newModifications };
+  }),
+  resetColorModifications: () => set({ colorModifications: new Map<string, ColorModification>() }),
   reset: () => {
     // Only reset data and session flags, preserve preferences and localStorage
-    set({ 
-        data: initialData, 
-        isInspecting: false, 
-        redFlagsLoaded: false, 
-        scrollAnimationsLoaded: false 
+    set({
+        data: initialData,
+        isInspecting: false,
+        redFlagsLoaded: false,
+        scrollAnimationsLoaded: false,
+        colorEditMode: false,
+        colorModifications: new Map<string, ColorModification>()
     });
   },
   resetPreferences: () => {

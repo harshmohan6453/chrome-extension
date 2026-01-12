@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Copy, Check, Download, ChevronDown, ChevronUp, Palette, AlertTriangle, CheckCircle2, Pipette, X } from 'lucide-react';
+import { Copy, Check, Download, ChevronDown, ChevronUp, Palette, AlertTriangle, CheckCircle2, Pipette, X, Edit, RotateCcw } from 'lucide-react';
 import { useStore } from '../../store';
 import { clsx } from 'clsx';
 
@@ -60,7 +60,7 @@ const hexToHSL = (hex: string): string => {
 };
 
 export const ColorPanel = () => {
-  const { data, preferences } = useStore();
+  const { data, preferences, colorEditMode, colorModifications, setColorEditMode, setColorModification, removeColorModification, resetColorModifications } = useStore();
   const [copied, setCopied] = useState<string | null>(null);
   const [expandedColor, setExpandedColor] = useState<string | null>(null);
   const [selectedBg, setSelectedBg] = useState<string | null>(null);
@@ -68,6 +68,8 @@ export const ColorPanel = () => {
   const [pickedColor, setPickedColor] = useState<{ hex: string; rgb: string; hsl: string } | null>(null);
   const [isPicking, setIsPicking] = useState(false);
   const [pickerError, setPickerError] = useState<string | null>(null);
+  const [editingColor, setEditingColor] = useState<{ original: string; type: string } | null>(null);
+  const [selectedNewColor, setSelectedNewColor] = useState<string>('#000000');
 
   // Color picker function using EyeDropper API directly from popup
   const pickColor = async () => {
@@ -176,6 +178,69 @@ export const ColorPanel = () => {
     return { ratio: ratio.toFixed(2), ...wcag };
   }, [selectedBg, selectedText]);
 
+  const handleColorEdit = async (originalHex: string, type: string) => {
+    setEditingColor({ original: originalHex, type });
+    setSelectedNewColor(originalHex);
+  };
+
+  const applyColorModification = async () => {
+    if (!editingColor) return;
+
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab.id) return;
+
+    const modification = {
+      originalColor: editingColor.original,
+      newColor: selectedNewColor,
+      type: editingColor.type as 'text' | 'background' | 'border'
+    };
+
+    setColorModification(editingColor.original, modification);
+
+    await chrome.tabs.sendMessage(tab.id, {
+      action: 'APPLY_COLOR_MODIFICATION',
+      ...modification
+    });
+
+    setEditingColor(null);
+  };
+
+  const resetColorModification = async (originalHex: string) => {
+    const modification = colorModifications.get(originalHex);
+    if (!modification) return;
+
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab.id) return;
+
+    await chrome.tabs.sendMessage(tab.id, {
+      action: 'RESET_COLOR_MODIFICATION',
+      originalColor: originalHex,
+      type: modification.type
+    });
+
+    removeColorModification(originalHex);
+  };
+
+  const resetAllModifications = async () => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab.id) return;
+
+    await chrome.tabs.sendMessage(tab.id, {
+      action: 'RESET_ALL_COLOR_MODIFICATIONS'
+    });
+
+    resetColorModifications();
+  };
+
+  const getModifiedColor = (originalHex: string) => {
+    const modification = colorModifications.get(originalHex);
+    return modification?.newColor || null;
+  };
+
+  const isColorModified = (originalHex: string) => {
+    return colorModifications.has(originalHex);
+  };
+
   return (
     <div className="space-y-6 pb-6">
       {/* Header */}
@@ -187,27 +252,48 @@ export const ColorPanel = () => {
           </span>
         </div>
         <div className="flex gap-2 items-center">
-          <button 
+          {colorModifications.size > 0 && (
+            <button
+              onClick={resetAllModifications}
+              className="text-sm font-bold text-orange-600 hover:bg-orange-500/10 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
+              title="Reset all color modifications"
+            >
+              <RotateCcw className="w-4 h-4" /> Reset All
+            </button>
+          )}
+          <button
+            onClick={() => setColorEditMode(!colorEditMode)}
+            className={clsx(
+              "text-sm font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2",
+              colorEditMode
+                ? "bg-primary text-white"
+                : "text-muted-foreground hover:bg-secondary"
+            )}
+            title={colorEditMode ? "Exit edit mode" : "Enter edit mode"}
+          >
+            <Edit className="w-4 h-4" /> {colorEditMode ? 'Edit: ON' : 'Edit: OFF'}
+          </button>
+          <button
             onClick={pickColor}
             disabled={isPicking}
             className={clsx(
               "p-2 rounded-lg transition-all flex items-center justify-center",
-              isPicking 
-                ? "bg-primary text-white" 
+              isPicking
+                ? "bg-primary text-white"
                 : "text-primary hover:bg-primary/10"
             )}
             title={isPicking ? "Picking color..." : "Pick color from screen"}
           >
             <Pipette className={clsx("w-4 h-4", isPicking && "animate-pulse")} />
           </button>
-          <button 
-            onClick={() => handleExport('css')} 
+          <button
+            onClick={() => handleExport('css')}
             className="text-sm font-bold text-muted-foreground hover:bg-secondary px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
           >
             <Download className="w-4 h-4" /> CSS
           </button>
-          <button 
-            onClick={() => handleExport('tailwind')} 
+          <button
+            onClick={() => handleExport('tailwind')}
             className="text-sm font-bold text-muted-foreground hover:bg-secondary px-3 py-1.5 rounded-lg transition-colors flex items-center gap-2"
           >
             <Download className="w-4 h-4" /> Tailwind
@@ -418,44 +504,91 @@ export const ColorPanel = () => {
             <h3 className="text-sm font-bold text-muted-foreground uppercase tracking-wider">
               All Colors (sorted by usage)
             </h3>
-            {analysis?.sorted.map((color) => (
-              <div 
-                key={color.hex} 
-                className="bg-card rounded-lg border-2 border-foreground/20 overflow-hidden transition-all hover:border-primary neo-shadow"
-              >
-                {/* Collapsed Header */}
-                <button
-                  onClick={() => setExpandedColor(expandedColor === color.hex ? null : color.hex)}
-                  className="w-full p-4 flex items-center gap-4 text-left"
-                >
-                  <div 
-                    className="w-12 h-12 rounded-xl border border-border/50 shadow-sm shrink-0" 
-                    style={{ backgroundColor: color.hex }}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold font-mono text-lg">{getDisplayColor(color)}</p>
-                    <div className="flex gap-2 text-xs text-muted-foreground mt-0.5">
-                      <span className="bg-secondary px-2 py-0.5 rounded capitalize">{color.type}</span>
-                      {color.role && <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">{color.role}</span>}
-                      <span>{color.count}×</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button 
-                      onClick={(e) => { e.stopPropagation(); copyToClipboard(getDisplayColor(color)); }}
-                      className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground"
-                    >
-                      {copied === getDisplayColor(color) ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                    </button>
-                    {expandedColor === color.hex ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                  </div>
-                </button>
+            {analysis?.sorted.map((color) => {
+              const modifiedTo = getModifiedColor(color.hex);
+              const isModified = isColorModified(color.hex);
 
-                {/* Expanded Content */}
-                {expandedColor === color.hex && (
+              return (
+                <div
+                  key={color.hex}
+                  className={clsx(
+                    "bg-card rounded-lg border-2 overflow-hidden transition-all hover:border-primary neo-shadow",
+                    isModified ? "border-orange-500" : "border-foreground/20"
+                  )}
+                >
+                  {/* Collapsed Header */}
+                  <button
+                    onClick={() => {
+                      if (colorEditMode) {
+                        handleColorEdit(color.hex, color.type);
+                      } else {
+                        setExpandedColor(expandedColor === color.hex ? null : color.hex);
+                      }
+                    }}
+                    className={clsx(
+                      "w-full p-4 flex items-center gap-4 text-left",
+                      colorEditMode && "cursor-pointer"
+                    )}
+                  >
+                    <div
+                      className="w-12 h-12 rounded-xl border border-border/50 shadow-sm shrink-0 relative"
+                      style={{ backgroundColor: isModified ? (modifiedTo || color.hex) : color.hex }}
+                    >
+                      {isModified && (
+                        <div className="absolute -top-1 -right-1 bg-orange-500 text-white rounded-full p-0.5">
+                          <Edit className="w-2 h-2" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold font-mono text-lg">
+                        {isModified ? modifiedTo : getDisplayColor(color)}
+                      </p>
+                      <div className="flex gap-2 text-xs text-muted-foreground mt-0.5">
+                        <span className="bg-secondary px-2 py-0.5 rounded capitalize">{color.type}</span>
+                        {color.role && <span className="bg-primary/10 text-primary px-2 py-0.5 rounded">{color.role}</span>}
+                        <span>{color.count}×</span>
+                        {isModified && <span className="bg-orange-500/10 text-orange-500 px-2 py-0.5 rounded">Modified</span>}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {colorEditMode && (
+                        <>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); handleColorEdit(color.hex, color.type); }}
+                            className="p-2 rounded-lg bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                            title="Edit color"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          {isModified && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); resetColorModification(color.hex); }}
+                              className="p-2 rounded-lg bg-orange-500/10 text-orange-500 hover:bg-orange-500/20 transition-colors"
+                              title="Reset color"
+                            >
+                              <RotateCcw className="w-4 h-4" />
+                            </button>
+                          )}
+                        </>
+                      )}
+                      {!colorEditMode && (
+                        <button
+                          onClick={(e) => { e.stopPropagation(); copyToClipboard(isModified ? modifiedTo || getDisplayColor(color) : getDisplayColor(color)); }}
+                          className="p-2 rounded-lg hover:bg-secondary transition-colors text-muted-foreground"
+                        >
+                          {copied === (isModified ? modifiedTo || getDisplayColor(color) : getDisplayColor(color)) ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                        </button>
+                      )}
+                      {!colorEditMode && (expandedColor === color.hex ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />)}
+                    </div>
+                  </button>
+
+                  {/* Expanded Content */}
+                  {!colorEditMode && expandedColor === color.hex && (
                   <div className="px-4 pb-4 pt-0 border-t border-border/50 space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="grid grid-cols-3 gap-2 pt-3">
-                      <button 
+                      <button
                         onClick={() => copyToClipboard(color.hex)}
                         className="relative p-3 bg-secondary/50 rounded-lg text-center hover:bg-secondary transition-colors group"
                       >
@@ -465,7 +598,7 @@ export const ColorPanel = () => {
                         <div className="text-xs text-muted-foreground mb-1">HEX</div>
                         <div className="font-mono font-bold text-sm">{color.hex}</div>
                       </button>
-                      <button 
+                      <button
                         onClick={() => copyToClipboard(color.rgb)}
                         className="relative p-3 bg-secondary/50 rounded-lg text-center hover:bg-secondary transition-colors group"
                       >
@@ -475,7 +608,7 @@ export const ColorPanel = () => {
                         <div className="text-xs text-muted-foreground mb-1">RGB</div>
                         <div className="font-mono font-bold text-sm truncate">{color.rgb}</div>
                       </button>
-                      <button 
+                      <button
                         onClick={() => {
                           const hslValue = color.hsl || hexToHSL(color.hex);
                           copyToClipboard(hslValue);
@@ -491,10 +624,74 @@ export const ColorPanel = () => {
                     </div>
                   </div>
                 )}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </>
+      )}
+
+      {/* Color Picker Modal */}
+      {editingColor && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-card rounded-xl p-6 shadow-2xl w-full max-w-md animate-in slide-in-from-top-2">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">Edit Color</h3>
+              <button
+                onClick={() => setEditingColor(null)}
+                className="p-2 rounded-lg hover:bg-secondary transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="text-center">
+                  <div className="text-xs font-bold text-muted-foreground mb-2">Original</div>
+                  <div
+                    className="w-16 h-16 rounded-lg border-2 border-border"
+                    style={{ backgroundColor: editingColor.original }}
+                  />
+                  <div className="mt-2 font-mono text-xs">{editingColor.original}</div>
+                </div>
+                <div className="text-2xl text-muted-foreground">→</div>
+                <div className="text-center">
+                  <div className="text-xs font-bold text-muted-foreground mb-2">New</div>
+                  <div
+                    className="w-16 h-16 rounded-lg border-2 border-primary cursor-pointer hover:scale-105 transition-transform"
+                    style={{ backgroundColor: selectedNewColor }}
+                    onClick={() => document.getElementById('color-input')?.click()}
+                  />
+                  <div className="mt-2 font-mono text-xs">{selectedNewColor}</div>
+                </div>
+              </div>
+
+              <input
+                id="color-input"
+                type="color"
+                value={selectedNewColor}
+                onChange={(e) => setSelectedNewColor(e.target.value)}
+                className="w-full h-12 rounded cursor-pointer"
+              />
+
+              <div className="flex gap-2">
+                <button
+                  onClick={applyColorModification}
+                  className="flex-1 py-3 bg-primary text-white rounded-lg font-bold hover:bg-primary/90 transition-colors"
+                >
+                  Apply to Page
+                </button>
+                <button
+                  onClick={() => setEditingColor(null)}
+                  className="flex-1 py-3 bg-secondary rounded-lg font-bold hover:bg-secondary/80 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

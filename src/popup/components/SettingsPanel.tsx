@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useStore } from '../../store';
-import { Trash2, Download, FileJson, Check, Moon, Sun, Palette, Ruler, Eye, RotateCcw } from 'lucide-react';
+import { Trash2, Download, FileJson, Check, Moon, Sun, Palette, Ruler, Eye, RotateCcw, Globe } from 'lucide-react';
 import { clsx } from 'clsx';
 
 export const SettingsPanel = () => {
@@ -274,8 +274,29 @@ export const SettingsPanel = () => {
 
             {/* About */}
             <div className="pt-4 border-t border-border space-y-3">
+                <button 
+                    onClick={() => window.open('https://www.websnatch.dev/', '_blank')}
+                    className="w-full flex items-center justify-between p-4 rounded-lg border-2 border-foreground/20 bg-card hover:border-primary hover:bg-primary/5 transition-all neo-shadow"
+                >
+                    <div className="flex items-center gap-3">
+                         <div className="p-2 rounded-lg bg-primary/10 text-primary border border-primary/20">
+                            <Globe className="w-5 h-5" />
+                        </div>
+                        <div className="text-left">
+                            <div className="font-medium text-foreground">Visit Website</div>
+                            <div className="text-xs text-muted-foreground">Get more resources & updates</div>
+                        </div>
+                    </div>
+                </button>
                 <div className="flex items-center justify-between text-sm text-muted-foreground">
-                    <span>WebSnatch v{version}</span>
+                    <a 
+                        href="https://www.websnatch.dev/"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-primary transition-colors"
+                    >
+                        WebSnatch v{version}
+                    </a>
                     <a 
                         href="mailto:sales@divtechnosoft.com?subject=WebSnatch - Issue Report" 
                         target="_blank" 

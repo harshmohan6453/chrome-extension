@@ -624,7 +624,11 @@ export default function App() {
       <main className="flex-1 relative flex flex-col h-full overflow-hidden">
          <header className="h-20 flex items-center justify-between px-8 pt-6 pb-2 shrink-0">
             <div>
-                <h1 className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2">
+                <h1 
+                    className="text-3xl font-black tracking-tight text-foreground flex items-center gap-2 cursor-pointer hover:text-primary transition-colors"
+                    onClick={() => chrome.tabs.create({ url: 'https://www.websnatch.dev/' })}
+                    title="Visit WebSnatch Website"
+                >
                     WebSnatch
                 </h1>
             </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Type, Palette, Layout, MousePointer2, Code2, Settings, Sparkles, RefreshCw, Layers, Image as ImageIcon, Play, AlertTriangle, Workflow, PanelRightOpen } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useStore } from '../store';
@@ -13,7 +13,6 @@ import RedFlagsPanel from './components/RedFlagsPanel';
 import FlowsPanel from './components/FlowsPanel';
 import { UpdateRequiredScreen } from './components/UpdateRequiredScreen';
 import { InspectorPanel, InspectorData } from './components/InspectorPanel';
-import { analytics } from '../analytics/analytics';
 import { VERSION_API_URL } from '../config';
 
 type Tab = 'overview' | 'typography' | 'colors' | 'assets' | 'spacing' | 'scroll' | 'redflags' | 'flows' | 'prompt' | 'settings' | 'inspector';
@@ -113,7 +112,6 @@ export default function App() {
   const { data, setData, isInspecting, setInspecting } = useStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const hasTrackedOpen = useRef(false);
   
   // Version check state
   const [updateRequired, setUpdateRequired] = useState(false);
@@ -202,7 +200,6 @@ export default function App() {
     } catch (e) {
       console.error('Failed to fetch data', e);
       setError("Please refresh the page you want to analyze.");
-      analytics.trackError('data_fetch_failed', (e as Error).message);
     }
     setLoading(false);
   };
@@ -261,24 +258,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    // Track popup opened (only once per session)
-    if (!hasTrackedOpen.current) {
-      hasTrackedOpen.current = true;
-      analytics.trackPopupOpened();
-      
-      // Track the domain being analyzed
-      chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => {
-        if (tab?.url) {
-          try {
-            const domain = new URL(tab.url).hostname;
-            analytics.trackWebsiteAnalyzed(domain);
-          } catch (e) {
-            // Ignore invalid URLs
-          }
-        }
-      });
-    }
-    
     fetchData();
     
     // Listen for delayed scroll animation updates
@@ -314,7 +293,6 @@ export default function App() {
     
     const newState = !isInspecting;
     setInspecting(newState);
-    analytics.trackInspectorToggled(newState);
     
     // Get the saved highlight color
     const highlightColor = localStorage.getItem('di-highlightColor') || '#3b82f6';
@@ -601,10 +579,7 @@ export default function App() {
           {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => {
-                setActiveTab(tab.id as Tab);
-                analytics.trackTabViewed(tab.id, tab.label);
-              }}
+              onClick={() => setActiveTab(tab.id as Tab)}
               onMouseEnter={(e) => handleMouseEnter(e, tab)}
               onMouseLeave={() => setHoveredTab(null)}
               className={clsx(

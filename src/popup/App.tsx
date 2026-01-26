@@ -437,48 +437,7 @@ export default function App() {
       case 'inspector': return <InspectorPanel data={inspectorData} onClear={() => { setInspectorData(null); setActiveTab('overview'); }} />;
       case 'overview': return (
         <div className="space-y-6 animate-in slide-in-from-bottom-2 duration-500 pb-6">
-            {/* Visual Inspector Toggle - with switch button */}
-            <div className={clsx(
-              "rounded-lg border-2 overflow-hidden transition-all duration-200 neo-shadow",
-              isInspecting 
-                ? "border-primary bg-primary" 
-                : "border-foreground/20 bg-card hover:border-primary"
-            )}>
-              <button 
-                onClick={toggleInspector} 
-                className="w-full p-4 flex items-center justify-between text-left"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={clsx(
-                    "p-2.5 rounded-lg transition-colors",
-                    isInspecting ? "bg-white/20" : "bg-primary/10"
-                  )}>
-                    <MousePointer2 className={clsx("w-5 h-5", isInspecting ? "text-white" : "text-primary")} />
-                  </div>
-                  <div>
-                    <h3 className={clsx("font-bold", isInspecting ? "text-white" : "text-foreground")}>
-                      Visual Inspector
-                    </h3>
-                    <p className={clsx("text-xs", isInspecting ? "text-white/70" : "text-muted-foreground")}>
-                      {isInspecting ? 'Click any element to inspect' : 'Click to enable'}
-                    </p>
-                  </div>
-                </div>
-                {/* Toggle Switch */}
-                <div className={clsx(
-                  "w-12 h-7 rounded-full p-1 transition-colors",
-                  isInspecting ? "bg-white/30" : "bg-foreground/10"
-                )}>
-                  <div className={clsx(
-                    "w-5 h-5 rounded-full transition-all shadow-sm",
-                    isInspecting 
-                      ? "bg-white translate-x-5" 
-                      : "bg-muted-foreground/60 translate-x-0"
-                  )} />
-                </div>
-              </button>
-            </div>
-
+            
             {/* Quick Stats Grid */}
             <div className="grid grid-cols-2 gap-4">
                 <button onClick={() => setActiveTab('typography')} className="bg-card p-5 rounded-lg border-2 border-foreground/20 group hover:border-primary transition-all text-left card-hover neo-shadow">
@@ -653,6 +612,20 @@ export default function App() {
                 </h1>
             </div>
             <div className="flex items-center gap-2">
+                  <button
+                    onClick={toggleInspector}
+                    className={clsx(
+                        "h-10 px-3 rounded-lg border-2 flex items-center justify-center gap-2 transition-all neo-shadow font-bold text-sm mr-1",
+                        isInspecting
+                        ? "bg-primary border-primary text-primary-foreground hover:bg-primary/90"
+                        : "bg-card border-foreground/20 text-muted-foreground hover:text-primary hover:border-primary"
+                    )}
+                    title={isInspecting ? "Exit Inspector Mode" : "Start Visual Inspector"}
+                  >
+                    <MousePointer2 className={clsx("w-5 h-5", isInspecting && "animate-pulse")} />
+                    <span className="hidden sm:inline">Inspect</span>
+                  </button>
+
                   <button 
                     onClick={() => fetchData(false)} 
                     className="w-10 h-10 rounded-lg bg-card border-2 border-foreground/20 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-all neo-shadow"

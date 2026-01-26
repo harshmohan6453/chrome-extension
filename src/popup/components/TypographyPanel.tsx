@@ -230,13 +230,13 @@ export const TypographyPanel = () => {
             </div>
 
             {/* Visualization */}
-            <div className="h-32 flex items-end justify-between gap-1 pt-4 border-b border-border/50 pb-4 px-2">
+            <div className="h-40 flex items-end gap-1 pt-4 border-b border-border/50 pb-12 px-2 overflow-x-auto no-scrollbar">
                 {scaleAnalysis.uniqueSizes.map((size, idx) => {
                     const maxSize = scaleAnalysis.uniqueSizes[scaleAnalysis.uniqueSizes.length - 1];
                     const heightPercent = Math.max((size / maxSize) * 100, 10);
                     
                     return (
-                        <div key={idx} className="flex-1 flex flex-col justify-end group items-center gap-2 relative min-w-[20px] h-full">
+                        <div key={idx} className="flex-1 flex flex-col justify-end group items-center gap-2 relative min-w-[24px] h-full">
                             {/* Bar */}
                             <div 
                                 className={clsx("w-full rounded-t-sm transition-all duration-500 hover:opacity-100", 
@@ -245,15 +245,13 @@ export const TypographyPanel = () => {
                                 style={{ height: `${heightPercent}%` }}
                             />
                             {/* Label */}
-                            <div className="text-[10px] font-mono text-muted-foreground -rotate-45 origin-left translate-x-1 absolute -bottom-6 opacity-60 group-hover:opacity-100 whitespace-nowrap">
+                            <div className="text-[10px] font-mono text-muted-foreground -rotate-45 origin-left translate-x-1 absolute -bottom-8 opacity-60 group-hover:opacity-100 whitespace-nowrap">
                                 {Math.round(size)}px
                             </div>
                         </div>
                     );
                 })}
             </div>
-            {/* Spacer for rotated labels */}
-            <div className="h-4"></div>
 
             {/* Footer Stats */}
             <div className="grid grid-cols-3 gap-3 text-center pt-2">

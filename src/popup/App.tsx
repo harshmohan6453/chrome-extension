@@ -109,7 +109,7 @@ interface VersionInfo {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const { data, setData, isInspecting, setInspecting } = useStore();
+  const { data, setData, isInspecting, setInspecting, setPreferences } = useStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -124,6 +124,41 @@ export default function App() {
   
   // Detect if we're in sidebar mode
   const isSidePanel = window.location.pathname.includes('sidepanel');
+
+  // Load preferences and setup auto-refresh listener
+  useEffect(() => {
+    // Load saved auto-refresh preference
+    const savedAutoRefresh = localStorage.getItem('di-autoRefresh');
+    if (savedAutoRefresh) {
+        setPreferences({ autoRefresh: savedAutoRefresh === 'true' });
+    }
+
+    // Listener for tab updates (auto-refresh)
+    const handleTabUpdate = async (_tabId: number, changeInfo: chrome.tabs.TabChangeInfo, tab: chrome.tabs.Tab) => {
+        // We need to check the current value of preferences.autoRefresh
+        // Since this listener is added once, we might capture stale state if we rely on the closure variable 'preferences'
+        // So we should check localStorage or use a ref, but here we can just check localStorage as source of truth for simplicity in this context
+        // OR better, we use the store state if we include it in dependency array, but we don't want to re-bind listener constantly.
+        
+        // Actually, let's just check localStorage here to be safe and avoid dependency hell
+        const isAutoRefreshEnabled = localStorage.getItem('di-autoRefresh') === 'true';
+
+        if (isAutoRefreshEnabled && changeInfo.status === 'complete' && tab.active) {
+            // Check if this is the window we are in
+            const currentWindow = await chrome.windows.getCurrent();
+            if (tab.windowId === currentWindow.id) {
+                 console.log('🔄 Auto-refreshing data due to page navigation...');
+                 fetchData();
+            }
+        }
+    };
+
+    chrome.tabs.onUpdated.addListener(handleTabUpdate);
+
+    return () => {
+        chrome.tabs.onUpdated.removeListener(handleTabUpdate);
+    };
+  }, []); // Empty dependency array to run once on mount
   
   // Open sidebar panel
   const openSidePanel = async () => {
@@ -161,7 +196,7 @@ export default function App() {
       // Check if URL is analyzable before attempting to communicate
       if (!isAnalyzableUrl(tab?.url)) {
         setLoading(false);
-        setError("Cannot analyze this page. WebSnatch works on regular web pages only.");
+        setError("RESTRICTED_PAGE");
         return;
       }
       
@@ -287,7 +322,7 @@ export default function App() {
     
     // Check if URL is analyzable before attempting to toggle inspector
     if (!isAnalyzableUrl(tab?.url)) {
-      setError("Cannot use inspector on this page. WebSnatch works on regular web pages only.");
+      setError("RESTRICTED_PAGE");
       return;
     }
     
@@ -362,14 +397,24 @@ export default function App() {
 
     // 2. Error State
     if (error) {
+        const isRestricted = error === "RESTRICTED_PAGE";
+        const title = isRestricted ? "Restricted Page" : "Connection Lost";
+        const message = isRestricted 
+            ? "Extensions cannot run on this page (e.g. Chrome Web Store, New Tab, or local files). Please navigate to a regular website."
+            : error;
+
         return (
             <div className="flex flex-col items-center justify-center h-full text-center space-y-6 p-8">
                 <div className="w-20 h-20 bg-destructive/10 rounded-full flex items-center justify-center">
-                    <RefreshCw className="w-10 h-10 text-destructive" />
+                    {isRestricted ? (
+                        <AlertTriangle className="w-10 h-10 text-destructive" />
+                    ) : (
+                        <RefreshCw className="w-10 h-10 text-destructive" />
+                    )}
                 </div>
                 <div className="space-y-2">
-                    <h3 className="text-xl font-bold text-foreground">Connection Lost</h3>
-                    <p className="text-muted-foreground">{error}</p>
+                    <h3 className="text-xl font-bold text-foreground">{title}</h3>
+                    <p className="text-muted-foreground">{message}</p>
                 </div>
                 <button onClick={() => fetchData(false)} className="px-6 py-3 bg-primary text-primary-foreground rounded-xl font-bold hover:shadow-lg hover:shadow-primary/25 hover:-translate-y-0.5 transition-all">
                     Retry Analysis
@@ -608,7 +653,6 @@ export default function App() {
                 </h1>
             </div>
             <div className="flex items-center gap-2">
-              {activeTab === 'overview' && (
                   <button 
                     onClick={() => fetchData(false)} 
                     className="w-10 h-10 rounded-lg bg-card border-2 border-foreground/20 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-all neo-shadow"
@@ -616,7 +660,6 @@ export default function App() {
                   >
                     <RefreshCw className={clsx("w-5 h-5", loading && "animate-spin")} />
                   </button>
-              )}
               {isSidePanel ? (
                 <button
                   onClick={() => window.close()}

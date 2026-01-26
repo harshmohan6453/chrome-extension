@@ -145,6 +145,7 @@ export interface InspectionData {
 export interface UserPreferences {
   colorFormat: 'hex' | 'rgb' | 'hsl';
   unitFormat: 'px' | 'rem';
+  autoRefresh: boolean;
 }
 
 interface AppState {
@@ -179,6 +180,7 @@ const initialData: InspectionData = {
 const initialPreferences: UserPreferences = {
   colorFormat: 'hex',
   unitFormat: 'px',
+  autoRefresh: false,
 };
 
 export const useStore = create<AppState>((set) => ({
@@ -204,6 +206,7 @@ export const useStore = create<AppState>((set) => ({
   resetPreferences: () => {
     localStorage.removeItem('di-highlightColor');
     localStorage.removeItem('di-theme');
+    localStorage.removeItem('di-autoRefresh');
     set({ preferences: initialPreferences });
   }
 }));

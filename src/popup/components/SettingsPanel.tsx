@@ -14,9 +14,11 @@ export const SettingsPanel = () => {
     useEffect(() => {
         const savedTheme = localStorage.getItem('di-theme') as 'light' | 'dark' | 'system' | null;
         const savedHighlightColor = localStorage.getItem('di-highlightColor');
+        const savedAutoRefresh = localStorage.getItem('di-autoRefresh');
         
         if (savedTheme) setTheme(savedTheme);
         if (savedHighlightColor) setHighlightColor(savedHighlightColor);
+        if (savedAutoRefresh) setPreferences({ autoRefresh: savedAutoRefresh === 'true' });
         
         // Get version from manifest
         const manifest = chrome.runtime.getManifest();
@@ -41,6 +43,12 @@ export const SettingsPanel = () => {
                 document.documentElement.classList.remove('dark');
             }
         }
+    };
+
+    // Save auto refresh preference
+    const handleAutoRefreshChange = (enabled: boolean) => {
+        setPreferences({ autoRefresh: enabled });
+        localStorage.setItem('di-autoRefresh', String(enabled));
     };
 
     // Save highlight color and update in real-time
@@ -182,6 +190,39 @@ export const SettingsPanel = () => {
                                 {fmt}
                             </button>
                         ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Behavior Settings */}
+            <div className="space-y-3">
+                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
+                    <RotateCcw className="w-4 h-4" /> Behavior
+                </h3>
+
+                {/* Auto Refresh */}
+                <div className="p-4 rounded-lg border-2 border-foreground/20 bg-card space-y-3 neo-shadow">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <label className="text-sm font-bold">Auto Refresh</label>
+                            <p className="text-xs text-muted-foreground">Automatically re-analyze when page updates</p>
+                        </div>
+                        <div className="flex items-center">
+                           <button
+                                onClick={() => handleAutoRefreshChange(!preferences.autoRefresh)}
+                                className={clsx(
+                                    "w-12 h-6 rounded-full p-1 transition-all duration-300 border-2",
+                                    preferences.autoRefresh 
+                                        ? "bg-primary border-primary justify-end" 
+                                        : "bg-secondary border-muted justify-start"
+                                )}
+                            >
+                                <div className={clsx(
+                                    "w-3.5 h-3.5 rounded-full shadow-sm transition-all duration-300",
+                                    preferences.autoRefresh ? "bg-white translate-x-6" : "bg-muted-foreground translate-x-0"
+                                )} />
+                           </button>
+                        </div>
                     </div>
                 </div>
             </div>

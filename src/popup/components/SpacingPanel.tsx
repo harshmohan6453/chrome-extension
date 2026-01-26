@@ -160,7 +160,7 @@ export const SpacingPanel = () => {
               <div className="p-4 border-b border-border/50 bg-secondary/30 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <TrendingUp className={clsx("w-5 h-5", scaleAnalysis.verdict === 'excellent' ? "text-green-500" : "text-amber-500")} />
-                    <h3 className="font-bold text-sm">Grid Analysis</h3>
+                    <h3 className="font-bold text-sm">System Consistency</h3>
                 </div>
                 <span className={clsx(
                     "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
@@ -187,14 +187,14 @@ export const SpacingPanel = () => {
                     </div>
                 </div>
 
-                {/* Visualization Ladder */}
-                <div className="h-24 flex items-end gap-1 pt-4 border-b border-border/50 pb-4 px-2 overflow-x-auto no-scrollbar">
+                {/* Visualization Scale */}
+                <div className="h-32 flex items-end gap-1 pt-4 border-b border-border/50 pb-10 px-2 overflow-x-auto no-scrollbar">
                     {scaleAnalysis.uniqueValues.map((size, idx) => {
                         const maxSize = scaleAnalysis.largest;
-                        const heightPercent = Math.max((size / maxSize) * 100, 8);
+                        const heightPercent = Math.max((size / maxSize) * 100, 10);
                         
                         return (
-                            <div key={idx} className="flex-1 flex flex-col justify-end group items-center gap-1 relative min-w-[12px] h-full">
+                            <div key={idx} className="flex-1 flex flex-col justify-end group items-center gap-2 relative min-w-[24px] h-full">
                                 <div 
                                     className={clsx("w-full rounded-t-sm transition-all duration-500 hover:opacity-100", 
                                         scaleAnalysis.verdict === 'excellent' ? "bg-primary/60 group-hover:bg-primary" : "bg-foreground/20 group-hover:bg-foreground/40"
@@ -202,6 +202,9 @@ export const SpacingPanel = () => {
                                     style={{ height: `${heightPercent}%` }}
                                     title={`${size}px`}
                                 />
+                                <div className="text-[10px] font-mono text-muted-foreground -rotate-45 origin-left translate-x-1 absolute -bottom-8 opacity-60 group-hover:opacity-100 whitespace-nowrap">
+                                    {size}px
+                                </div>
                             </div>
                         );
                     })}
@@ -218,7 +221,7 @@ export const SpacingPanel = () => {
                         <div className="font-mono font-bold text-sm">{spacing.length}</div>
                     </div>
                     <div className="bg-secondary/50 p-2 rounded-lg border border-border/50">
-                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Accuracy</div>
+                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Grid Alignment</div>
                         <div className="font-mono font-bold text-sm">
                             {Math.round(scaleAnalysis.detectedBase === 8 ? scaleAnalysis.base8Percentage : scaleAnalysis.base4Percentage)}%
                         </div>
@@ -333,23 +336,39 @@ export const SpacingPanel = () => {
                                 </div>
                             </div>
 
-                            {/* Visual Block */}
-                            <div className="flex-1 flex items-center px-4">
-                                <div className="h-8 bg-secondary/50 rounded flex items-center justify-center relative w-full overflow-hidden">
+                            {/* Visualization Column */}
+                            <div className="flex-1 flex items-center gap-4 px-4 min-w-0">
+                                {/* The Ruler Bar */}
+                                <div className="flex-1 h-8 bg-secondary/30 rounded-lg border-2 border-border/50 relative overflow-hidden group-hover:bg-secondary/50 transition-colors">
+                                    {/* Grid lines every 8px (Small Ticks) */}
+                                    <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px)', backgroundSize: '8px 100%' }}></div>
+                                    {/* Grid lines every 32px (Large Ticks) */}
+                                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px)', backgroundSize: '32px 100%' }}></div>
+                                    
+                                    {/* The Value Bar */}
                                     <div 
                                         style={{ width: `${Math.min((space / (scaleAnalysis?.largest || 100)) * 100, 100)}%` }} 
                                         className={clsx(
-                                            "h-full transition-all duration-700",
-                                            isOutlier ? "bg-amber-500/20 border-r-2 border-amber-500" : "bg-primary/20 border-r-2 border-primary"
+                                            "h-full transition-all duration-700 relative z-10 flex items-center justify-end px-2",
+                                            isOutlier ? "bg-amber-500/30 border-r-2 border-amber-500" : "bg-primary/20 border-r-2 border-primary"
                                         )} 
-                                    />
-                                    {/* Visual Representation of the actual gap */}
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <div style={{ width: `${space}px` }} className={clsx(
-                                            "h-2 max-w-full rounded-full opacity-40",
-                                            isOutlier ? "bg-amber-500" : "bg-primary"
-                                        )} />
+                                    >
+                                        <span className="text-[9px] font-black opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+                                            {Math.round((space / (scaleAnalysis?.largest || 1)) * 100)}%
+                                        </span>
                                     </div>
+                                </div>
+                                
+                                {/* Physical Gap Preview (Only for smaller values to avoid overflow) */}
+                                <div className="hidden md:flex w-12 items-center justify-center shrink-0">
+                                    <div 
+                                        style={{ width: `${Math.min(space, 40)}px`, height: '16px' }} 
+                                        className={clsx(
+                                            "border-x-2 rounded-sm shadow-sm transition-all",
+                                            isOutlier ? "bg-amber-500/20 border-amber-500" : "bg-primary/20 border-primary"
+                                        )}
+                                        title={`Visual scale of ${space}px`}
+                                    />
                                 </div>
                             </div>
 

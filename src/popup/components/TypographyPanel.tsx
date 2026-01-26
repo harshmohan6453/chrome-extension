@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useStore, FontData } from '../../store';
-import { Download, Type, Filter, Search, TrendingUp, AlertCircle } from 'lucide-react';
+import { Download, Type, Search, Ruler } from 'lucide-react';
 import { TypographyCard } from './TypographyCard';
+import { clsx } from 'clsx';
 
 export const TypographyPanel = () => {
   const { data } = useStore();
@@ -158,143 +159,117 @@ export const TypographyPanel = () => {
           )}
         </div>
 
-        {/* Filters & Search */}
+        {/* Improved Search & Filter */}
         {fonts.length > 0 && (
-          <div className="flex flex-wrap items-center gap-3 bg-card p-2 rounded-lg border-2 border-foreground/20 neo-shadow">
-            <div className="relative flex-1 min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input
+          <div className="bg-card p-4 rounded-xl border-2 border-foreground/10 neo-shadow space-y-4">
+            {/* Search Bar */}
+            <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <input
                 type="text"
-                placeholder="Search fonts..."
+                placeholder="Search font families..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-secondary/50 border-none rounded-xl pl-9 pr-4 py-2 text-sm focus:ring-2 focus:ring-primary/20 transition-all"
-              />
+                className="w-full bg-secondary border-transparent focus:border-primary/50 focus:ring-0 rounded-xl pl-10 pr-4 py-3 text-sm font-medium placeholder:text-muted-foreground/70 transition-all"
+                />
             </div>
-            
-            <div className="flex items-center gap-2 border-l border-border pl-3 overflow-x-auto no-scrollbar max-w-full">
-              <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
-              {sources.map(source => (
+
+            {/* Filter Pills */}
+            <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1">
+                <span className="text-xs font-bold text-muted-foreground uppercase mr-1">Source:</span>
+                {sources.map(source => (
                 <button
-                  key={source}
-                  onClick={() => setFilterSource(source)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize whitespace-nowrap transition-all ${
+                    key={source}
+                    onClick={() => setFilterSource(source)}
+                    className={clsx(
+                    "px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all border-2",
                     filterSource === source
-                      ? 'bg-primary text-primary-foreground shadow-md shadow-primary/20'
-                      : 'bg-secondary text-muted-foreground hover:text-foreground hover:bg-secondary/80'
-                  }`}
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-background border-border hover:border-foreground/30 text-muted-foreground hover:text-foreground"
+                    )}
                 >
-                  {source}
+                    {source}
                 </button>
-              ))}
+                ))}
             </div>
           </div>
         )}
 
-        {/* Typography Scale Analysis */}
+        {/* Improved Typography Scale Analysis */}
         {scaleAnalysis && (
-          <div className={`rounded-lg border-2 overflow-hidden ${
-            scaleAnalysis.isConsistent
-              ? 'border-green-500/20'
-              : scaleAnalysis.isLooselyConsistent
-              ? 'border-yellow-500/20'
-              : 'border-orange-500/20'
-          }`}>
-            {/* Header */}
-            <div className={`p-4 flex items-center justify-between ${
-              scaleAnalysis.isConsistent
-                ? 'bg-green-500/5'
-                : scaleAnalysis.isLooselyConsistent
-                ? 'bg-yellow-500/5'
-                : 'bg-orange-500/5'
-            }`}>
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl ${
-                  scaleAnalysis.isConsistent
-                    ? 'bg-green-500/10'
-                    : scaleAnalysis.isLooselyConsistent
-                    ? 'bg-yellow-500/10'
-                    : 'bg-orange-500/10'
-                }`}>
-                  {scaleAnalysis.isConsistent || scaleAnalysis.isLooselyConsistent ? (
-                    <TrendingUp className={`w-5 h-5 ${
-                      scaleAnalysis.isConsistent ? 'text-green-600' : 'text-yellow-600'
-                    }`} />
-                  ) : (
-                    <AlertCircle className="w-5 h-5 text-orange-600" />
-                  )}
-                </div>
-                <div>
-                  <h3 className="font-bold text-sm text-foreground">Typography Scale</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {scaleAnalysis.uniqueSizes.length} unique sizes detected
-                  </p>
-                </div>
-              </div>
-              <span className={`text-xs font-bold px-2.5 py-1 rounded-lg ${
-                scaleAnalysis.isConsistent
-                  ? 'bg-green-500/10 text-green-600'
-                  : scaleAnalysis.isLooselyConsistent
-                  ? 'bg-yellow-500/10 text-yellow-600'
-                  : 'bg-orange-500/10 text-orange-600'
-              }`}>
-                {scaleAnalysis.isConsistent ? 'Consistent' : scaleAnalysis.isLooselyConsistent ? 'Loosely Consistent' : 'Inconsistent'}
-              </span>
+          <div className="bg-card rounded-xl border-2 border-foreground/10 neo-shadow overflow-hidden">
+            {/* Header & Status */}
+            <div className="p-4 border-b border-border/50 bg-secondary/30 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+                <Ruler className={clsx("w-5 h-5", scaleAnalysis.isConsistent ? "text-green-500" : "text-amber-500")} />
+                <h3 className="font-bold text-sm">Typography Scale</h3>
+            </div>
+            <span className={clsx(
+                "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
+                scaleAnalysis.isConsistent ? "bg-green-500/10 text-green-600" : "bg-amber-500/10 text-amber-600"
+            )}>
+                {scaleAnalysis.isConsistent ? 'Consistent' : scaleAnalysis.isLooselyConsistent ? 'Loosely Consistent' : 'Mixed Scale'}
+            </span>
             </div>
 
-            {/* Visual Scale - Simplified */}
-            <div className="p-4 bg-card space-y-3">
-              {scaleAnalysis.detectedScale && (
-                <p className="text-xs text-muted-foreground">
-                  Likely scale: <span className="font-bold text-foreground">{scaleAnalysis.detectedScale.name}</span> (ratio {scaleAnalysis.detectedScale.ratio})
-                </p>
-              )}
-              
-              {/* Visual scale ladder - show only rounded/key sizes */}
-              <div className="flex items-end gap-1 h-16 overflow-x-auto pb-2">
-                {scaleAnalysis.uniqueSizes
-                  .filter((_, i) => i < 12) // Limit to 12 sizes
-                  .map((size, idx) => {
-                    const roundedSize = Math.round(size);
-                    const height = Math.min(Math.max((size / scaleAnalysis.uniqueSizes[scaleAnalysis.uniqueSizes.length - 1]) * 100, 15), 100);
-                    return (
-                      <div 
-                        key={idx} 
-                        className="flex flex-col items-center gap-1 min-w-[32px]"
-                        title={`${size}px`}
-                      >
-                        <div 
-                          className={`w-6 rounded-t transition-all ${
-                            scaleAnalysis.isConsistent
-                              ? 'bg-green-500/30'
-                              : scaleAnalysis.isLooselyConsistent
-                              ? 'bg-yellow-500/30'
-                              : 'bg-orange-500/30'
-                          }`}
-                          style={{ height: `${height}%` }}
-                        />
-                        <span className="text-[10px] font-mono text-muted-foreground">{roundedSize}</span>
-                      </div>
-                    );
-                  })}
-                {scaleAnalysis.uniqueSizes.length > 12 && (
-                  <div className="flex items-center px-2 text-xs text-muted-foreground">
-                    +{scaleAnalysis.uniqueSizes.length - 12}
-                  </div>
-                )}
-              </div>
+            <div className="p-5 space-y-5">
+            {/* Main Scale Info */}
+            <div className="flex items-baseline justify-between">
+                <div>
+                    <div className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-1">Detected Scale</div>
+                    <div className="text-2xl font-black tracking-tight text-foreground">
+                    {scaleAnalysis.detectedScale?.name || "Custom / Mixed"}
+                    </div>
+                </div>
+                <div className="text-right">
+                    <div className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-1">Ratio</div>
+                    <div className="text-2xl font-black tracking-tight text-primary">
+                    {scaleAnalysis.detectedScale?.ratio || "-"}
+                    </div>
+                </div>
+            </div>
 
-              {/* Key stats */}
-              <div className="flex gap-4 text-xs pt-2 border-t border-border/50">
-                <div>
-                  <span className="text-muted-foreground">Smallest: </span>
-                  <span className="font-bold font-mono">{Math.round(scaleAnalysis.baseSize)}px</span>
+            {/* Visualization */}
+            <div className="h-32 flex items-end justify-between gap-1 pt-4 border-b border-border/50 pb-4 px-2">
+                {scaleAnalysis.uniqueSizes.map((size, idx) => {
+                    const maxSize = scaleAnalysis.uniqueSizes[scaleAnalysis.uniqueSizes.length - 1];
+                    const heightPercent = Math.max((size / maxSize) * 100, 10);
+                    
+                    return (
+                        <div key={idx} className="flex-1 flex flex-col justify-end group items-center gap-2 relative min-w-[20px] h-full">
+                            {/* Bar */}
+                            <div 
+                                className={clsx("w-full rounded-t-sm transition-all duration-500 hover:opacity-100", 
+                                    scaleAnalysis.isConsistent ? "bg-primary/60 group-hover:bg-primary" : "bg-foreground/20 group-hover:bg-foreground/40"
+                                )}
+                                style={{ height: `${heightPercent}%` }}
+                            />
+                            {/* Label */}
+                            <div className="text-[10px] font-mono text-muted-foreground -rotate-45 origin-left translate-x-1 absolute -bottom-6 opacity-60 group-hover:opacity-100 whitespace-nowrap">
+                                {Math.round(size)}px
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+            {/* Spacer for rotated labels */}
+            <div className="h-4"></div>
+
+            {/* Footer Stats */}
+            <div className="grid grid-cols-3 gap-3 text-center pt-2">
+                <div className="bg-secondary/50 p-2 rounded-lg border border-border/50">
+                    <div className="text-[10px] text-muted-foreground uppercase font-bold">Base Size</div>
+                    <div className="font-mono font-bold text-sm">{Math.round(scaleAnalysis.baseSize)}px</div>
                 </div>
-                <div>
-                  <span className="text-muted-foreground">Largest: </span>
-                  <span className="font-bold font-mono">{Math.round(scaleAnalysis.uniqueSizes[scaleAnalysis.uniqueSizes.length - 1])}px</span>
+                <div className="bg-secondary/50 p-2 rounded-lg border border-border/50">
+                    <div className="text-[10px] text-muted-foreground uppercase font-bold">Steps</div>
+                    <div className="font-mono font-bold text-sm">{scaleAnalysis.uniqueSizes.length}</div>
                 </div>
-              </div>
+                <div className="bg-secondary/50 p-2 rounded-lg border border-border/50">
+                    <div className="text-[10px] text-muted-foreground uppercase font-bold">Max Size</div>
+                    <div className="font-mono font-bold text-sm">{Math.round(scaleAnalysis.uniqueSizes[scaleAnalysis.uniqueSizes.length - 1])}px</div>
+                </div>
+            </div>
             </div>
           </div>
         )}

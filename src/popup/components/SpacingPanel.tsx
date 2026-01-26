@@ -340,23 +340,31 @@ export const SpacingPanel = () => {
                             <div className="flex-1 flex items-center gap-4 px-4 min-w-0">
                                 {/* The Ruler Bar */}
                                 <div className="flex-1 h-8 bg-secondary/30 rounded-lg border-2 border-border/50 relative overflow-hidden group-hover:bg-secondary/50 transition-colors">
-                                    {/* Grid lines every 8px (Small Ticks) */}
-                                    <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px)', backgroundSize: '8px 100%' }}></div>
-                                    {/* Grid lines every 32px (Large Ticks) */}
-                                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px)', backgroundSize: '32px 100%' }}></div>
+                                    {/* Grid lines every 25% (Relative Scale) */}
+                                    <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(to right, currentColor 1px, transparent 1px)', backgroundSize: '25% 100%' }}></div>
                                     
                                     {/* The Value Bar */}
-                                    <div 
-                                        style={{ width: `${Math.min((space / (scaleAnalysis?.largest || 100)) * 100, 100)}%` }} 
-                                        className={clsx(
-                                            "h-full transition-all duration-700 relative z-10 flex items-center justify-end px-2",
-                                            isOutlier ? "bg-amber-500/30 border-r-2 border-amber-500" : "bg-primary/20 border-r-2 border-primary"
-                                        )} 
-                                    >
-                                        <span className="text-[9px] font-black opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                                            {Math.round((space / (scaleAnalysis?.largest || 1)) * 100)}%
-                                        </span>
-                                    </div>
+                                    {(() => {
+                                        const barWidth = Math.min((space / (scaleAnalysis?.largest || 100)) * 100, 100);
+                                        const isVerySmall = barWidth < 15;
+                                        return (
+                                            <div 
+                                                style={{ width: `${barWidth}%` }} 
+                                                className={clsx(
+                                                    "h-full transition-all duration-700 relative z-10 flex items-center px-2",
+                                                    isVerySmall ? "justify-start" : "justify-end",
+                                                    isOutlier ? "bg-amber-500/30 border-r-2 border-amber-500" : "bg-primary/20 border-r-2 border-primary"
+                                                )} 
+                                            >
+                                                <span className={clsx(
+                                                    "text-[9px] font-black opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap",
+                                                    isVerySmall ? "absolute left-full ml-2 text-muted-foreground" : "text-foreground"
+                                                )}>
+                                                    {Math.round((space / (scaleAnalysis?.largest || 1)) * 100)}%
+                                                </span>
+                                            </div>
+                                        );
+                                    })()}
                                 </div>
                                 
                                 {/* Physical Gap Preview (Only for smaller values to avoid overflow) */}

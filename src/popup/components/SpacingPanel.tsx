@@ -7,12 +7,11 @@ import {
   Copy, 
   Check, 
   AlertTriangle, 
-  CheckCircle2, 
-  Info,
   ChevronDown,
   ChevronUp,
-  Sparkles
+  TrendingUp
 } from 'lucide-react';
+import { clsx } from 'clsx';
 
 export const SpacingPanel = () => {
   const { data } = useStore();
@@ -48,20 +47,20 @@ export const SpacingPanel = () => {
     const isLinear = differences.every(d => Math.abs(d - avgDiff) < avgDiff * 0.3);
 
     // Determine consistency verdict
-    let verdict: 'excellent' | 'good' | 'inconsistent' = 'inconsistent';
+    let verdict: 'excellent' | 'good' | 'mixed' = 'mixed';
     let verdictMessage = '';
 
     if (detectedBase && outliers.length === 0) {
       verdict = 'excellent';
-      verdictMessage = `Perfect ${detectedBase}px grid system`;
+      verdictMessage = `Perfect ${detectedBase}px grid system detected.`;
     } else if (detectedBase && outliers.length <= 2) {
       verdict = 'good';
-      verdictMessage = `${detectedBase}px grid with ${outliers.length} outlier${outliers.length > 1 ? 's' : ''}`;
+      verdictMessage = `${detectedBase}px grid with minimal outliers.`;
     } else if (base4Percentage >= 60 || base8Percentage >= 60) {
       verdict = 'good';
-      verdictMessage = `Mostly aligned to ${base8Percentage >= 60 ? '8' : '4'}px grid`;
+      verdictMessage = `Mostly aligned to ${base8Percentage >= 60 ? '8' : '4'}px grid.`;
     } else {
-      verdictMessage = 'No consistent grid pattern detected';
+      verdictMessage = 'No consistent grid pattern detected.';
     }
 
     return {
@@ -74,6 +73,7 @@ export const SpacingPanel = () => {
       verdictMessage,
       smallest: sorted[0],
       largest: sorted[sorted.length - 1],
+      uniqueValues: sorted
     };
   }, [spacing]);
 
@@ -121,38 +121,15 @@ export const SpacingPanel = () => {
     URL.revokeObjectURL(url);
   };
 
-  // Verdict badge styling
-  const getVerdictStyle = (verdict: string) => {
-    switch (verdict) {
-      case 'excellent':
-        return 'bg-green-500/10 text-green-600 border-green-500/20';
-      case 'good':
-        return 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20';
-      default:
-        return 'bg-red-500/10 text-red-600 border-red-500/20';
-    }
-  };
-
-  const getVerdictIcon = (verdict: string) => {
-    switch (verdict) {
-      case 'excellent':
-        return <CheckCircle2 className="w-4 h-4" />;
-      case 'good':
-        return <Info className="w-4 h-4" />;
-      default:
-        return <AlertTriangle className="w-4 h-4" />;
-    }
-  };
-
   return (
     <div className="space-y-6 pb-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black tracking-tight">Spacing System</h2>
-          <p className="text-muted-foreground text-sm mt-1">
-            Detected padding & margin values used across the page.
-          </p>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-black tracking-tight">Spacing</h2>
+          <span className="bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full border border-primary/20">
+            {spacing.length} Tokens
+          </span>
         </div>
         {spacing.length > 0 && (
           <button
@@ -174,101 +151,118 @@ export const SpacingPanel = () => {
           <p className="text-sm opacity-70">Could not identify consistent spacing tokens.</p>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
           
           {/* Scale Analysis Card */}
           {scaleAnalysis && (
-            <div className="bg-card border-2 border-foreground/20 rounded-lg overflow-hidden neo-shadow">
-              <div className="p-5 border-b border-border/50 bg-gradient-to-r from-transparent to-primary/5">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-primary/10 rounded-xl">
-                      <Sparkles className="w-5 h-5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-foreground">Scale Analysis</h3>
-                      <p className="text-xs text-muted-foreground">Automatic grid detection</p>
-                    </div>
-                  </div>
-                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-bold ${getVerdictStyle(scaleAnalysis.verdict)}`}>
-                    {getVerdictIcon(scaleAnalysis.verdict)}
-                    <span className="capitalize">{scaleAnalysis.verdict}</span>
-                  </div>
+            <div className="bg-card rounded-xl border-2 border-foreground/10 neo-shadow overflow-hidden">
+              {/* Header & Status */}
+              <div className="p-4 border-b border-border/50 bg-secondary/30 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <TrendingUp className={clsx("w-5 h-5", scaleAnalysis.verdict === 'excellent' ? "text-green-500" : "text-amber-500")} />
+                    <h3 className="font-bold text-sm">Grid Analysis</h3>
                 </div>
+                <span className={clsx(
+                    "px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider",
+                    scaleAnalysis.verdict === 'excellent' ? "bg-green-500/10 text-green-600" : scaleAnalysis.verdict === 'good' ? "bg-blue-500/10 text-blue-600" : "bg-amber-500/10 text-amber-600"
+                )}>
+                    {scaleAnalysis.verdict === 'excellent' ? 'Pixel Perfect' : scaleAnalysis.verdict === 'good' ? 'Consistent' : 'Mixed Grid'}
+                </span>
               </div>
 
-              <div className="p-5 space-y-4">
-                <p className="text-sm text-muted-foreground">{scaleAnalysis.verdictMessage}</p>
-
-                {/* Stats Row */}
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-secondary/30 rounded-xl p-3 text-center">
-                    <div className="text-2xl font-black font-mono">{scaleAnalysis.smallest}px</div>
-                    <div className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Smallest</div>
-                  </div>
-                  <div className="bg-secondary/30 rounded-xl p-3 text-center">
-                    <div className="text-2xl font-black font-mono">{scaleAnalysis.largest}px</div>
-                    <div className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Largest</div>
-                  </div>
-                  <div className="bg-secondary/30 rounded-xl p-3 text-center">
-                    <div className="text-2xl font-black font-mono">{spacing.length}</div>
-                    <div className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Tokens</div>
-                  </div>
+              <div className="p-5 space-y-6">
+                {/* Main Stats */}
+                <div className="flex items-baseline justify-between">
+                    <div>
+                        <div className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-1">Detected Base</div>
+                        <div className="text-3xl font-black tracking-tight text-foreground">
+                        {scaleAnalysis.detectedBase ? `${scaleAnalysis.detectedBase}px Grid` : "Custom"}
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <div className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-1">Smallest Unit</div>
+                        <div className="text-3xl font-black tracking-tight text-primary">
+                        {scaleAnalysis.smallest}px
+                        </div>
+                    </div>
                 </div>
 
-                {/* Base Unit */}
-                {scaleAnalysis.detectedBase && (
-                  <div className="flex items-center gap-3 p-3 bg-primary/5 rounded-xl border border-primary/10">
-                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <span className="font-black text-primary">{scaleAnalysis.detectedBase}</span>
+                {/* Visualization Ladder */}
+                <div className="h-24 flex items-end gap-1 pt-4 border-b border-border/50 pb-4 px-2 overflow-x-auto no-scrollbar">
+                    {scaleAnalysis.uniqueValues.map((size, idx) => {
+                        const maxSize = scaleAnalysis.largest;
+                        const heightPercent = Math.max((size / maxSize) * 100, 8);
+                        
+                        return (
+                            <div key={idx} className="flex-1 flex flex-col justify-end group items-center gap-1 relative min-w-[12px] h-full">
+                                <div 
+                                    className={clsx("w-full rounded-t-sm transition-all duration-500 hover:opacity-100", 
+                                        scaleAnalysis.verdict === 'excellent' ? "bg-primary/60 group-hover:bg-primary" : "bg-foreground/20 group-hover:bg-foreground/40"
+                                    )}
+                                    style={{ height: `${heightPercent}%` }}
+                                    title={`${size}px`}
+                                />
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* Grid Stats */}
+                <div className="grid grid-cols-3 gap-3 text-center">
+                    <div className="bg-secondary/50 p-2 rounded-lg border border-border/50">
+                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Largest</div>
+                        <div className="font-mono font-bold text-sm">{scaleAnalysis.largest}px</div>
                     </div>
-                    <div>
-                      <div className="font-bold text-sm">Base Unit: {scaleAnalysis.detectedBase}px</div>
-                      <div className="text-xs text-muted-foreground">
-                        {Math.round(scaleAnalysis.detectedBase === 8 ? scaleAnalysis.base8Percentage : scaleAnalysis.base4Percentage)}% of values align to this grid
-                      </div>
+                    <div className="bg-secondary/50 p-2 rounded-lg border border-border/50">
+                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Tokens</div>
+                        <div className="font-mono font-bold text-sm">{spacing.length}</div>
                     </div>
-                  </div>
-                )}
+                    <div className="bg-secondary/50 p-2 rounded-lg border border-border/50">
+                        <div className="text-[10px] text-muted-foreground uppercase font-bold">Accuracy</div>
+                        <div className="font-mono font-bold text-sm">
+                            {Math.round(scaleAnalysis.detectedBase === 8 ? scaleAnalysis.base8Percentage : scaleAnalysis.base4Percentage)}%
+                        </div>
+                    </div>
+                </div>
               </div>
             </div>
           )}
 
           {/* Outliers Warning */}
           {scaleAnalysis && scaleAnalysis.outliers.length > 0 && (
-            <div className="bg-yellow-500/5 border-2 border-yellow-500/30 rounded-lg overflow-hidden">
+            <div className="bg-amber-500/5 border-2 border-amber-500/20 rounded-xl overflow-hidden neo-shadow">
               <button 
                 onClick={() => setShowOutliers(!showOutliers)}
-                className="w-full p-4 flex items-center justify-between hover:bg-yellow-500/5 transition-colors"
+                className="w-full p-4 flex items-center justify-between hover:bg-amber-500/10 transition-colors"
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 bg-yellow-500/10 rounded-xl">
-                    <AlertTriangle className="w-5 h-5 text-yellow-600" />
+                  <div className="p-2 bg-amber-500/10 rounded-xl">
+                    <AlertTriangle className="w-5 h-5 text-amber-600" />
                   </div>
                   <div className="text-left">
-                    <h3 className="font-bold text-yellow-700">Outliers Detected</h3>
-                    <p className="text-xs text-yellow-600/80">
-                      {scaleAnalysis.outliers.length} value{scaleAnalysis.outliers.length > 1 ? 's' : ''} don't fit the {scaleAnalysis.detectedBase}px grid
+                    <h3 className="font-bold text-amber-900 dark:text-amber-100">Grid Deviations</h3>
+                    <p className="text-xs text-amber-700/80 dark:text-amber-400/80">
+                      {scaleAnalysis.outliers.length} values found outside the detected scale
                     </p>
                   </div>
                 </div>
-                {showOutliers ? <ChevronUp className="w-5 h-5 text-yellow-600" /> : <ChevronDown className="w-5 h-5 text-yellow-600" />}
+                {showOutliers ? <ChevronUp className="w-5 h-5 text-amber-600" /> : <ChevronDown className="w-5 h-5 text-amber-600" />}
               </button>
 
               {showOutliers && (
-                <div className="px-4 pb-4">
-                  <div className="flex flex-wrap gap-2">
+                <div className="px-4 pb-4 animate-in fade-in slide-in-from-top-1">
+                  <div className="flex flex-wrap gap-2 pt-2">
                     {scaleAnalysis.outliers.map((value, i) => (
                       <button
                         key={i}
                         onClick={() => copyToClipboard(`${value}px`, `outlier-${value}`)}
-                        className="group flex items-center gap-2 px-3 py-2 bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/30 rounded-lg text-yellow-700 font-mono font-bold text-sm transition-all"
+                        className="group flex items-center gap-2 px-3 py-1.5 bg-background hover:border-amber-500/50 border border-border rounded-lg text-amber-700 dark:text-amber-400 font-mono font-bold text-xs transition-all"
                       >
                         {value}px
                         {copiedValue === `outlier-${value}` ? (
-                          <Check className="w-3 h-3" />
+                          <Check className="w-3 h-3 text-green-500" />
                         ) : (
-                          <Copy className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          <Copy className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
                         )}
                       </button>
                     ))}
@@ -280,87 +274,95 @@ export const SpacingPanel = () => {
 
           {/* Categorized View */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-muted-foreground flex items-center gap-2">
-              <Ruler className="w-4 h-4" /> SPACING TOKENS BY SIZE
-            </h3>
+            <div className="flex items-center gap-2 px-1">
+                <Ruler className="w-4 h-4 text-muted-foreground" />
+                <h3 className="text-xs font-black text-muted-foreground uppercase tracking-widest">
+                    Spacing Categories
+                </h3>
+            </div>
 
             {categories.map((cat) => (
-              <div key={cat.name} className="bg-card border border-border rounded-xl overflow-hidden">
+              <div key={cat.name} className="bg-card border-2 border-foreground/10 rounded-xl overflow-hidden transition-all hover:border-primary/30">
                 <button
                   onClick={() => setExpandedCategory(expandedCategory === cat.name ? null : cat.name)}
                   className="w-full p-4 flex items-center justify-between hover:bg-secondary/30 transition-colors"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center font-black text-primary text-sm">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center font-black text-primary text-sm shadow-inner">
                       {cat.name}
                     </div>
                     <div className="text-left">
-                      <div className="font-bold">{cat.label}</div>
+                      <div className="font-bold text-foreground">{cat.label}</div>
                       <div className="text-xs text-muted-foreground">
                         {cat.values.length} token{cat.values.length > 1 ? 's' : ''} 
-                        {cat.range[1] !== Infinity ? ` (${cat.range[0]}-${cat.range[1]}px)` : ` (${cat.range[0]}px+)`}
+                        <span className="mx-1.5 opacity-30">|</span>
+                        {cat.range[1] !== Infinity ? `${cat.range[0]}-${cat.range[1]}px` : `${cat.range[0]}px+`}
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="hidden sm:flex gap-1">
-                      {cat.values.slice(0, 5).map((v, i) => (
-                        <span key={i} className="text-xs font-mono bg-secondary px-2 py-1 rounded">{v}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="hidden sm:flex -space-x-2">
+                      {Array.from(new Set(cat.values)).slice(0, 3).map((v, i) => (
+                        <div key={i} className="w-8 h-8 rounded-full bg-secondary border-2 border-card flex items-center justify-center text-[10px] font-mono font-bold">
+                            {v}
+                        </div>
                       ))}
-                      {cat.values.length > 5 && (
-                        <span className="text-xs text-muted-foreground px-2 py-1">+{cat.values.length - 5}</span>
-                      )}
                     </div>
                     {expandedCategory === cat.name ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                   </div>
                 </button>
 
                 {expandedCategory === cat.name && (
-                  <div className="p-4 pt-0 border-t border-border/50">
+                  <div className="p-4 pt-0 border-t border-border/50 bg-secondary/10">
                     <div className="grid gap-2 mt-4">
-                      {cat.values.sort((a, b) => a - b).map((space, i) => {
+                      {Array.from(new Set(cat.values)).sort((a, b) => a - b).map((space, i) => {
                         const isOutlier = scaleAnalysis?.outliers.includes(space);
                         return (
                           <div 
                             key={i} 
-                            className={`flex items-center gap-4 p-3 rounded-lg border transition-all group ${
-                              isOutlier 
-                                ? 'border-yellow-500/30 bg-yellow-500/5 hover:border-yellow-500/50' 
-                                : 'border-border bg-background hover:border-primary/50'
-                            }`}
-                          >
-                            {/* Value & Copy Button */}
-                            <button
-                              onClick={() => copyToClipboard(`${space}px`, `space-${space}`)}
-                              className="w-20 shrink-0 flex items-center gap-2 group/copy"
-                            >
-                              <div className="font-black font-mono text-lg">{space}px</div>
-                              {copiedValue === `space-${space}` ? (
-                                <Check className="w-4 h-4 text-green-500" />
-                              ) : (
-                                <Copy className="w-4 h-4 opacity-0 group-hover/copy:opacity-50 transition-opacity" />
-                              )}
-                            </button>
-                            
-                            {/* REM Value */}
-                            <div className="text-xs text-muted-foreground font-mono w-16">
-                              {(space / 16).toFixed(3).replace(/\.?0+$/, '')}rem
-                            </div>
-
-                            {/* Visual Bar */}
-                            <div className="flex-1 h-6 bg-secondary/50 rounded overflow-hidden relative">
-                              <div 
-                                style={{ width: `${Math.min((space / (scaleAnalysis?.largest || 100)) * 100, 100)}%` }} 
-                                className={`h-full ${isOutlier ? 'bg-yellow-500/30 border-r-2 border-yellow-500' : 'bg-primary/20 border-r-2 border-primary'}`} 
-                              />
-                            </div>
-
-                            {/* Outlier Badge */}
-                            {isOutlier && (
-                              <span className="text-[10px] font-bold text-yellow-600 bg-yellow-500/10 px-2 py-1 rounded">
-                                Outlier
-                              </span>
+                            className={clsx(
+                                "flex items-center gap-4 p-3 rounded-lg border-2 transition-all group bg-card",
+                                isOutlier ? "border-amber-500/20 hover:border-amber-500/40" : "border-transparent hover:border-primary/40"
                             )}
+                          >
+                            {/* Value */}
+                            <div className="w-20 shrink-0">
+                                <div className="font-black font-mono text-xl text-foreground">{space}px</div>
+                                <div className="text-[10px] text-muted-foreground font-mono">
+                                    {(space / 16).toFixed(3).replace(/\.?0+$/, '')}rem
+                                </div>
+                            </div>
+
+                            {/* Visual Block */}
+                            <div className="flex-1 flex items-center px-4">
+                                <div className="h-8 bg-secondary/50 rounded flex items-center justify-center relative w-full overflow-hidden">
+                                    <div 
+                                        style={{ width: `${Math.min((space / (scaleAnalysis?.largest || 100)) * 100, 100)}%` }} 
+                                        className={clsx(
+                                            "h-full transition-all duration-700",
+                                            isOutlier ? "bg-amber-500/20 border-r-2 border-amber-500" : "bg-primary/20 border-r-2 border-primary"
+                                        )} 
+                                    />
+                                    {/* Visual Representation of the actual gap */}
+                                    <div className="absolute inset-0 flex items-center justify-center">
+                                        <div style={{ width: `${space}px` }} className={clsx(
+                                            "h-2 max-w-full rounded-full opacity-40",
+                                            isOutlier ? "bg-amber-500" : "bg-primary"
+                                        )} />
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button 
+                                    onClick={() => copyToClipboard(`${space}px`, `space-${space}`)}
+                                    className="p-2 hover:bg-primary/10 rounded-lg text-primary transition-colors"
+                                    title="Copy PX"
+                                >
+                                    {copiedValue === `space-${space}` ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                                </button>
+                            </div>
                           </div>
                         );
                       })}

@@ -1,12 +1,31 @@
-import { useState, useEffect } from 'react';
-import { AlertTriangle, XCircle, Info, AlertCircle, Download, CheckCircle2, ChevronDown } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { 
+  AlertTriangle, 
+  XCircle, 
+  Info, 
+  AlertCircle, 
+  Download, 
+  CheckCircle2, 
+  ChevronDown,
+  ShieldAlert,
+  Search,
+  Layout,
+  ExternalLink,
+  Copy,
+  Check
+} from 'lucide-react';
 import { useStore } from '../../store';
 import type { RedFlag } from '../../store';
+import { clsx } from 'clsx';
 
 export default function RedFlagsPanel() {
   const { redFlags } = useStore((state) => state.data);
   const { redFlagsLoaded, setRedFlagsLoaded, setData } = useStore();
   const [loading, setLoading] = useState(false);
+  const [expandedFlags, setExpandedFlags] = useState<Set<string>>(new Set());
+  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'priority' | 'category'>('priority');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Fetch red flags on first mount if not loaded
   useEffect(() => {
@@ -33,15 +52,6 @@ export default function RedFlagsPanel() {
     }
   };
 
-  // Group flags by category
-  const flagsByCategory = {
-    seo: redFlags.filter((f) => f.category === 'seo'),
-    ux: redFlags.filter((f) => f.category === 'ux'),
-    accessibility: redFlags.filter((f) => f.category === 'accessibility'),
-    mobile: redFlags.filter((f) => f.category === 'mobile'),
-    performance: redFlags.filter((f) => f.category === 'performance'),
-  };
-
   // Count by severity
   const criticalCount = redFlags.filter((f) => f.severity === 'critical').length;
   const warningCount = redFlags.filter((f) => f.severity === 'warning').length;
@@ -49,147 +59,43 @@ export default function RedFlagsPanel() {
 
   const getSeverityIcon = (severity: string) => {
     switch (severity) {
-      case 'critical':
-        return <XCircle className="w-5 h-5 text-red-600" />;
-      case 'warning':
-        return <AlertTriangle className="w-5 h-5 text-yellow-600" />;
-      case 'info':
-        return <Info className="w-5 h-5 text-blue-600" />;
-      default:
-        return <AlertCircle className="w-5 h-5 text-gray-600" />;
-    }
-  };
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'critical':
-        return 'border-l-red-600 bg-red-500/10';
-      case 'warning':
-        return 'border-l-yellow-500 bg-yellow-500/10';
-      case 'info':
-        return 'border-l-blue-500 bg-blue-500/10';
-      default:
-        return 'border-l-gray-400 bg-foreground/5';
+      case 'critical': return <XCircle className="w-5 h-5 text-red-600" />;
+      case 'warning': return <AlertTriangle className="w-5 h-5 text-amber-600" />;
+      case 'info': return <Info className="w-5 h-5 text-blue-600" />;
+      default: return <AlertCircle className="w-5 h-5 text-gray-600" />;
     }
   };
 
   const getCategoryInfo = (category: string) => {
     switch (category) {
-      case 'seo':
-        return { emoji: '🔍', name: 'SEO', color: 'bg-green-500/10 text-green-600 border-green-500/20' };
-      case 'ux':
-        return { emoji: '🎨', name: 'UX', color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' };
-      case 'accessibility':
-        return { emoji: '♿', name: 'Accessibility', color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' };
-      case 'mobile':
-        return { emoji: '📱', name: 'Mobile', color: 'bg-pink-500/10 text-pink-600 border-pink-500/20' };
-      case 'performance':
-        return { emoji: '⚡', name: 'Performance', color: 'bg-orange-500/10 text-orange-600 border-orange-500/20' };
-      default:
-        return { emoji: '🚩', name: 'Other', color: 'bg-foreground/10 text-muted-foreground border-foreground/20' };
+      case 'seo': return { name: 'SEO', color: 'bg-green-500/10 text-green-600 border-green-500/20' };
+      case 'ux': return { name: 'UX', color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20' };
+      case 'accessibility': return { name: 'A11y', color: 'bg-blue-500/10 text-blue-600 border-blue-500/20' };
+      case 'mobile': return { name: 'Mobile', color: 'bg-pink-500/10 text-pink-600 border-pink-500/20' };
+      case 'performance': return { name: 'Perf', color: 'bg-orange-500/10 text-orange-600 border-orange-500/20' };
+      default: return { name: 'Other', color: 'bg-foreground/10 text-muted-foreground border-foreground/20' };
     }
   };
 
-  const downloadReport = () => {
-    const date = new Date().toLocaleDateString();
-    const time = new Date().toLocaleTimeString();
-    
-    let content = `# Website Red Flag Report\n`;
-    content += `Generated on: ${date} at ${time}\n`;
-    content += `Total Issues Found: ${redFlags.length}\n`;
-    content += `Critical: ${criticalCount} | Warning: ${warningCount} | Info: ${infoCount}\n\n`;
-    
-    content += `## Summary by Category\n`;
-    Object.entries(flagsByCategory).forEach(([category, flags]) => {
-      if (flags.length > 0) {
-        content += `- ${category.toUpperCase()}: ${flags.length} issues\n`;
-      }
-    });
-    content += `\n---\n\n`;
-    
-    // Function to write flags for a severity level
-    const writeFlags = (severity: string, title: string) => {
-      const flags = redFlags.filter(f => f.severity === severity);
-      if (flags.length === 0) return;
-      
-      content += `## ${title}\n\n`;
-      flags.forEach(flag => {
-        content += `### [${flag.category.toUpperCase()}] ${flag.title}\n`;
-        content += `**Description:** ${flag.description}\n`;
-        content += `**Recommendation:** ${flag.recommendation}\n`;
-        
-        if (flag.impactScore) content += `**Impact Score:** ${flag.impactScore}/10\n`;
-        if (flag.estimatedImpact) content += `**Estimated Impact:** ${flag.estimatedImpact}\n`;
-        if (flag.fixCode) content += `**Fix Example:**\n\`\`\`html\n${flag.fixCode}\n\`\`\`\n`;
-        if (flag.learnMoreUrl) content += `**Learn More:** ${flag.learnMoreUrl}\n`;
-        if (flag.affectedElements && flag.affectedElements.length > 0) {
-          content += `**Affected Elements:** ${flag.affectedElements.join(', ')}\n`;
-        }
-        content += `\n`;
-      });
-    };
-    
-    writeFlags('critical', '🔴 Critical Issues');
-    writeFlags('warning', '🟡 Warnings');
-    writeFlags('info', '🔵 Recommendations');
-    
-    // Create blob and download link
-    const blob = new Blob([content], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `red-flags-report-${Date.now()}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
-  // State for expanded flags
-  const [expandedFlags, setExpandedFlags] = useState<Set<string>>(new Set());
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
-  const [groupBy, setGroupBy] = useState<'category' | 'section'>('category');
-
   // Calculate Global Health Score (0-100)
-  // Start at 100, deduct points for issues
-  const calculateHealthScore = () => {
+  const healthScore = useMemo(() => {
     let score = 100;
-    score -= criticalCount * 15; // Critical hits hard
-    score -= warningCount * 5;   // Warnings moderate
-    score -= infoCount * 1;      // Info light
+    score -= criticalCount * 15; 
+    score -= warningCount * 5;   
+    score -= infoCount * 1;      
     return Math.max(0, score);
-  };
+  }, [criticalCount, warningCount, infoCount]);
   
-  const healthScore = calculateHealthScore();
-  
-  const getScoreColor = (score: number) => {
-    if (score >= 90) return 'text-green-600 bg-green-500/10 border-2 border-green-500/20';
-    if (score >= 50) return 'text-yellow-600 bg-yellow-500/10 border-2 border-yellow-500/20';
-    return 'text-red-600 bg-red-500/10 border-2 border-red-500/20';
-  };
-
-  // Grouping Logic
-  const getSection = (flag: RedFlag) => {
-    if (flag.pageSection) return flag.pageSection;
-    // Fallback based on category
-    if (flag.category === 'seo' || flag.category === 'mobile') return 'head';
-    if (flag.category === 'performance') return 'system';
-    return 'body';
-  };
-
-  const groupedFlags = groupBy === 'category' ? flagsByCategory : {
-    head: redFlags.filter(f => getSection(f) === 'head'),
-    body: redFlags.filter(f => getSection(f) === 'body' || getSection(f) === 'main' || getSection(f) === 'header' || getSection(f) === 'footer'),
-    system: redFlags.filter(f => getSection(f) === 'system' || getSection(f) === 'unknown'),
+  const getScoreStyle = (score: number) => {
+    if (score >= 90) return 'text-green-600 bg-green-500/10 border-green-500/20';
+    if (score >= 50) return 'text-amber-600 bg-amber-500/10 border-amber-500/20';
+    return 'text-red-600 bg-red-500/10 border-red-500/20';
   };
 
   const toggleExpand = (id: string) => {
     const newExpanded = new Set(expandedFlags);
-    if (newExpanded.has(id)) {
-      newExpanded.delete(id);
-    } else {
-      newExpanded.add(id);
-    }
+    if (newExpanded.has(id)) newExpanded.delete(id);
+    else newExpanded.add(id);
     setExpandedFlags(newExpanded);
   };
 
@@ -199,6 +105,35 @@ export default function RedFlagsPanel() {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
+  const downloadReport = () => {
+    let content = `# WebSnatch - Page Health Report\n\n`;
+    content += `Health Score: ${healthScore}/100\n`;
+    content += `Total Issues: ${redFlags.length}\n`;
+    content += `Critical: ${criticalCount} | Warnings: ${warningCount} | Info: ${infoCount}\n\n`;
+    
+    redFlags.forEach(flag => {
+      content += `## [${flag.severity.toUpperCase()}] ${flag.title}\n`;
+      content += `**Category:** ${flag.category.toUpperCase()}\n`;
+      content += `**Description:** ${flag.description}\n`;
+      content += `**Recommendation:** ${flag.recommendation}\n\n`;
+    });
+
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `websnatch-report-${Date.now()}.md`;
+    a.click();
+  };
+
+  const filteredFlags = useMemo(() => {
+    return redFlags.filter(f => 
+        f.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        f.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        f.category.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [redFlags, searchQuery]);
+
   const renderFlag = (flag: RedFlag) => {
     const categoryInfo = getCategoryInfo(flag.category);
     const isExpanded = expandedFlags.has(flag.id);
@@ -206,297 +141,266 @@ export default function RedFlagsPanel() {
     return (
       <div
         key={flag.id}
-        className={`border-l-4 ${getSeverityColor(flag.severity)} rounded-r-lg mb-3 bg-card border-y-2 border-r-2 border-foreground/10 neo-shadow-sm transition-all duration-200`}
+        className={clsx(
+            "bg-card rounded-xl border-2 transition-all neo-shadow-sm mb-3",
+            isExpanded ? "border-primary" : "border-foreground/10 hover:border-primary/40"
+        )}
       >
-        {/* Card Header - Clickable */}
+        {/* Header */}
         <div 
           onClick={() => toggleExpand(flag.id)}
-          className="p-4 cursor-pointer hover:bg-secondary/30 transition-colors flex items-start gap-3"
+          className="p-4 cursor-pointer flex items-start gap-3"
         >
-          {getSeverityIcon(flag.severity)}
-          <div className="flex-1">
+          <div className="mt-0.5">{getSeverityIcon(flag.severity)}</div>
+          <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1 flex-wrap">
-              <h3 className="font-bold text-foreground">{flag.title}</h3>
-              <span className={`px-2 py-0.5 rounded text-xs font-bold border ${categoryInfo.color}`}>
-                {categoryInfo.emoji} {categoryInfo.name}
+              <h3 className="font-black text-sm text-foreground truncate">{flag.title}</h3>
+              <span className={clsx("px-2 py-0.5 rounded-[4px] text-[10px] font-black uppercase tracking-wider border", categoryInfo.color)}>
+                {categoryInfo.name}
               </span>
-              {flag.count && (
-                <span className="px-2 py-0.5 rounded text-xs font-bold bg-secondary text-muted-foreground border border-foreground/10">
-                  {flag.count} found
-                </span>
-              )}
-              {flag.impactScore && (
-                <span className={`px-2 py-0.5 rounded text-xs font-bold border ml-auto ${
-                  flag.impactScore >= 8 ? 'bg-red-500/10 text-red-600 border-red-500/20' : 
-                  flag.impactScore >= 5 ? 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20' :
-                  'bg-blue-500/10 text-blue-600 border-blue-500/20'
-                }`}>
-                  Impact: {flag.impactScore}/10
+              {flag.count && flag.count > 1 && (
+                <span className="px-1.5 py-0.5 rounded-[4px] text-[10px] font-bold bg-secondary text-muted-foreground border border-border">
+                  {flag.count}x
                 </span>
               )}
             </div>
-            
-            <p className="text-sm text-foreground/80">{flag.description}</p>
-            
-            {/* Quick recommendation preview */}
-            {!isExpanded && (
-               <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
-                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
-                 Click to see fix and details
-               </div>
-            )}
+            <p className="text-xs text-muted-foreground line-clamp-2">{flag.description}</p>
           </div>
-          <div className={`text-muted-foreground transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
-             <ChevronDown className="w-5 h-5" />
+          <div className={clsx(
+              "p-1.5 rounded-lg transition-transform duration-300",
+              isExpanded ? "rotate-180 bg-primary/10 text-primary" : "text-muted-foreground"
+          )}>
+             <ChevronDown className="w-4 h-4" />
           </div>
         </div>
 
-        {/* Expanded Details */}
+        {/* Expanded */}
         {isExpanded && (
-          <div className="px-4 pb-4 border-t-2 border-foreground/5 bg-secondary/20">
-            {/* Impact Estimate */}
-            {flag.estimatedImpact && (
-              <div className="mt-3 text-xs bg-card border-2 border-foreground/10 p-2 rounded-lg text-muted-foreground flex items-start gap-2 neo-shadow-sm">
-                 <span className="text-lg">⚡</span>
-                 <div>
-                   <span className="font-bold text-foreground">Impact:</span> {flag.estimatedImpact}
-                 </div>
-              </div>
-            )}
-
-            {/* Recommendation */}
-            <div className="mt-3 bg-blue-50 border border-blue-100 p-3 rounded text-sm text-blue-800">
-              <strong>💡 Recommendation:</strong> {flag.recommendation}
-            </div>
-
-            {/* Fix Code Snippet */}
-            {flag.fixCode && (
-              <div className="mt-3 relative group">
-                <div className="text-xs font-semibold text-gray-500 mb-1">Example Fix:</div>
-                <pre className="bg-gray-800 text-gray-100 p-3 rounded text-xs overflow-x-auto font-mono">
-                  {flag.fixCode}
-                </pre>
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    copyCode(flag.fixCode!, flag.id);
-                  }}
-                  className="absolute top-6 right-2 p-1.5 bg-white/10 hover:bg-white/20 rounded text-white text-xs backdrop-blur-sm transition-colors"
-                  title="Copy Code"
-                >
-                  {copiedCode === flag.id ? '✅ Copied!' : '📋 Copy'}
-                </button>
-              </div>
-            )}
-
-            {/* Affected Elements List */}
-            {flag.affectedElements && flag.affectedElements.length > 0 && (
-              <div className="mt-3">
-                <div className="text-xs font-semibold text-gray-500 mb-1">Affected Elements (Top 5):</div>
-                <div className="flex flex-wrap gap-1">
-                  {flag.affectedElements.map((el, i) => (
-                    <code key={i} className="bg-white border border-gray-200 px-1.5 py-0.5 rounded text-xs text-red-600 font-mono">
-                      {el}
-                    </code>
-                  ))}
+          <div className="px-4 pb-4 animate-in fade-in slide-in-from-top-1 duration-200">
+            <div className="h-px bg-border/50 mb-4" />
+            
+            <div className="space-y-4">
+                {/* Recommendation */}
+                <div className="bg-primary/5 border border-primary/10 p-3 rounded-lg">
+                    <div className="text-[10px] font-black text-primary uppercase tracking-widest mb-1 flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3 h-3" /> Recommendation
+                    </div>
+                    <p className="text-xs font-bold text-foreground leading-relaxed">
+                        {flag.recommendation}
+                    </p>
                 </div>
-              </div>
-            )}
 
-            {/* Learn More Link */}
-            {flag.learnMoreUrl && (
-              <div className="mt-3 pt-2 text-right">
-                <a 
-                  href={flag.learnMoreUrl} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-600 hover:text-blue-800 hover:underline font-medium inline-flex items-center gap-1"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  📚 Learn more about this issue →
-                </a>
-              </div>
-            )}
+                {/* Score & Impact */}
+                {flag.impactScore && (
+                    <div className="flex gap-2">
+                        <div className="flex-1 bg-secondary/30 p-2 rounded-lg border border-border">
+                            <div className="text-[10px] font-black text-muted-foreground uppercase mb-0.5">Impact</div>
+                            <div className="text-sm font-black text-foreground">{flag.impactScore}/10</div>
+                        </div>
+                        {flag.estimatedImpact && (
+                            <div className="flex-[2] bg-secondary/30 p-2 rounded-lg border border-border">
+                                <div className="text-[10px] font-black text-muted-foreground uppercase mb-0.5">Estimate</div>
+                                <div className="text-xs font-bold text-foreground">{flag.estimatedImpact}</div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Fix Code */}
+                {flag.fixCode && (
+                    <div className="space-y-2">
+                        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Example Fix</div>
+                        <div className="relative group">
+                            <pre className="bg-gray-900 text-gray-100 p-3 rounded-xl text-[10px] overflow-x-auto font-mono border-2 border-foreground/10">
+                                {flag.fixCode}
+                            </pre>
+                            <button 
+                                onClick={(e) => { e.stopPropagation(); copyCode(flag.fixCode!, flag.id); }}
+                                className="absolute top-2 right-2 p-1.5 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-all backdrop-blur-sm"
+                            >
+                                {copiedCode === flag.id ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Affected Elements */}
+                {flag.affectedElements && flag.affectedElements.length > 0 && (
+                    <div className="space-y-2">
+                        <div className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Affected Elements</div>
+                        <div className="flex flex-wrap gap-1.5">
+                            {flag.affectedElements.slice(0, 5).map((el, i) => (
+                                <code key={i} className="px-1.5 py-0.5 bg-secondary text-[10px] font-mono rounded border border-border text-red-500">
+                                    {el}
+                                </code>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Link */}
+                {flag.learnMoreUrl && (
+                    <button 
+                        onClick={() => window.open(flag.learnMoreUrl, '_blank')}
+                        className="w-full py-2 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest text-primary hover:bg-primary/5 rounded-lg transition-all"
+                    >
+                        Learn more <ExternalLink className="w-3 h-3" />
+                    </button>
+                )}
+            </div>
           </div>
         )}
       </div>
     );
   };
 
-  // Loading state
   if (loading) {
     return (
-      <div className="p-6 text-center">
-        <div className="relative w-16 h-16 mx-auto mb-4">
-          <div className="absolute inset-0 bg-primary/20 blur-xl rounded-full animate-pulse"></div>
-          <div className="relative bg-card p-3 rounded-lg neo-shadow-lg flex items-center justify-center border-2 border-foreground/20">
+      <div className="flex flex-col items-center justify-center py-20 animate-in fade-in duration-500">
+        <div className="relative w-20 h-20 mb-6">
+          <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full animate-pulse"></div>
+          <div className="relative bg-card p-4 rounded-2xl neo-shadow-lg flex items-center justify-center border-2 border-foreground/20">
             <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
         </div>
-        <h3 className="text-lg font-bold text-gray-900 mb-2">Analyzing Page...</h3>
-        <p className="text-sm text-gray-600">
-          Detecting SEO, UX, and accessibility issues.
-        </p>
+        <h3 className="text-lg font-black tracking-tight mb-1">Auditing Page...</h3>
+        <p className="text-xs text-muted-foreground">Identifying SEO & UX issues</p>
       </div>
     );
   }
 
   if (redFlags.length === 0) {
     return (
-      <div className="p-6 text-center">
-        <div className="text-6xl mb-4">✨</div>
-        <h3 className="text-xl font-bold text-gray-900 mb-2">No Critical Issues!</h3>
-        <p className="text-gray-600">
-          This page looks great! No major SEO, UX, or accessibility red flags detected.
-        </p>
+      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground bg-card/50 rounded-3xl border border-dashed border-border/50">
+        <div className="p-4 bg-green-500/10 text-green-600 rounded-full mb-4 border border-green-500/20">
+          <CheckCircle2 className="h-8 w-8" />
+        </div>
+        <p className="font-bold text-lg mb-1 text-foreground">Clean Bill of Health!</p>
+        <p className="text-sm opacity-70">No major red flags detected on this page.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 pb-6">
-      <div className="bg-card rounded-lg p-6 border-2 border-foreground/20 neo-shadow">
-        <div className="flex justify-between items-start mb-6">
-          <div>
-            <h2 className="text-xl font-bold text-foreground mb-1">Page Health</h2>
-            <p className="text-sm text-muted-foreground">
-              Found {redFlags.length} issue{redFlags.length !== 1 ? 's' : ''}
-            </p>
-          </div>
-          <button 
-            onClick={downloadReport}
-            className="flex items-center gap-2 px-3 py-1.5 bg-primary text-primary-foreground neo-shadow neo-button hover:bg-primary/90 rounded-lg text-xs font-bold transition-all"
-          >
-            <Download className="w-3.5 h-3.5" />
-            Export
-          </button>
+    <div className="space-y-6 pb-6 animate-in fade-in slide-in-from-bottom-2 duration-500">
+      {/* Header & Score */}
+      <div className="bg-card rounded-xl border-2 border-foreground/10 neo-shadow overflow-hidden">
+        <div className="p-5 flex items-center gap-6">
+            {/* Score Ring */}
+            <div className={clsx(
+                "relative flex flex-col items-center justify-center w-24 h-24 rounded-full border-4 shadow-inner shrink-0",
+                getScoreStyle(healthScore)
+            )}>
+                <span className="text-3xl font-black">{healthScore}</span>
+                <span className="text-[8px] font-black uppercase tracking-widest opacity-60">Score</span>
+            </div>
+
+            <div className="flex-1 space-y-3">
+                <div>
+                    <h2 className="text-xl font-black tracking-tight">Audit Summary</h2>
+                    <p className="text-xs text-muted-foreground">{redFlags.length} total observations</p>
+                </div>
+                <div className="flex gap-2">
+                    <div className="px-2 py-1 bg-red-500/10 text-red-600 rounded-md border border-red-500/20 text-[10px] font-black">
+                        {criticalCount} CRITICAL
+                    </div>
+                    <div className="px-2 py-1 bg-amber-500/10 text-amber-600 rounded-md border border-amber-500/20 text-[10px] font-black">
+                        {warningCount} WARNINGS
+                    </div>
+                </div>
+            </div>
         </div>
-
-        <div className="flex items-center gap-6">
-          {/* Circular Score */}
-          <div className={`relative flex items-center justify-center w-24 h-24 rounded-full ${getScoreColor(healthScore)} neo-shadow-sm`}>
-            <div className="text-center">
-              <span className={`text-3xl font-black block`}>
-                {healthScore}
-              </span>
-              <span className="text-[10px] opacity-70 uppercase tracking-wider font-bold">Score</span>
+        <div className="p-3 bg-secondary/30 border-t border-border/50 flex justify-between items-center">
+            <div className="flex gap-1">
+                <button 
+                    onClick={() => setViewMode('priority')}
+                    className={clsx(
+                        "px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all",
+                        viewMode === 'priority' ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+                    )}
+                >
+                    Priority
+                </button>
+                <button 
+                    onClick={() => setViewMode('category')}
+                    className={clsx(
+                        "px-2 py-1 rounded-md text-[10px] font-black uppercase tracking-wider transition-all",
+                        viewMode === 'category' ? "bg-foreground text-background" : "text-muted-foreground hover:text-foreground"
+                    )}
+                >
+                    Categories
+                </button>
             </div>
-          </div>
-
-          {/* Stats */}
-          <div className="flex-1 grid grid-cols-3 gap-2">
-            <div className="bg-red-500/10 rounded-lg p-2 text-center border-2 border-red-500/20 neo-shadow-sm">
-              <div className="text-xl font-bold text-red-600">{criticalCount}</div>
-              <div className="text-xs text-red-600 font-bold">Critical</div>
-            </div>
-            <div className="bg-yellow-500/10 rounded-lg p-2 text-center border-2 border-yellow-500/20 neo-shadow-sm">
-              <div className="text-xl font-bold text-yellow-600">{warningCount}</div>
-              <div className="text-xs text-yellow-600 font-bold">Warnings</div>
-            </div>
-            <div className="bg-blue-500/10 rounded-lg p-2 text-center border-2 border-blue-500/20 neo-shadow-sm">
-              <div className="text-xl font-bold text-blue-600">{infoCount}</div>
-              <div className="text-xs text-blue-600 font-bold">Hints</div>
-            </div>
-          </div>
+            <button 
+                onClick={downloadReport}
+                className="flex items-center gap-1.5 px-3 py-1 bg-primary text-white rounded-lg text-[10px] font-black uppercase tracking-wider neo-button shadow-sm"
+            >
+                <Download className="w-3 h-3" /> Report
+            </button>
         </div>
       </div>
 
-      {/* View Toggle */}
-      <div className="flex bg-secondary p-1 rounded-lg border-2 border-foreground/10">
-        <button
-          onClick={() => setGroupBy('category')}
-          className={`flex-1 py-1.5 text-sm font-bold rounded-md transition-all ${
-            groupBy === 'category' ? 'bg-background text-foreground shadow-sm border border-foreground/10' : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Priority View
-        </button>
-        <button
-          onClick={() => setGroupBy('section')}
-          className={`flex-1 py-1.5 text-sm font-bold rounded-md transition-all ${
-            groupBy === 'section' ? 'bg-background text-foreground shadow-sm border border-foreground/10' : 'text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Page Structure
-        </button>
+      {/* Search Bar */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <input
+          type="text"
+          placeholder="Search issues or categories..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full bg-card border-2 border-foreground/10 focus:border-primary/50 rounded-xl pl-10 pr-4 py-3 text-sm font-medium transition-all neo-shadow-sm"
+        />
       </div>
 
-      {/* Content Area */}
-      {groupBy === 'category' ? (
-        // Priority View (Severity)
-        <div className="space-y-6">
-          {criticalCount > 0 && (
-            <div>
-              <h3 className="text-sm font-bold text-red-700 mb-3 flex items-center gap-2 uppercase tracking-wide">
-                <XCircle className="w-4 h-4" /> Critical Issues
-              </h3>
-              {redFlags.filter((f) => f.severity === 'critical').map(renderFlag)}
-            </div>
-          )}
-          {warningCount > 0 && (
-            <div>
-              <h3 className="text-sm font-bold text-yellow-700 mb-3 flex items-center gap-2 uppercase tracking-wide">
-                <AlertTriangle className="w-4 h-4" /> Warnings
-              </h3>
-              {redFlags.filter((f) => f.severity === 'warning').map(renderFlag)}
-            </div>
-          )}
-          {infoCount > 0 && (
-            <div>
-              <h3 className="text-sm font-bold text-blue-700 mb-3 flex items-center gap-2 uppercase tracking-wide">
-                <Info className="w-4 h-4" /> Recommendations
-              </h3>
-              {redFlags.filter((f) => f.severity === 'info').map(renderFlag)}
-            </div>
-          )}
-        </div>
-      ) : (
-        // Section View
-        <div className="space-y-6">
-          {/* Head */}
-          {(groupedFlags as any).head.length > 0 && (
-            <div>
-              <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-foreground/10 pb-2">
-                👾 Head & Metadata
-                <span className="ml-auto bg-secondary text-muted-foreground px-2 rounded-full text-xs">{(groupedFlags as any).head.length}</span>
-              </h3>
-              {(groupedFlags as any).head.map(renderFlag)}
-            </div>
-          )}
-          {/* Body */}
-          {(groupedFlags as any).body.length > 0 && (
-            <div>
-              <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-foreground/10 pb-2">
-                🎨 Body & Content
-                <span className="ml-auto bg-secondary text-muted-foreground px-2 rounded-full text-xs">{(groupedFlags as any).body.length}</span>
-              </h3>
-              {(groupedFlags as any).body.map(renderFlag)}
-            </div>
-          )}
-          {/* System */}
-          {(groupedFlags as any).system.length > 0 && (
-            <div>
-              <h3 className="text-sm font-bold text-foreground mb-3 flex items-center gap-2 uppercase tracking-wide border-b border-foreground/10 pb-2">
-                ⚡ System & Performance
-                <span className="ml-auto bg-secondary text-muted-foreground px-2 rounded-full text-xs">{(groupedFlags as any).system.length}</span>
-              </h3>
-              {(groupedFlags as any).system.map(renderFlag)}
-            </div>
-          )}
-        </div>
-      )}
-
-      {redFlags.length === 0 && (
-        <div className="bg-card rounded-lg p-6 border-2 border-foreground/20 text-center neo-shadow">
-          <div className="w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center mx-auto mb-4 border-2 border-green-500/20">
-            <CheckCircle2 className="w-8 h-8 text-green-600" />
-          </div>
-          <h2 className="text-xl font-bold text-foreground mb-2">No Red Flags Found!</h2>
-          <p className="text-sm text-muted-foreground">
-            This page looks great! No major SEO, UX, or accessibility red flags detected.
-          </p>
-        </div>
-      )}
+      {/* List */}
+      <div className="space-y-6">
+        {viewMode === 'priority' ? (
+            <>
+                {criticalCount > 0 && (
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 px-1">
+                            <ShieldAlert className="w-4 h-4 text-red-500" />
+                            <h3 className="text-xs font-black text-muted-foreground uppercase tracking-widest">Critical Fixes</h3>
+                        </div>
+                        {filteredFlags.filter(f => f.severity === 'critical').map(renderFlag)}
+                    </div>
+                )}
+                {warningCount > 0 && (
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 px-1">
+                            <AlertTriangle className="w-4 h-4 text-amber-500" />
+                            <h3 className="text-xs font-black text-muted-foreground uppercase tracking-widest">Warnings</h3>
+                        </div>
+                        {filteredFlags.filter(f => f.severity === 'warning').map(renderFlag)}
+                    </div>
+                )}
+                {infoCount > 0 && (
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 px-1">
+                            <Info className="w-4 h-4 text-blue-500" />
+                            <h3 className="text-xs font-black text-muted-foreground uppercase tracking-widest">Recommendations</h3>
+                        </div>
+                        {filteredFlags.filter(f => f.severity === 'info').map(renderFlag)}
+                    </div>
+                )}
+            </>
+        ) : (
+            ['seo', 'accessibility', 'ux', 'performance', 'mobile'].map(cat => {
+                const flags = filteredFlags.filter(f => f.category === cat);
+                if (flags.length === 0) return null;
+                const info = getCategoryInfo(cat);
+                return (
+                    <div key={cat} className="space-y-3">
+                        <div className="flex items-center gap-2 px-1">
+                            <Layout className="w-4 h-4 text-muted-foreground" />
+                            <h3 className="text-xs font-black text-muted-foreground uppercase tracking-widest">{info.name} Issues</h3>
+                        </div>
+                        {flags.map(renderFlag)}
+                    </div>
+                );
+            })
+        )}
+      </div>
     </div>
   );
 }

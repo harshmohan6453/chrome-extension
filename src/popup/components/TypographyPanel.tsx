@@ -116,6 +116,10 @@ export const TypographyPanel = () => {
     const isConsistent = bestMatch.avgDiff < 0.1;
     const isLooselyConsistent = bestMatch.avgDiff < 0.2;
 
+    const averageRatio = ratios.length > 0 
+        ? ratios.reduce((a, b) => a + b, 0) / ratios.length 
+        : 0;
+
     return {
       uniqueSizes,
       detectedScale: isConsistent || isLooselyConsistent ? bestMatch.scale : null,
@@ -124,6 +128,7 @@ export const TypographyPanel = () => {
       avgDifference: bestMatch.avgDiff,
       totalSizes: allSizes.length,
       baseSize: uniqueSizes[0],
+      averageRatio,
     };
   }, [fonts]);
 
@@ -224,7 +229,7 @@ export const TypographyPanel = () => {
                 <div className="text-right">
                     <div className="text-xs text-muted-foreground font-bold uppercase tracking-wider mb-1">Ratio</div>
                     <div className="text-2xl font-black tracking-tight text-primary">
-                    {scaleAnalysis.detectedScale?.ratio || "-"}
+                    {scaleAnalysis.detectedScale?.ratio || scaleAnalysis.averageRatio.toFixed(3)}
                     </div>
                 </div>
             </div>

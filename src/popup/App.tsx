@@ -109,7 +109,7 @@ interface VersionInfo {
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const { data, setData, isInspecting, setInspecting, setPreferences } = useStore();
+  const { data, setData, isInspecting, setInspecting, setPreferences, setRedFlagsLoaded } = useStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -204,6 +204,9 @@ export default function App() {
         try {
             const response = await chrome.tabs.sendMessage(tab.id, { action: 'GET_PAGE_DATA' });
             if (response) {
+                // Reset red flags loaded state so it refetches for the new page
+                setRedFlagsLoaded(false);
+                
                 setData({
                 fonts: aggregateFonts(response.fonts || []),
                 colors: response.colors.map((c: any) => ({ hex: c.hex, rgb: c.rgba, hsl: '', type: c.type || 'auto', role: c.role, count: c.usageCount })),

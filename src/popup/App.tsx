@@ -143,8 +143,8 @@ export default function App() {
         // So we should check localStorage or use a ref, but here we can just check localStorage as source of truth for simplicity in this context
         // OR better, we use the store state if we include it in dependency array, but we don't want to re-bind listener constantly.
         
-        // Actually, let's just check localStorage here to be safe and avoid dependency hell
-        const isAutoRefreshEnabled = localStorage.getItem('di-autoRefresh') === 'true';
+        // Use the live store state instead of localStorage
+        const isAutoRefreshEnabled = useStore.getState().preferences.autoRefresh;
 
         if (isAutoRefreshEnabled && changeInfo.status === 'complete' && tab.active) {
             // Check if this is the window we are in

@@ -180,7 +180,7 @@ const initialData: InspectionData = {
 const initialPreferences: UserPreferences = {
   colorFormat: 'hex',
   unitFormat: 'px',
-  autoRefresh: false,
+  autoRefresh: true,
 };
 
 export const useStore = create<AppState>((set) => ({

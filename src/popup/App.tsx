@@ -600,7 +600,8 @@ export default function App() {
               onMouseEnter={(e) => handleMouseEnter(e, tab)}
               onMouseLeave={() => setHoveredTab(null)}
               className={clsx(
-                "w-14 h-14 rounded-lg flex items-center justify-center transition-all duration-200 relative group border-2",
+                "w-14 shrink-0 rounded-lg flex items-center justify-center transition-all duration-200 relative group border-2",
+                isSidePanel ? "h-[58px]" : "h-[36px]",
                 activeTab === tab.id 
                   ? "bg-card text-primary border-primary neo-shadow translate-x-2" 
                   : "bg-card/50 border-transparent text-muted-foreground hover:bg-card hover:border-foreground/20 hover:text-foreground hover:translate-x-1"

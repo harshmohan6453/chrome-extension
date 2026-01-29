@@ -27,15 +27,9 @@ export default defineConfig({
       input: {
         popup: resolve(__dirname, 'popup.html'),
         sidepanel: resolve(__dirname, 'sidepanel.html'),
-        content: resolve(__dirname, 'src/content-scripts/content.ts'),
       },
       output: {
-        entryFileNames: (chunkInfo) => {
-          if (chunkInfo.name === 'content') {
-            return 'content.js';
-          }
-          return 'assets/[name]-[hash].js';
-        },
+        entryFileNames: 'assets/[name]-[hash].js',
         chunkFileNames: 'assets/[name]-[hash].js',
         manualChunks(id) {
           // Only split chunks for popup, not for content scripts

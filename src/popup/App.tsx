@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Type, Palette, Layout, MousePointer2, Code2, Settings, Sparkles, RefreshCw, Layers, Image as ImageIcon, Play, AlertTriangle, Workflow, PanelRightOpen } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useStore } from '../store';
@@ -121,7 +121,10 @@ export default function App() {
   
   // Inspector data for sidebar mode
   const [inspectorData, setInspectorData] = useState<InspectorData | null>(null);
-  
+
+  // Ref for scroll container to reset scroll position
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
   // Detect if we're in sidebar mode
   const isSidePanel = window.location.pathname.includes('sidepanel');
 
@@ -276,6 +279,13 @@ export default function App() {
   useEffect(() => {
     checkVersion();
   }, []);
+
+  // Reset scroll position when URL changes or Tab changes
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  }, [data.meta.url, activeTab]);
 
   // Initialize theme on app load
   useEffect(() => {
@@ -656,8 +666,8 @@ export default function App() {
             </div>
          </header>
 
-         <div className="flex-1 overflow-y-auto overflow-x-hidden p-8 pt-4">
-             <div className="max-w-4xl mx-auto h-full pb-10">
+         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden px-6 py-4">
+             <div className="max-w-4xl mx-auto pb-6">
                  {renderContent()}
              </div>
          </div>

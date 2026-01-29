@@ -139,12 +139,38 @@ const ScrollInspectorPanel = () => {
 
   if (scrollAnimations.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-muted-foreground bg-card/50 rounded-3xl border border-dashed border-border/50 animate-in fade-in zoom-in-95 duration-500">
-        <div className="p-4 bg-secondary rounded-full mb-4">
-          <Activity className="h-8 w-8 opacity-50" />
+      <div className="flex flex-col items-center justify-center py-10 text-muted-foreground animate-in fade-in zoom-in-95 duration-500">
+        <div className="p-6 bg-card/50 rounded-full mb-6 border-2 border-dashed border-border/50 neo-shadow">
+          <Activity className="h-12 w-12 opacity-30" />
         </div>
-        <p className="font-bold text-lg mb-1">No Scroll Animations</p>
-        <p className="text-sm opacity-70">Try scrolling or refreshing the page.</p>
+        
+        <h3 className="text-xl font-black text-foreground mb-2">No Scroll Animations Detected</h3>
+        <p className="text-sm opacity-70 max-w-[280px] text-center mb-8">
+          This page might not be using scroll libraries we detect, or animations haven't triggered yet.
+        </p>
+
+        {/* Supported Libraries */}
+        <div className="w-full max-w-sm bg-card/50 rounded-xl border border-foreground/10 p-4 mb-6">
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-3 text-center">
+            Supported Libraries
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {[
+              { name: 'GSAP ScrollTrigger', icon: Zap, color: 'text-green-500' },
+              { name: 'Framer Motion', icon: Play, color: 'text-purple-500' },
+              { name: 'Locomotive', icon: Activity, color: 'text-blue-500' },
+              { name: 'AOS', icon: Sparkles, color: 'text-orange-500' },
+              { name: 'Intersection Observer', icon: Eye, color: 'text-indigo-500' },
+              { name: 'CSS Scroll Timeline', icon: History, color: 'text-teal-500' },
+            ].map(lib => (
+              <div key={lib.name} className="flex items-center gap-2 px-3 py-2 bg-background/50 rounded-lg border border-border/50">
+                <lib.icon className={clsx("w-3.5 h-3.5", lib.color)} />
+                <span className="text-xs font-medium">{lib.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
       </div>
     );
   }

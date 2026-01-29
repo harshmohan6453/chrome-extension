@@ -12,7 +12,8 @@ import {
   Layers,
   Sparkles,
   Activity,
-  History
+  History,
+  RotateCcw
 } from 'lucide-react';
 import { clsx } from 'clsx';
 
@@ -363,6 +364,15 @@ const ScrollInspectorPanel = () => {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
+                        controlAnimation(animation.id, 'restart');
+                      }}
+                      className="flex items-center justify-center gap-2 px-4 py-2 bg-orange-500/10 hover:bg-orange-500/20 text-orange-600 rounded-lg text-xs font-black transition-all border-2 border-orange-500/20"
+                    >
+                      <RotateCcw className="w-4 h-4" /> REPLAY
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
                         highlightElement(animation.element);
                       }}
                       className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-500/10 hover:bg-blue-500/20 text-blue-600 rounded-lg text-xs font-black transition-all border-2 border-blue-500/20"
@@ -374,7 +384,7 @@ const ScrollInspectorPanel = () => {
                         e.stopPropagation();
                         copyAnimationCode(animation);
                       }}
-                      className="flex items-center justify-center gap-2 px-4 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-600 rounded-lg text-xs font-black transition-all border-2 border-green-500/20"
+                      className="flex items-center justify-center gap-2 px-4 py-2 bg-green-500/10 hover:bg-green-500/20 text-green-600 rounded-lg text-xs font-black transition-all border-2 border-green-500/20 col-span-2"
                     >
                       {copiedId === animation.id ? <Check className="w-4 h-4" /> : <Code className="w-4 h-4" />}
                       {copiedId === animation.id ? "COPIED" : "GET CODE"}

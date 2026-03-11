@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { AlertTriangle, Check, Copy, ExternalLink, History, Paintbrush2, Redo2, RotateCcw, Undo2 } from 'lucide-react';
+import { AlertTriangle, Check, Copy, ExternalLink, History, Redo2, RotateCcw, Undo2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useStore } from '../../store';
 import {
@@ -27,11 +27,8 @@ const badgeToneClasses = {
   bad: 'bg-red-500/10 text-red-700 border-red-500/30',
 };
 
-const summarizeThemeableColors = (slotCount: number, replacementCount: number) =>
-  `${slotCount} semantic slots, ${replacementCount} exact rules available`;
-
 export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPanelProps) => {
-  const { data, themeSession, setThemeSession, updateThemeSession, pushThemeHistory, restoreThemeHistory } = useStore();
+  const { themeSession, setThemeSession, updateThemeSession, pushThemeHistory, restoreThemeHistory } = useStore();
   const [initializing, setInitializing] = useState(false);
   const [copyState, setCopyState] = useState<'idle' | 'copied'>('idle');
   const [advancedOpen, setAdvancedOpen] = useState(false);
@@ -67,7 +64,6 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
     let cancelled = false;
 
     const init = async () => {
-      if (!isSidePanel) return;
       setInitializing(true);
       try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -294,36 +290,6 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
     setTimeout(() => setCopyState('idle'), 1400);
   };
 
-  if (!isSidePanel) {
-    return (
-      <div className="rounded-2xl border-2 border-foreground/20 bg-card p-5 neo-shadow space-y-4">
-        <div className="flex items-start gap-3">
-          <div className="rounded-xl bg-primary/10 p-3 text-primary border border-primary/20">
-            <Paintbrush2 className="w-5 h-5" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-lg font-black tracking-tight">Theme Studio</h3>
-            <p className="text-sm text-muted-foreground">
-              Live-edit page colors from the side panel with presets, semantic slots, and exact replacement rules.
-            </p>
-          </div>
-        </div>
-        <div className="rounded-xl bg-secondary/50 border border-border p-3 text-sm text-muted-foreground">
-          {themeSession
-            ? summarizeThemeableColors(themeSession.semanticSlots.length, themeSession.exactReplacements.length)
-            : `${data.colors.length} detected colors available for a live preview session.`}
-        </div>
-        <button
-          onClick={() => openSidePanel('themeStudio')}
-          className="w-full rounded-xl bg-primary text-primary-foreground font-bold px-4 py-3 flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors"
-        >
-          <ExternalLink className="w-4 h-4" />
-          Open Theme Studio
-        </button>
-      </div>
-    );
-  }
-
   if (initializing || !themeSession) {
     return (
       <div className="rounded-2xl border-2 border-foreground/20 bg-card p-8 neo-shadow space-y-4 text-center">
@@ -357,6 +323,15 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
             <p className="text-xs text-muted-foreground truncate max-w-[380px]">{themeSession.pageUrl}</p>
           </div>
           <div className="flex items-center gap-2">
+            {!isSidePanel && (
+              <button
+                onClick={() => openSidePanel('themeStudio')}
+                className="px-3 py-2 rounded-lg border-2 border-foreground/20 bg-background font-bold text-sm hover:border-primary hover:text-primary transition-colors flex items-center gap-2"
+              >
+                <ExternalLink className="w-4 h-4" />
+                Open in Sidebar
+              </button>
+            )}
             <button
               onClick={handleUndo}
               disabled={themeSession.historyIndex <= 0}

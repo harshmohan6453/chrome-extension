@@ -276,7 +276,7 @@ export const ColorPanel = ({ isSidePanel, onOpenThemeStudio }: ColorPanelProps) 
         <div className="rounded-2xl border-2 border-foreground/20 bg-card p-4 neo-shadow flex items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Theme Studio</div>
-            <div className="font-bold">{isSidePanel ? 'Open live color controls' : 'Launch in side panel'}</div>
+            <div className="font-bold">{isSidePanel ? 'Open live color controls' : 'Open live theme controls'}</div>
             <div className="text-sm text-muted-foreground">
               Preview semantic theme changes, presets, and exact color replacements directly on the page.
             </div>
@@ -285,7 +285,7 @@ export const ColorPanel = ({ isSidePanel, onOpenThemeStudio }: ColorPanelProps) 
             onClick={onOpenThemeStudio}
             className="shrink-0 rounded-xl bg-primary text-primary-foreground font-bold px-4 py-3 hover:bg-primary/90 transition-colors"
           >
-            {isSidePanel ? 'Open Studio' : 'Open Side Panel'}
+            Open Studio
           </button>
         </div>
 

@@ -85,10 +85,10 @@ const aggregateFonts = (rawFonts: any[]): import('../store').FontData[] => {
   }));
 };
 
-const getInitialTab = (isSidePanel: boolean): Tab => {
+const getInitialTab = (_isSidePanel: boolean): Tab => {
   const params = new URLSearchParams(window.location.search);
   const requestedTab = params.get('tab');
-  if (requestedTab === 'themeStudio' && isSidePanel) return 'themeStudio';
+  if (requestedTab === 'themeStudio') return 'themeStudio';
   return 'overview';
 };
 
@@ -428,7 +428,7 @@ export default function App() {
     { id: 'overview', icon: Layers, label: 'Overview' },
     { id: 'typography', icon: Type, label: 'Typography' },
     { id: 'colors', icon: Palette, label: 'Colors' },
-    ...(isSidePanel ? ([{ id: 'themeStudio', icon: Paintbrush2, label: 'Theme Studio' }] as const) : []),
+    { id: 'themeStudio', icon: Paintbrush2, label: 'Theme Studio' },
     { id: 'assets', icon: ImageIcon, label: 'Assets' },
     { id: 'spacing', icon: Layout, label: 'Spacing' },
     { id: 'scroll', icon: Play, label: 'Scroll Animations' },
@@ -488,7 +488,7 @@ export default function App() {
     // 3. Tab Content
     switch (activeTab) {
       case 'typography': return <TypographyPanel />;
-      case 'colors': return <ColorPanel isSidePanel={isSidePanel} onOpenThemeStudio={() => (isSidePanel ? setActiveTab('themeStudio') : openSidePanel('themeStudio'))} />;
+      case 'colors': return <ColorPanel isSidePanel={isSidePanel} onOpenThemeStudio={() => setActiveTab('themeStudio')} />;
       case 'themeStudio': return <ThemeStudioPanel isSidePanel={isSidePanel} openSidePanel={openSidePanel} />;
       case 'assets': return <AssetsPanel />;
       case 'spacing': return <SpacingPanel />;
@@ -604,7 +604,7 @@ export default function App() {
             </button>
 
             <button
-              onClick={() => (isSidePanel ? setActiveTab('themeStudio') : openSidePanel('themeStudio'))}
+              onClick={() => setActiveTab('themeStudio')}
               className="w-full bg-card p-5 rounded-lg border-2 border-foreground/20 flex items-center justify-between group neo-shadow transition-all hover:border-primary hover:-translate-y-0.5"
             >
               <div className="flex items-center gap-4">

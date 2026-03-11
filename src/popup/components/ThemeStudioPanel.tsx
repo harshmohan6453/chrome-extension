@@ -3,6 +3,7 @@ import { AlertTriangle, Check, Copy, ExternalLink, History, Paintbrush2, Redo2, 
 import { clsx } from 'clsx';
 import { useStore } from '../../store';
 import {
+  buildPresetExactReplacements,
   ThemeReplacementRule,
   ThemeSemanticSlot,
   ThemeSession,
@@ -18,7 +19,7 @@ interface ThemeStudioPanelProps {
   openSidePanel: (targetTab?: 'overview' | 'themeStudio') => Promise<void>;
 }
 
-const PRESET_IDS = ['original', 'dark', 'warm', 'ocean', 'high-contrast'] as const;
+const PRESET_IDS = ['original', 'dark', 'warm', 'ocean', 'forest', 'high-contrast'] as const;
 
 const badgeToneClasses = {
   good: 'bg-green-500/10 text-green-700 border-green-500/30',
@@ -146,8 +147,23 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       ...slot,
       currentColor: preset.colors[slot.id] || slot.originalColor,
     }));
-    pushThemeHistory(nextSlots, themeSession.exactReplacements.map((rule) => ({ ...rule })), themeSession.applyMode);
-    const response = await sendThemePatch({ action: 'APPLY_THEME_PRESET', semanticSlots: nextSlots });
+    const nextRules =
+      presetId === 'original'
+        ? themeSession.exactReplacements.map((rule) => ({
+            ...rule,
+            enabled: false,
+            replacementColor: rule.originalColor,
+          }))
+        : buildPresetExactReplacements(themeSession.exactReplacements, themeSession.semanticSlots, nextSlots);
+
+    pushThemeHistory(nextSlots, nextRules, themeSession.applyMode);
+    const response = await sendThemePatch({
+      action: 'APPLY_THEME_PATCH',
+      semanticSlots: nextSlots,
+      exactReplacements: nextRules,
+      applyMode: themeSession.applyMode,
+      isPreviewActive: true,
+    });
     if (response?.session) {
       const session = response.session as ThemeSession;
       updateThemeSession({
@@ -355,7 +371,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
 
       <div className="space-y-3">
         <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Presets</div>
-        <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
           {PRESET_IDS.map((presetId) => {
             const preset = buildThemePreset(presetId, themeSession.semanticSlots);
             return (
@@ -365,9 +381,9 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                 className="rounded-xl border-2 border-foreground/20 bg-card px-3 py-3 text-left hover:border-primary transition-colors neo-shadow"
               >
                 <div className="font-bold text-sm">{preset.label}</div>
-                <div className="mt-2 flex gap-1">
+                <div className="mt-2 flex gap-1.5">
                   {Object.values(preset.colors)
-                    .slice(0, 4)
+                    .slice(0, 5)
                     .map((color, index) => (
                       <span
                         key={`${presetId}-${index}`}
@@ -461,14 +477,53 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
               </div>
             ) : (
               <div className="space-y-3">
-                {themeSession.exactReplacements.slice(0, 18).map((rule) => (
+                <div className="text-xs text-muted-foreground">
+                  {themeSession.exactReplacements.length} detected rules. Presets now auto-fill these replacements so more of the page updates at once.
+                </div>
+                {themeSession.exactReplacements.map((rule) => (
                   <div key={rule.id} className="rounded-xl border border-border/70 p-3 bg-background/70">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <span className="h-10 w-10 rounded-lg border border-border" style={{ backgroundColor: rule.originalColor }} />
-                        <div className="min-w-0">
-                          <div className="font-mono text-sm font-bold">{rule.originalColor}</div>
-                          <div className="text-xs text-muted-foreground">{rule.count} matches</div>
+                      <div className="min-w-0 flex-1 space-y-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <span className="h-10 w-10 shrink-0 rounded-lg border border-border" style={{ backgroundColor: rule.originalColor }} />
+                          <span className="h-10 w-10 shrink-0 rounded-lg border border-border" style={{ backgroundColor: rule.replacementColor }} />
+                          <div className="min-w-0">
+                            <div className="font-mono text-sm font-bold break-all">{rule.originalColor}</div>
+                            <div className="text-xs text-muted-foreground">{rule.count} matches</div>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-[auto,1fr] items-start gap-x-3 gap-y-2 text-xs">
+                          <div className="font-bold uppercase tracking-wider text-muted-foreground">Replace</div>
+                          <div className="font-mono break-all text-foreground">{rule.replacementColor}</div>
+                          <div className="font-bold uppercase tracking-wider text-muted-foreground">Source</div>
+                          <div className="min-w-0 space-y-1">
+                            {rule.variableNames.length > 0 ? (
+                              <div className="flex flex-wrap gap-1.5">
+                                {rule.variableNames.slice(0, 4).map((variableName) => (
+                                  <span
+                                    key={`${rule.id}-${variableName}`}
+                                    className="rounded-md border border-border bg-secondary/40 px-2 py-1 font-mono text-[11px] text-foreground break-all"
+                                    title={variableName}
+                                  >
+                                    {variableName}
+                                  </span>
+                                ))}
+                              </div>
+                            ) : (
+                              <div className="space-y-1">
+                                {rule.sampleSelectors.slice(0, 3).map((selector) => (
+                                  <div
+                                    key={`${rule.id}-${selector}`}
+                                    className="rounded-md border border-border bg-secondary/30 px-2 py-1 font-mono text-[11px] text-muted-foreground break-all"
+                                    title={selector}
+                                  >
+                                    {selector}
+                                  </div>
+                                ))}
+                                {rule.sampleSelectors.length === 0 && <div className="text-muted-foreground">No selector samples</div>}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <label className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground">
@@ -508,10 +563,12 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                         }
                         className="h-10 w-14 rounded-lg border border-border bg-transparent"
                       />
-                      <div className="flex-1">
-                        <div className="font-mono text-sm">{rule.replacementColor}</div>
-                        <div className="text-xs text-muted-foreground truncate">
-                          {(rule.variableNames.length > 0 ? rule.variableNames.join(', ') : rule.sampleSelectors.join(', ')) || 'No selector samples'}
+                      <div className="flex-1 min-w-0">
+                        <div className="font-mono text-sm break-all">{rule.replacementColor}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {rule.variableNames.length > 0
+                            ? `${rule.variableNames.length} linked variable${rule.variableNames.length === 1 ? '' : 's'}`
+                            : `${rule.sampleSelectors.length} selector sample${rule.sampleSelectors.length === 1 ? '' : 's'}`}
                         </div>
                       </div>
                     </div>

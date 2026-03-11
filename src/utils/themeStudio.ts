@@ -115,6 +115,12 @@ export interface ThemeColorSource {
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
 const dedupe = (values: string[]) => Array.from(new Set(values.filter(Boolean)));
+const getWrappedHueDelta = (from: number, to: number) => {
+  const delta = to - from;
+  if (delta > 180) return delta - 360;
+  if (delta < -180) return delta + 360;
+  return delta;
+};
 
 export const normalizeHex = (value: string): string => {
   const match = value.trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
@@ -358,15 +364,104 @@ export const createHistorySnapshot = (
   applyMode,
 });
 
-export const buildThemePreset = (presetId: string, slots: ThemeSemanticSlot[]): ThemePreset => {
-  const byId = Object.fromEntries(slots.map((slot) => [slot.id, slot])) as Partial<
+const getColorDistance = (left: string, right: string) => {
+  const a = hexToHsl(left);
+  const b = hexToHsl(right);
+  const hueDistance = Math.abs(getWrappedHueDelta(a.h, b.h)) / 180;
+  const saturationDistance = Math.abs(a.s - b.s) / 100;
+  const lightnessDistance = Math.abs(a.l - b.l) / 100;
+  return hueDistance * 0.45 + saturationDistance * 0.2 + lightnessDistance * 0.35;
+};
+
+const transformColorBySlotDelta = (sourceHex: string, referenceHex: string, targetHex: string) => {
+  const source = hexToHsl(sourceHex);
+  const reference = hexToHsl(referenceHex);
+  const target = hexToHsl(targetHex);
+
+  const hueDelta = getWrappedHueDelta(reference.h, target.h);
+  const saturationDelta = target.s - reference.s;
+  const lightnessDelta = target.l - reference.l;
+
+  const nextSaturation =
+    source.s < 8 && target.s > reference.s
+      ? clamp(source.s + saturationDelta * 0.35, 0, 100)
+      : clamp(source.s + saturationDelta, 0, 100);
+
+  return hslToHex(
+    (source.h + hueDelta + 360) % 360,
+    nextSaturation,
+    clamp(source.l + lightnessDelta, 0, 100)
+  );
+};
+
+const getRuleSlotOrder = (property: ThemeReplacementRule['property']): ThemeSemanticSlotId[] => {
+  if (property === 'color') return ['text', 'mutedText', 'primary', 'accent', 'border'];
+  if (property === 'background-color') return ['background', 'surface', 'primary', 'accent', 'border'];
+  if (property === 'border-color') return ['border', 'surface', 'background', 'primary', 'accent'];
+  return ['background', 'surface', 'text', 'mutedText', 'border', 'primary', 'accent'];
+};
+
+const pickReferenceSlot = (
+  rule: ThemeReplacementRule,
+  originalSlots: ThemeSemanticSlot[],
+  nextSlotsById: Partial<Record<ThemeSemanticSlotId, ThemeSemanticSlot>>
+) => {
+  const preferred = getRuleSlotOrder(rule.property);
+  const candidates = originalSlots
+    .filter((slot) => preferred.includes(slot.id) && nextSlotsById[slot.id])
+    .map((slot) => ({
+      slot,
+      priority: preferred.indexOf(slot.id),
+      distance: getColorDistance(rule.originalColor, slot.originalColor),
+    }))
+    .sort((left, right) => left.priority - right.priority || left.distance - right.distance);
+
+  return candidates[0]?.slot || null;
+};
+
+export const buildPresetExactReplacements = (
+  rules: ThemeReplacementRule[],
+  originalSlots: ThemeSemanticSlot[],
+  nextSlots: ThemeSemanticSlot[]
+): ThemeReplacementRule[] => {
+  const nextSlotsById = Object.fromEntries(nextSlots.map((slot) => [slot.id, slot])) as Partial<
     Record<ThemeSemanticSlotId, ThemeSemanticSlot>
   >;
-  const originalPrimary = byId.primary?.originalColor || '#2563EB';
-  const originalAccent = byId.accent?.originalColor || shiftHue(originalPrimary, 40, 8, 4);
-  const originalBackground = byId.background?.originalColor || '#FFFFFF';
-  const originalSurface = byId.surface?.originalColor || adjustLightness(originalBackground, -4);
 
+  return rules.map((rule) => {
+    const referenceSlot = pickReferenceSlot(rule, originalSlots, nextSlotsById);
+    if (!referenceSlot) {
+      return {
+        ...rule,
+        enabled: false,
+        replacementColor: rule.originalColor,
+      };
+    }
+
+    const targetSlot = nextSlotsById[referenceSlot.id];
+    if (!targetSlot) {
+      return {
+        ...rule,
+        enabled: false,
+        replacementColor: rule.originalColor,
+      };
+    }
+
+    const replacementColor = transformColorBySlotDelta(
+      rule.originalColor,
+      referenceSlot.originalColor,
+      targetSlot.currentColor
+    );
+
+    return {
+      ...rule,
+      replacementColor,
+      enabled: normalizeHex(replacementColor) !== normalizeHex(rule.originalColor),
+    };
+  });
+};
+
+export const buildThemePreset = (presetId: string, slots: ThemeSemanticSlot[]): ThemePreset => {
   const presets: Record<string, ThemePreset> = {
     original: {
       id: 'original',
@@ -375,54 +470,67 @@ export const buildThemePreset = (presetId: string, slots: ThemeSemanticSlot[]): 
     },
     dark: {
       id: 'dark',
-      label: 'Dark',
+      label: 'Midnight',
       colors: {
-        background: '#0F172A',
-        surface: '#111827',
-        text: '#F8FAFC',
-        mutedText: '#CBD5E1',
-        border: '#334155',
-        primary: adjustLightness(originalPrimary, 10),
-        accent: adjustLightness(originalAccent, 8),
+        background: '#08111F',
+        surface: '#0F1B2D',
+        text: '#F5F7FA',
+        mutedText: '#A8B5C7',
+        border: '#22344B',
+        primary: '#5EA2FF',
+        accent: '#7CE7FF',
       },
     },
     warm: {
       id: 'warm',
-      label: 'Warm',
+      label: 'Sand',
       colors: {
-        background: '#FFF7ED',
-        surface: '#FFEDD5',
-        text: '#7C2D12',
-        mutedText: '#9A3412',
-        border: '#FDBA74',
-        primary: shiftHue(originalPrimary, -12, 10, 8),
-        accent: '#EA580C',
+        background: '#F8EFE3',
+        surface: '#EFDCC6',
+        text: '#4A3422',
+        mutedText: '#7A5A43',
+        border: '#CDAF8A',
+        primary: '#C96B3B',
+        accent: '#E2A458',
       },
     },
     ocean: {
       id: 'ocean',
-      label: 'Ocean',
+      label: 'Lagoon',
       colors: {
-        background: '#ECFEFF',
-        surface: '#CFFAFE',
-        text: '#164E63',
-        mutedText: '#0F766E',
-        border: '#67E8F9',
-        primary: shiftHue(originalPrimary, 28, 12, 2),
-        accent: '#0891B2',
+        background: '#E6F4F4',
+        surface: '#C9E6E4',
+        text: '#143B44',
+        mutedText: '#2E6770',
+        border: '#7FB8B3',
+        primary: '#147D8A',
+        accent: '#35B6A5',
+      },
+    },
+    forest: {
+      id: 'forest',
+      label: 'Forest',
+      colors: {
+        background: '#EEF3EA',
+        surface: '#DDE8D4',
+        text: '#203126',
+        mutedText: '#516652',
+        border: '#9CB48B',
+        primary: '#3D7A52',
+        accent: '#8E6C3F',
       },
     },
     'high-contrast': {
       id: 'high-contrast',
-      label: 'High Contrast',
+      label: 'Mono',
       colors: {
         background: '#FFFFFF',
-        surface: originalSurface,
+        surface: '#F3F4F6',
         text: '#000000',
-        mutedText: '#1F2937',
-        border: '#000000',
-        primary: '#0047FF',
-        accent: '#C81E1E',
+        mutedText: '#374151',
+        border: '#111827',
+        primary: '#111827',
+        accent: '#6B7280',
       },
     },
   };

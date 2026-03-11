@@ -1,6 +1,7 @@
 import { Inspector } from './inspector';
 import { extractFonts } from './extractors/fontExtractor';
 import { extractColors } from './extractors/colorExtractor';
+import { extractGradients } from './extractors/gradientExtractor';
 import { detectSpacingSystem } from './extractors/spacingExtractor';
 import { extractAssets } from './extractors/assetExtractor';
 import { detectAllScrollAnimations } from './extractors/scrollAnimationDetector';
@@ -17,6 +18,7 @@ if (!isCurrentRuntimeOwner()) {
   const inspector = new Inspector();
   const themeRuntime = new ThemeRuntime();
   let lastExtractedColors: ReturnType<typeof extractColors> = [];
+  let lastExtractedGradients: ReturnType<typeof extractGradients> = [];
 
   // Inject page context script to access window variables
   function injectPageContextScript() {
@@ -78,8 +80,11 @@ if (!isCurrentRuntimeOwner()) {
       if (!lastExtractedColors.length) {
         lastExtractedColors = extractColors();
       }
+      if (!lastExtractedGradients.length) {
+        lastExtractedGradients = extractGradients();
+      }
 
-      const session = themeRuntime.initSession(lastExtractedColors, document.title, window.location.href);
+      const session = themeRuntime.initSession(lastExtractedColors, lastExtractedGradients, document.title, window.location.href);
       sendResponse({ status: 'ok', session });
       return true;
     }
@@ -94,6 +99,7 @@ if (!isCurrentRuntimeOwner()) {
       const session = themeRuntime.applyPatch({
         semanticSlots: request.semanticSlots,
         exactReplacements: request.exactReplacements,
+        gradientReplacements: request.gradientReplacements,
         applyMode: request.applyMode,
         isPreviewActive: request.isPreviewActive,
       });
@@ -105,6 +111,7 @@ if (!isCurrentRuntimeOwner()) {
       const session = themeRuntime.undoPatch({
         semanticSlots: request.semanticSlots || [],
         exactReplacements: request.exactReplacements || [],
+        gradientReplacements: request.gradientReplacements || [],
         applyMode: request.applyMode || 'hybrid',
       });
       sendResponse({ status: 'ok', session });
@@ -115,6 +122,7 @@ if (!isCurrentRuntimeOwner()) {
       const session = themeRuntime.redoPatch({
         semanticSlots: request.semanticSlots || [],
         exactReplacements: request.exactReplacements || [],
+        gradientReplacements: request.gradientReplacements || [],
         applyMode: request.applyMode || 'hybrid',
       });
       sendResponse({ status: 'ok', session });
@@ -410,7 +418,9 @@ if (!isCurrentRuntimeOwner()) {
     if (request.action === 'GET_PAGE_DATA') {
       const fonts = extractFonts();
       const colors = extractColors();
+      const gradients = extractGradients();
       lastExtractedColors = colors;
+      lastExtractedGradients = gradients;
       const spacing = detectSpacingSystem();
       const assets = extractAssets();
       const htmlStructure = extractHTMLStructure();

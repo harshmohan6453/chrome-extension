@@ -358,6 +358,7 @@ export default function App() {
           useStore.getState().updateThemeSession({
             semanticSlots: message.session.semanticSlots,
             exactReplacements: message.session.exactReplacements,
+            gradientReplacements: message.session.gradientReplacements,
             applyMode: message.session.applyMode,
             trackedNodeCount: message.session.trackedNodeCount,
             isPreviewActive: message.session.isPreviewActive,

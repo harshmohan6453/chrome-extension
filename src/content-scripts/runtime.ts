@@ -1,4 +1,3 @@
-const RUNTIME_OWNER_ATTR = 'data-di-runtime-owner';
 const CURRENT_RUNTIME_ID = (() => {
   try {
     return chrome.runtime?.id || '';
@@ -6,6 +5,12 @@ const CURRENT_RUNTIME_ID = (() => {
     return '';
   }
 })();
+
+const RUNTIME_OWNER_KEY = '__diRuntimeOwner';
+
+type RuntimeOwnerWindow = Window & {
+  [RUNTIME_OWNER_KEY]?: string;
+};
 
 export const isRuntimeAvailable = () => {
   try {
@@ -43,9 +48,8 @@ export const safeRuntimeSendMessage = async <T = unknown>(message: unknown): Pro
 };
 
 export const claimRuntimeOwnership = () => {
-  document.documentElement.setAttribute(RUNTIME_OWNER_ATTR, CURRENT_RUNTIME_ID);
+  (window as RuntimeOwnerWindow)[RUNTIME_OWNER_KEY] = CURRENT_RUNTIME_ID;
 };
 
 export const isCurrentRuntimeOwner = () =>
-  document.documentElement.getAttribute(RUNTIME_OWNER_ATTR) === CURRENT_RUNTIME_ID;
-
+  (window as RuntimeOwnerWindow)[RUNTIME_OWNER_KEY] === CURRENT_RUNTIME_ID;

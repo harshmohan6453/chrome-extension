@@ -9,6 +9,7 @@ export type ThemeSemanticSlotId =
 
 export type ThemeProperty = 'color' | 'background-color' | 'border-color';
 export type ThemeApplyMode = 'hybrid' | 'variables-only';
+export type ThemeGradientKind = 'background' | 'text';
 
 export interface SemanticCandidate {
   slot: ThemeSemanticSlotId;
@@ -24,6 +25,13 @@ export interface ColorOccurrenceSummary {
 export interface ColorVariableMetadata {
   name: string;
   source: 'root' | 'body' | 'inline';
+}
+
+export interface ThemeGradientSource {
+  value: string;
+  kind: ThemeGradientKind;
+  count: number;
+  sampleSelectors: string[];
 }
 
 export interface ThemeSemanticSlot {
@@ -48,15 +56,27 @@ export interface ThemeReplacementRule {
   enabled: boolean;
 }
 
+export interface ThemeGradientRule {
+  id: string;
+  originalValue: string;
+  replacementValue: string;
+  kind: ThemeGradientKind;
+  count: number;
+  sampleSelectors: string[];
+  enabled: boolean;
+}
+
 export interface ThemeHistoryEntry {
   semanticSlots: ThemeSemanticSlot[];
   exactReplacements: ThemeReplacementRule[];
+  gradientReplacements: ThemeGradientRule[];
   applyMode: ThemeApplyMode;
 }
 
 export interface ThemeSession {
   semanticSlots: ThemeSemanticSlot[];
   exactReplacements: ThemeReplacementRule[];
+  gradientReplacements: ThemeGradientRule[];
   history: ThemeHistoryEntry[];
   historyIndex: number;
   isPreviewActive: boolean;
@@ -80,6 +100,7 @@ export interface ThemeSessionExport {
   exportedAt: string;
   semanticSlots: ThemeSemanticSlot[];
   exactReplacements: ThemeReplacementRule[];
+  gradientReplacements: ThemeGradientRule[];
 }
 
 export const THEME_SLOT_LABELS: Record<ThemeSemanticSlotId, string> = {
@@ -309,8 +330,22 @@ export const deriveThemeReplacementRules = (colors: ThemeColorSource[]): ThemeRe
     enabled: false,
   }));
 
+export const deriveThemeGradientRules = (gradients: ThemeGradientSource[]): ThemeGradientRule[] =>
+  [...gradients]
+    .sort((a, b) => b.count - a.count)
+    .map((gradient) => ({
+      id: `${gradient.kind}:${gradient.value}`,
+      originalValue: gradient.value,
+      replacementValue: gradient.value,
+      kind: gradient.kind,
+      count: gradient.count,
+      sampleSelectors: dedupe(gradient.sampleSelectors).slice(0, 8),
+      enabled: false,
+    }));
+
 export const buildInitialThemeSession = (
   colors: ThemeColorSource[],
+  gradients: ThemeGradientSource[],
   pageTitle: string,
   pageUrl: string,
   applyMode: ThemeApplyMode = 'hybrid',
@@ -318,14 +353,17 @@ export const buildInitialThemeSession = (
 ): ThemeSession => {
   const semanticSlots = deriveThemeSemanticSlots(colors);
   const exactReplacements = deriveThemeReplacementRules(colors);
+  const gradientReplacements = deriveThemeGradientRules(gradients);
 
   return {
     semanticSlots,
     exactReplacements,
+    gradientReplacements,
     history: [
       {
         semanticSlots,
         exactReplacements,
+        gradientReplacements,
         applyMode,
       },
     ],
@@ -347,18 +385,27 @@ export const cloneThemeSessionState = (session: ThemeSession): ThemeHistoryEntry
     variableNames: [...rule.variableNames],
     sampleSelectors: [...rule.sampleSelectors],
   })),
+  gradientReplacements: session.gradientReplacements.map((rule) => ({
+    ...rule,
+    sampleSelectors: [...rule.sampleSelectors],
+  })),
   applyMode: session.applyMode,
 });
 
 export const createHistorySnapshot = (
   semanticSlots: ThemeSemanticSlot[],
   exactReplacements: ThemeReplacementRule[],
+  gradientReplacements: ThemeGradientRule[],
   applyMode: ThemeApplyMode
 ): ThemeHistoryEntry => ({
   semanticSlots: semanticSlots.map((slot) => ({ ...slot, candidateVariables: [...slot.candidateVariables] })),
   exactReplacements: exactReplacements.map((rule) => ({
     ...rule,
     variableNames: [...rule.variableNames],
+    sampleSelectors: [...rule.sampleSelectors],
+  })),
+  gradientReplacements: gradientReplacements.map((rule) => ({
+    ...rule,
     sampleSelectors: [...rule.sampleSelectors],
   })),
   applyMode,
@@ -548,6 +595,12 @@ export const exportThemeSession = (session: ThemeSession): ThemeSessionExport =>
     .map((rule) => ({
       ...rule,
       variableNames: [...rule.variableNames],
+      sampleSelectors: [...rule.sampleSelectors],
+    })),
+  gradientReplacements: session.gradientReplacements
+    .filter((rule) => rule.enabled || rule.originalValue !== rule.replacementValue)
+    .map((rule) => ({
+      ...rule,
       sampleSelectors: [...rule.sampleSelectors],
     })),
 });

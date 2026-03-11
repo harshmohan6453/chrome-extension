@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import {
   ThemeApplyMode,
+  ThemeGradientRule,
   ThemeHistoryEntry,
   ThemeReplacementRule,
   ThemeSemanticSlot,
@@ -184,6 +185,7 @@ interface AppState {
   pushThemeHistory: (
     semanticSlots: ThemeSemanticSlot[],
     exactReplacements: ThemeReplacementRule[],
+    gradientReplacements: ThemeGradientRule[],
     applyMode: ThemeApplyMode
   ) => void;
   restoreThemeHistory: (historyEntry: ThemeHistoryEntry, historyIndex: number) => void;
@@ -192,6 +194,19 @@ interface AppState {
   reset: () => void;
   resetPreferences: () => void;
 }
+
+const normalizeThemeSession = (themeSession: ThemeSession | null): ThemeSession | null => {
+  if (!themeSession) return null;
+
+  return {
+    ...themeSession,
+    gradientReplacements: themeSession.gradientReplacements || [],
+    history: (themeSession.history || []).map((entry) => ({
+      ...entry,
+      gradientReplacements: entry.gradientReplacements || [],
+    })),
+  };
+};
 
 const initialData: InspectionData = {
   fonts: [],
@@ -223,29 +238,30 @@ export const useStore = create<AppState>((set) => ({
   setInspecting: (isInspecting) => set({ isInspecting }),
   setData: (newData) => set((state) => ({ data: { ...state.data, ...newData } })),
   setPreferences: (newPrefs) => set((state) => ({ preferences: { ...state.preferences, ...newPrefs } })),
-  setThemeSession: (themeSession) => set({ themeSession }),
+  setThemeSession: (themeSession) => set({ themeSession: normalizeThemeSession(themeSession) }),
   updateThemeSession: (updates) =>
     set((state) => ({
       themeSession: state.themeSession
-        ? {
+        ? normalizeThemeSession({
             ...state.themeSession,
             ...updates,
             lastUpdatedAt: Date.now(),
-          }
+          })
         : null,
     })),
-  pushThemeHistory: (semanticSlots, exactReplacements, applyMode) =>
+  pushThemeHistory: (semanticSlots, exactReplacements, gradientReplacements, applyMode) =>
     set((state) => {
       if (!state.themeSession) return {};
 
       const nextHistory = state.themeSession.history.slice(0, state.themeSession.historyIndex + 1);
-      nextHistory.push(createHistorySnapshot(semanticSlots, exactReplacements, applyMode));
+      nextHistory.push(createHistorySnapshot(semanticSlots, exactReplacements, gradientReplacements, applyMode));
 
       return {
         themeSession: {
           ...state.themeSession,
           semanticSlots,
           exactReplacements,
+          gradientReplacements,
           applyMode,
           history: nextHistory,
           historyIndex: nextHistory.length - 1,
@@ -262,6 +278,7 @@ export const useStore = create<AppState>((set) => ({
             ...state.themeSession,
             semanticSlots: historyEntry.semanticSlots,
             exactReplacements: historyEntry.exactReplacements,
+            gradientReplacements: historyEntry.gradientReplacements || [],
             applyMode: historyEntry.applyMode,
             historyIndex,
             isPreviewActive: true,

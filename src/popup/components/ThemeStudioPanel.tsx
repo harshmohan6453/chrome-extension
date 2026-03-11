@@ -4,6 +4,7 @@ import { clsx } from 'clsx';
 import { useStore } from '../../store';
 import {
   buildPresetExactReplacements,
+  ThemeGradientRule,
   ThemeReplacementRule,
   ThemeSemanticSlot,
   ThemeSession,
@@ -27,11 +28,74 @@ const badgeToneClasses = {
   bad: 'bg-red-500/10 text-red-700 border-red-500/30',
 };
 
+const GRADIENT_COLOR_TOKEN_REGEX =
+  /#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})\b|(?:rgba?|hsla?|hwb|lab|lch|oklab|oklch|color)\([^()]*\)|\btransparent\b/g;
+
+interface GradientColorStop {
+  raw: string;
+  hex: string;
+  start: number;
+  end: number;
+}
+
+const rgbStringToHex = (value: string) => {
+  const channels = value.match(/\d+(\.\d+)?/g);
+  if (!channels || channels.length < 3) return null;
+
+  const [r, g, b] = channels.slice(0, 3).map((channel) => Math.max(0, Math.min(255, Math.round(Number(channel)))));
+  return `#${[r, g, b]
+    .map((channel) => channel.toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase()}`;
+};
+
+const cssColorToHex = (value: string) => {
+  if (value.trim().toLowerCase() === 'transparent') return null;
+  if (!CSS.supports('color', value)) return null;
+
+  const probe = document.createElement('span');
+  probe.style.color = value;
+  document.body.appendChild(probe);
+  const resolved = getComputedStyle(probe).color;
+  probe.remove();
+
+  return rgbStringToHex(resolved);
+};
+
+const extractGradientColorStops = (gradient: string): GradientColorStop[] => {
+  const matches = Array.from(gradient.matchAll(GRADIENT_COLOR_TOKEN_REGEX));
+  return matches
+    .map((match) => {
+      const raw = match[0];
+      const start = match.index ?? 0;
+      const end = start + raw.length;
+      const hex = cssColorToHex(raw);
+      if (!hex) return null;
+      return { raw, hex, start, end };
+    })
+    .filter((stop): stop is GradientColorStop => Boolean(stop));
+};
+
+const replaceGradientColorStop = (gradient: string, stopIndex: number, nextHex: string) => {
+  const stops = extractGradientColorStops(gradient);
+  const target = stops[stopIndex];
+  if (!target) return gradient;
+  return `${gradient.slice(0, target.start)}${nextHex}${gradient.slice(target.end)}`;
+};
+
+const getGradientPreviewStyle = (gradient: string) => ({
+  background: gradient,
+  backgroundImage: gradient,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+});
+
 export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPanelProps) => {
   const { themeSession, setThemeSession, updateThemeSession, pushThemeHistory, restoreThemeHistory } = useStore();
   const [initializing, setInitializing] = useState(false);
   const [copyState, setCopyState] = useState<'idle' | 'copied'>('idle');
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [gradientDrafts, setGradientDrafts] = useState<Record<string, string>>({});
 
   const initializeThemeSession = async (tabId?: number) => {
     const resolvedTabId =
@@ -95,12 +159,42 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
     setAdvancedOpen(Boolean(themeSession?.lowConfidence));
   }, [themeSession?.lowConfidence, themeSession?.pageUrl]);
 
+  useEffect(() => {
+    if (!themeSession) {
+      setGradientDrafts({});
+      return;
+    }
+
+    setGradientDrafts(
+      Object.fromEntries(themeSession.gradientReplacements.map((rule) => [rule.id, rule.replacementValue]))
+    );
+  }, [themeSession]);
+
   const sendThemePatch = async (
     payload:
-      | { action: 'APPLY_THEME_PATCH'; semanticSlots?: ThemeSemanticSlot[]; exactReplacements?: ThemeReplacementRule[]; applyMode?: ThemeSession['applyMode']; isPreviewActive?: boolean }
+      | {
+          action: 'APPLY_THEME_PATCH';
+          semanticSlots?: ThemeSemanticSlot[];
+          exactReplacements?: ThemeReplacementRule[];
+          gradientReplacements?: ThemeGradientRule[];
+          applyMode?: ThemeSession['applyMode'];
+          isPreviewActive?: boolean;
+        }
       | { action: 'APPLY_THEME_PRESET'; semanticSlots: ThemeSemanticSlot[] }
-      | { action: 'UNDO_THEME_PATCH'; semanticSlots: ThemeSemanticSlot[]; exactReplacements: ThemeReplacementRule[]; applyMode: ThemeSession['applyMode'] }
-      | { action: 'REDO_THEME_PATCH'; semanticSlots: ThemeSemanticSlot[]; exactReplacements: ThemeReplacementRule[]; applyMode: ThemeSession['applyMode'] }
+      | {
+          action: 'UNDO_THEME_PATCH';
+          semanticSlots: ThemeSemanticSlot[];
+          exactReplacements: ThemeReplacementRule[];
+          gradientReplacements: ThemeGradientRule[];
+          applyMode: ThemeSession['applyMode'];
+        }
+      | {
+          action: 'REDO_THEME_PATCH';
+          semanticSlots: ThemeSemanticSlot[];
+          exactReplacements: ThemeReplacementRule[];
+          gradientReplacements: ThemeGradientRule[];
+          applyMode: ThemeSession['applyMode'];
+        }
       | { action: 'RESET_THEME_SESSION' }
       | { action: 'EXPORT_THEME_SESSION' }
   ) => {
@@ -132,17 +226,20 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
   const applySemanticSlots = async (nextSlots: ThemeSemanticSlot[]) => {
     if (!themeSession) return;
     const nextRules = themeSession.exactReplacements.map((rule) => ({ ...rule }));
-    pushThemeHistory(nextSlots, nextRules, themeSession.applyMode);
+    const nextGradientRules = themeSession.gradientReplacements.map((rule) => ({ ...rule }));
+    pushThemeHistory(nextSlots, nextRules, nextGradientRules, themeSession.applyMode);
     const response = await sendThemePatch({
       action: 'APPLY_THEME_PATCH',
       semanticSlots: nextSlots,
       exactReplacements: nextRules,
+      gradientReplacements: nextGradientRules,
       applyMode: themeSession.applyMode,
       isPreviewActive: true,
     });
     if (response?.session) {
       const session = response.session as ThemeSession;
       updateThemeSession({
+        gradientReplacements: session.gradientReplacements,
         trackedNodeCount: session.trackedNodeCount,
         applyMode: session.applyMode,
         isPreviewActive: session.isPreviewActive,
@@ -153,17 +250,44 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
   const applyExactRules = async (nextRules: ThemeReplacementRule[]) => {
     if (!themeSession) return;
     const nextSlots = themeSession.semanticSlots.map((slot) => ({ ...slot }));
-    pushThemeHistory(nextSlots, nextRules, themeSession.applyMode);
+    const nextGradientRules = themeSession.gradientReplacements.map((rule) => ({ ...rule }));
+    pushThemeHistory(nextSlots, nextRules, nextGradientRules, themeSession.applyMode);
     const response = await sendThemePatch({
       action: 'APPLY_THEME_PATCH',
       semanticSlots: nextSlots,
       exactReplacements: nextRules,
+      gradientReplacements: nextGradientRules,
       applyMode: themeSession.applyMode,
       isPreviewActive: true,
     });
     if (response?.session) {
       const session = response.session as ThemeSession;
       updateThemeSession({
+        gradientReplacements: session.gradientReplacements,
+        trackedNodeCount: session.trackedNodeCount,
+        applyMode: session.applyMode,
+        isPreviewActive: session.isPreviewActive,
+      });
+    }
+  };
+
+  const applyGradientRules = async (nextGradientRules: ThemeGradientRule[]) => {
+    if (!themeSession) return;
+    const nextSlots = themeSession.semanticSlots.map((slot) => ({ ...slot }));
+    const nextRules = themeSession.exactReplacements.map((rule) => ({ ...rule }));
+    pushThemeHistory(nextSlots, nextRules, nextGradientRules, themeSession.applyMode);
+    const response = await sendThemePatch({
+      action: 'APPLY_THEME_PATCH',
+      semanticSlots: nextSlots,
+      exactReplacements: nextRules,
+      gradientReplacements: nextGradientRules,
+      applyMode: themeSession.applyMode,
+      isPreviewActive: true,
+    });
+    if (response?.session) {
+      const session = response.session as ThemeSession;
+      updateThemeSession({
+        gradientReplacements: session.gradientReplacements,
         trackedNodeCount: session.trackedNodeCount,
         applyMode: session.applyMode,
         isPreviewActive: session.isPreviewActive,
@@ -186,18 +310,25 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
             replacementColor: rule.originalColor,
           }))
         : buildPresetExactReplacements(themeSession.exactReplacements, themeSession.semanticSlots, nextSlots);
+    const nextGradientRules = themeSession.gradientReplacements.map((rule) => ({
+      ...rule,
+      replacementValue: rule.originalValue,
+      enabled: false,
+    }));
 
-    pushThemeHistory(nextSlots, nextRules, themeSession.applyMode);
+    pushThemeHistory(nextSlots, nextRules, nextGradientRules, themeSession.applyMode);
     const response = await sendThemePatch({
       action: 'APPLY_THEME_PATCH',
       semanticSlots: nextSlots,
       exactReplacements: nextRules,
+      gradientReplacements: nextGradientRules,
       applyMode: themeSession.applyMode,
       isPreviewActive: true,
     });
     if (response?.session) {
       const session = response.session as ThemeSession;
       updateThemeSession({
+        gradientReplacements: session.gradientReplacements,
         trackedNodeCount: session.trackedNodeCount,
         applyMode: session.applyMode,
         isPreviewActive: session.isPreviewActive,
@@ -214,11 +345,13 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       action: 'UNDO_THEME_PATCH',
       semanticSlots: snapshot.semanticSlots,
       exactReplacements: snapshot.exactReplacements,
+      gradientReplacements: snapshot.gradientReplacements,
       applyMode: snapshot.applyMode,
     });
     if (response?.session) {
       const session = response.session as ThemeSession;
       updateThemeSession({
+        gradientReplacements: session.gradientReplacements,
         trackedNodeCount: session.trackedNodeCount,
         applyMode: session.applyMode,
         isPreviewActive: session.isPreviewActive,
@@ -235,11 +368,13 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       action: 'REDO_THEME_PATCH',
       semanticSlots: snapshot.semanticSlots,
       exactReplacements: snapshot.exactReplacements,
+      gradientReplacements: snapshot.gradientReplacements,
       applyMode: snapshot.applyMode,
     });
     if (response?.session) {
       const session = response.session as ThemeSession;
       updateThemeSession({
+        gradientReplacements: session.gradientReplacements,
         trackedNodeCount: session.trackedNodeCount,
         applyMode: session.applyMode,
         isPreviewActive: session.isPreviewActive,
@@ -255,7 +390,12 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       replacementColor: rule.originalColor,
       enabled: false,
     }));
-    const snapshot = createHistorySnapshot(resetSlots, resetRules, themeSession.applyMode);
+    const resetGradientRules = themeSession.gradientReplacements.map((rule) => ({
+      ...rule,
+      replacementValue: rule.originalValue,
+      enabled: false,
+    }));
+    const snapshot = createHistorySnapshot(resetSlots, resetRules, resetGradientRules, themeSession.applyMode);
     restoreThemeHistory(snapshot, themeSession.history.length);
     useStore.setState((state) => ({
       themeSession: state.themeSession
@@ -263,6 +403,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
             ...state.themeSession,
             semanticSlots: snapshot.semanticSlots,
             exactReplacements: snapshot.exactReplacements,
+            gradientReplacements: snapshot.gradientReplacements,
             history: [...state.themeSession.history, snapshot],
             historyIndex: state.themeSession.history.length,
             isPreviewActive: false,
@@ -274,6 +415,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
     if (response?.session) {
       const session = response.session as ThemeSession;
       updateThemeSession({
+        gradientReplacements: session.gradientReplacements,
         trackedNodeCount: session.trackedNodeCount,
         applyMode: session.applyMode,
         isPreviewActive: session.isPreviewActive,
@@ -288,6 +430,34 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
     await navigator.clipboard.writeText(JSON.stringify(payload, null, 2));
     setCopyState('copied');
     setTimeout(() => setCopyState('idle'), 1400);
+  };
+
+  const handleGradientDraftChange = (ruleId: string, value: string) => {
+    setGradientDrafts((current) => ({ ...current, [ruleId]: value }));
+  };
+
+  const handleGradientApply = async (ruleId: string) => {
+    if (!themeSession) return;
+    const draft = (gradientDrafts[ruleId] || '').trim();
+    if (!draft) return;
+
+    await applyGradientRules(
+      themeSession.gradientReplacements.map((rule) =>
+        rule.id === ruleId
+          ? {
+              ...rule,
+              enabled: true,
+              replacementValue: draft,
+            }
+          : rule
+      )
+    );
+  };
+
+  const handleGradientColorStopChange = (ruleId: string, stopIndex: number, nextHex: string) => {
+    const currentGradient = gradientDrafts[ruleId] || themeSession?.gradientReplacements.find((rule) => rule.id === ruleId)?.replacementValue || '';
+    const nextGradient = replaceGradientColorStop(currentGradient, stopIndex, nextHex.toUpperCase());
+    handleGradientDraftChange(ruleId, nextGradient);
   };
 
   if (initializing || !themeSession) {
@@ -466,6 +636,185 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
           ))}
         </div>
       </div>
+
+      {themeSession.gradientReplacements.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Gradients</div>
+              <div className="text-sm text-muted-foreground">
+                Detects gradient backgrounds and gradient text. Edit the CSS gradient string to preview changes live.
+              </div>
+            </div>
+            <div className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
+              {themeSession.gradientReplacements.length} detected
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            {themeSession.gradientReplacements.map((rule) => {
+              const replacementValue = gradientDrafts[rule.id] ?? rule.replacementValue;
+              const isTextGradient = rule.kind === 'text';
+              const replacementStops = extractGradientColorStops(replacementValue);
+
+              return (
+                <div key={rule.id} className="rounded-2xl border-2 border-foreground/20 bg-card p-4 space-y-4 neo-shadow">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-3 min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="font-bold">{isTextGradient ? 'Text Gradient' : 'Background Gradient'}</div>
+                        <span className="rounded-full border border-border bg-secondary/40 px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                          {rule.kind}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{rule.count} matches</span>
+                      </div>
+
+                      <div className="grid gap-3 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Original</div>
+                          <div
+                            className={clsx(
+                              'rounded-xl border border-border p-4 min-h-[84px] overflow-hidden',
+                              isTextGradient && 'flex items-center justify-center'
+                            )}
+                            style={
+                              isTextGradient
+                                ? {
+                                    backgroundColor: 'rgba(148, 163, 184, 0.08)',
+                                  }
+                                : getGradientPreviewStyle(rule.originalValue)
+                            }
+                          >
+                            {isTextGradient ? (
+                              <span
+                                className="text-2xl font-black inline-block"
+                                style={{
+                                  ...getGradientPreviewStyle(rule.originalValue),
+                                  backgroundClip: 'text',
+                                  WebkitBackgroundClip: 'text',
+                                  WebkitTextFillColor: 'transparent',
+                                }}
+                              >
+                                Gradient
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="font-mono text-xs break-all text-muted-foreground">{rule.originalValue}</div>
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Replacement</div>
+                          <div
+                            className={clsx(
+                              'rounded-xl border border-border p-4 min-h-[84px] overflow-hidden',
+                              isTextGradient && 'flex items-center justify-center'
+                            )}
+                            style={
+                              isTextGradient
+                                ? {
+                                    backgroundColor: 'rgba(148, 163, 184, 0.08)',
+                                  }
+                                : getGradientPreviewStyle(replacementValue)
+                            }
+                          >
+                            {isTextGradient ? (
+                              <span
+                                className="text-2xl font-black inline-block"
+                                style={{
+                                  ...getGradientPreviewStyle(replacementValue),
+                                  backgroundClip: 'text',
+                                  WebkitBackgroundClip: 'text',
+                                  WebkitTextFillColor: 'transparent',
+                                }}
+                              >
+                                Gradient
+                              </span>
+                            ) : null}
+                          </div>
+                          <textarea
+                            value={replacementValue}
+                            onChange={(event) => handleGradientDraftChange(rule.id, event.target.value)}
+                            className="w-full min-h-[84px] rounded-xl border border-border bg-background px-3 py-2 text-xs font-mono"
+                            spellCheck={false}
+                          />
+                          {replacementStops.length > 0 && (
+                            <div className="space-y-2">
+                              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Detected Colors</div>
+                              <div className="flex flex-wrap gap-2">
+                                {replacementStops.map((stop, stopIndex) => (
+                                  <label
+                                    key={`${rule.id}-stop-${stopIndex}`}
+                                    className="flex items-center gap-2 rounded-lg border border-border bg-background px-2 py-1.5"
+                                  >
+                                    <input
+                                      type="color"
+                                      value={stop.hex}
+                                      onChange={(event) => handleGradientColorStopChange(rule.id, stopIndex, event.target.value)}
+                                      className="h-8 w-8 rounded border border-border bg-transparent"
+                                    />
+                                    <span className="font-mono text-[11px] text-muted-foreground">{stop.hex}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Source</div>
+                        <div className="space-y-1">
+                          {rule.sampleSelectors.slice(0, 3).map((selector) => (
+                            <div
+                              key={`${rule.id}-${selector}`}
+                              className="rounded-md border border-border bg-secondary/30 px-2 py-1 font-mono text-[11px] text-muted-foreground break-all"
+                              title={selector}
+                            >
+                              {selector}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <label className="inline-flex items-center gap-2 text-xs font-bold text-muted-foreground shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={rule.enabled}
+                        onChange={(event) =>
+                          applyGradientRules(
+                            themeSession.gradientReplacements.map((currentRule) =>
+                              currentRule.id === rule.id
+                                ? {
+                                    ...currentRule,
+                                    enabled: event.target.checked,
+                                    replacementValue: event.target.checked
+                                      ? (gradientDrafts[currentRule.id] || currentRule.replacementValue).trim() || currentRule.originalValue
+                                      : currentRule.originalValue,
+                                  }
+                                : currentRule
+                            )
+                          )
+                        }
+                      />
+                      Enabled
+                    </label>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      onClick={() => handleGradientApply(rule.id)}
+                      className="rounded-xl bg-primary text-primary-foreground px-4 py-2 text-sm font-bold hover:bg-primary/90 transition-colors"
+                    >
+                      Apply Gradient
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="rounded-2xl border-2 border-foreground/20 bg-card p-4 neo-shadow space-y-4">
         <button

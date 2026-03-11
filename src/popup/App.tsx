@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Type, Palette, Layout, MousePointer2, Code2, Settings, Sparkles, RefreshCw, Layers, Image as ImageIcon, Play, AlertTriangle, Workflow, PanelRightOpen } from 'lucide-react';
+import { Type, Palette, Layout, MousePointer2, Code2, Settings, Sparkles, RefreshCw, Layers, Image as ImageIcon, Play, AlertTriangle, Workflow, PanelRightOpen, Paintbrush2 } from 'lucide-react';
 import { clsx } from 'clsx';
 import { useStore } from '../store';
 import { TypographyPanel } from './components/TypographyPanel';
@@ -11,11 +11,12 @@ import { GeneratePanel } from './components/GeneratePanel';
 import ScrollInspectorPanel from './components/ScrollInspectorPanel';
 import RedFlagsPanel from './components/RedFlagsPanel';
 import FlowsPanel from './components/FlowsPanel';
+import { ThemeStudioPanel } from './components/ThemeStudioPanel';
 import { UpdateRequiredScreen } from './components/UpdateRequiredScreen';
 import { InspectorPanel, InspectorData } from './components/InspectorPanel';
 import { VERSION_API_URL } from '../config';
 
-type Tab = 'overview' | 'typography' | 'colors' | 'assets' | 'spacing' | 'scroll' | 'redflags' | 'flows' | 'prompt' | 'settings' | 'inspector';
+type Tab = 'overview' | 'typography' | 'colors' | 'themeStudio' | 'assets' | 'spacing' | 'scroll' | 'redflags' | 'flows' | 'prompt' | 'settings' | 'inspector';
 
 // Helper to check if a URL is analyzable (not a restricted browser page)
 const isAnalyzableUrl = (url: string | undefined): boolean => {
@@ -84,6 +85,13 @@ const aggregateFonts = (rawFonts: any[]): import('../store').FontData[] => {
   }));
 };
 
+const getInitialTab = (isSidePanel: boolean): Tab => {
+  const params = new URLSearchParams(window.location.search);
+  const requestedTab = params.get('tab');
+  if (requestedTab === 'themeStudio' && isSidePanel) return 'themeStudio';
+  return 'overview';
+};
+
 // Helper to compare semver versions (e.g., "1.0" vs "1.1")
 const compareVersions = (current: string, minimum: string): boolean => {
   const currentParts = current.split('.').map(Number);
@@ -108,8 +116,16 @@ interface VersionInfo {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<Tab>('overview');
-  const { data, setData, isInspecting, setInspecting, setPreferences, setRedFlagsLoaded } = useStore();
+  const isSidePanel = window.location.pathname.includes('sidepanel');
+  const [activeTab, setActiveTab] = useState<Tab>(() => getInitialTab(isSidePanel));
+  const {
+    data,
+    setData,
+    isInspecting,
+    setInspecting,
+    setPreferences,
+    setRedFlagsLoaded,
+  } = useStore();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -124,9 +140,6 @@ export default function App() {
 
   // Ref for scroll container to reset scroll position
   const scrollContainerRef = useRef<HTMLDivElement>(null);
-
-  // Detect if we're in sidebar mode
-  const isSidePanel = window.location.pathname.includes('sidepanel');
 
   // Load preferences and setup auto-refresh listener
   useEffect(() => {
@@ -164,10 +177,16 @@ export default function App() {
   }, []); // Empty dependency array to run once on mount
   
   // Open sidebar panel
-  const openSidePanel = async () => {
+  const openSidePanel = async (targetTab: 'overview' | 'themeStudio' = 'overview') => {
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab?.windowId) {
+        const path = targetTab === 'themeStudio' ? 'sidepanel.html?tab=themeStudio' : 'sidepanel.html';
+        if (tab.id) {
+          await chrome.sidePanel.setOptions({ tabId: tab.id, path, enabled: true });
+        } else {
+          await chrome.sidePanel.setOptions({ path, enabled: true });
+        }
         await chrome.sidePanel.open({ windowId: tab.windowId });
         // Close popup after opening sidebar
         window.close();
@@ -209,10 +228,23 @@ export default function App() {
             if (response) {
                 // Reset red flags loaded state so it refetches for the new page
                 setRedFlagsLoaded(false);
+                if (useStore.getState().themeSession?.pageUrl && useStore.getState().themeSession?.pageUrl !== response.meta?.url) {
+                  useStore.getState().setThemeSession(null);
+                }
                 
                 setData({
                 fonts: aggregateFonts(response.fonts || []),
-                colors: response.colors.map((c: any) => ({ hex: c.hex, rgb: c.rgba, hsl: '', type: c.type || 'auto', role: c.role, count: c.usageCount })),
+                colors: response.colors.map((c: any) => ({
+                  hex: c.hex,
+                  rgb: c.rgba,
+                  hsl: '',
+                  type: c.type || 'auto',
+                  role: c.role,
+                  count: c.usageCount,
+                  occurrences: c.occurrences || [],
+                  cssVariables: c.cssVariables || [],
+                  semanticCandidates: c.semanticCandidates || [],
+                })),
                 spacing: response.spacing || [],
                 assets: response.assets || [],
                 scrollAnimations: response.scrollAnimations || [],
@@ -320,6 +352,22 @@ export default function App() {
         // Received element data from content script in sidebar mode
         setInspectorData(message.data);
         setActiveTab('inspector');
+      } else if (message.action === 'THEME_SESSION_UPDATED' && message.session) {
+        const currentThemeSession = useStore.getState().themeSession;
+        if (currentThemeSession && currentThemeSession.pageUrl === message.session.pageUrl) {
+          useStore.getState().updateThemeSession({
+            semanticSlots: message.session.semanticSlots,
+            exactReplacements: message.session.exactReplacements,
+            applyMode: message.session.applyMode,
+            trackedNodeCount: message.session.trackedNodeCount,
+            isPreviewActive: message.session.isPreviewActive,
+            pageTitle: message.session.pageTitle,
+            pageUrl: message.session.pageUrl,
+            lowConfidence: message.session.lowConfidence,
+          });
+        } else {
+          useStore.getState().setThemeSession(message.session);
+        }
       }
     };
     
@@ -380,6 +428,7 @@ export default function App() {
     { id: 'overview', icon: Layers, label: 'Overview' },
     { id: 'typography', icon: Type, label: 'Typography' },
     { id: 'colors', icon: Palette, label: 'Colors' },
+    ...(isSidePanel ? ([{ id: 'themeStudio', icon: Paintbrush2, label: 'Theme Studio' }] as const) : []),
     { id: 'assets', icon: ImageIcon, label: 'Assets' },
     { id: 'spacing', icon: Layout, label: 'Spacing' },
     { id: 'scroll', icon: Play, label: 'Scroll Animations' },
@@ -439,7 +488,8 @@ export default function App() {
     // 3. Tab Content
     switch (activeTab) {
       case 'typography': return <TypographyPanel />;
-      case 'colors': return <ColorPanel />;
+      case 'colors': return <ColorPanel isSidePanel={isSidePanel} onOpenThemeStudio={() => (isSidePanel ? setActiveTab('themeStudio') : openSidePanel('themeStudio'))} />;
+      case 'themeStudio': return <ThemeStudioPanel isSidePanel={isSidePanel} openSidePanel={openSidePanel} />;
       case 'assets': return <AssetsPanel />;
       case 'spacing': return <SpacingPanel />;
       case 'scroll': return <ScrollInspectorPanel />;
@@ -552,6 +602,24 @@ export default function App() {
                 Go →
               </span>
             </button>
+
+            <button
+              onClick={() => (isSidePanel ? setActiveTab('themeStudio') : openSidePanel('themeStudio'))}
+              className="w-full bg-card p-5 rounded-lg border-2 border-foreground/20 flex items-center justify-between group neo-shadow transition-all hover:border-primary hover:-translate-y-0.5"
+            >
+              <div className="flex items-center gap-4">
+                <div className="bg-primary/10 p-3 rounded-xl border border-primary/20">
+                  <Paintbrush2 className="w-6 h-6 text-primary" />
+                </div>
+                <div className="text-left">
+                  <h3 className="font-bold text-lg">Open Theme Studio</h3>
+                  <p className="text-sm text-muted-foreground">Preview live theme changes on this page</p>
+                </div>
+              </div>
+              <span className="bg-secondary px-4 py-2 rounded-xl font-bold text-sm group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
+                Launch
+              </span>
+            </button>
         </div>
       );
       default: return null;
@@ -657,7 +725,7 @@ export default function App() {
                 </button>
               ) : (
                 <button
-                  onClick={openSidePanel}
+                  onClick={() => openSidePanel('overview')}
                   className="w-10 h-10 rounded-lg bg-card border-2 border-foreground/20 flex items-center justify-center text-muted-foreground hover:text-primary hover:border-primary transition-all neo-shadow"
                   title="Pin as Sidebar"
                 >

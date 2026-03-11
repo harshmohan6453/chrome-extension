@@ -1,4 +1,12 @@
 import { create } from 'zustand';
+import {
+  ThemeApplyMode,
+  ThemeHistoryEntry,
+  ThemeReplacementRule,
+  ThemeSemanticSlot,
+  ThemeSession,
+  createHistorySnapshot,
+} from '../utils/themeStudio';
 
 export interface FontSizeData {
   value: string;
@@ -25,6 +33,19 @@ export interface ColorData {
   type: 'text' | 'background' | 'border' | 'auto';
   role?: string;
   count: number;
+  occurrences?: {
+    property: 'color' | 'background-color' | 'border-color';
+    count: number;
+    sampleSelectors: string[];
+  }[];
+  cssVariables?: {
+    name: string;
+    source: 'root' | 'body' | 'inline';
+  }[];
+  semanticCandidates?: {
+    slot: 'background' | 'surface' | 'text' | 'mutedText' | 'border' | 'primary' | 'accent';
+    confidence: number;
+  }[];
 }
 
 export interface AssetData {
@@ -152,11 +173,20 @@ interface AppState {
   isInspecting: boolean;
   data: InspectionData;
   preferences: UserPreferences;
+  themeSession: ThemeSession | null;
   redFlagsLoaded: boolean;
   scrollAnimationsLoaded: boolean;
   setInspecting: (isInspecting: boolean) => void;
   setData: (data: Partial<InspectionData>) => void;
   setPreferences: (prefs: Partial<UserPreferences>) => void;
+  setThemeSession: (session: ThemeSession | null) => void;
+  updateThemeSession: (updates: Partial<ThemeSession>) => void;
+  pushThemeHistory: (
+    semanticSlots: ThemeSemanticSlot[],
+    exactReplacements: ThemeReplacementRule[],
+    applyMode: ThemeApplyMode
+  ) => void;
+  restoreThemeHistory: (historyEntry: ThemeHistoryEntry, historyIndex: number) => void;
   setRedFlagsLoaded: (loaded: boolean) => void;
   setScrollAnimationsLoaded: (loaded: boolean) => void;
   reset: () => void;
@@ -187,17 +217,66 @@ export const useStore = create<AppState>((set) => ({
   isInspecting: false,
   data: initialData,
   preferences: initialPreferences,
+  themeSession: null,
   redFlagsLoaded: false,
   scrollAnimationsLoaded: false,
   setInspecting: (isInspecting) => set({ isInspecting }),
   setData: (newData) => set((state) => ({ data: { ...state.data, ...newData } })),
   setPreferences: (newPrefs) => set((state) => ({ preferences: { ...state.preferences, ...newPrefs } })),
+  setThemeSession: (themeSession) => set({ themeSession }),
+  updateThemeSession: (updates) =>
+    set((state) => ({
+      themeSession: state.themeSession
+        ? {
+            ...state.themeSession,
+            ...updates,
+            lastUpdatedAt: Date.now(),
+          }
+        : null,
+    })),
+  pushThemeHistory: (semanticSlots, exactReplacements, applyMode) =>
+    set((state) => {
+      if (!state.themeSession) return {};
+
+      const nextHistory = state.themeSession.history.slice(0, state.themeSession.historyIndex + 1);
+      nextHistory.push(createHistorySnapshot(semanticSlots, exactReplacements, applyMode));
+
+      return {
+        themeSession: {
+          ...state.themeSession,
+          semanticSlots,
+          exactReplacements,
+          applyMode,
+          history: nextHistory,
+          historyIndex: nextHistory.length - 1,
+          isPreviewActive: true,
+          lowConfidence: semanticSlots.some((slot) => slot.uncertain),
+          lastUpdatedAt: Date.now(),
+        },
+      };
+    }),
+  restoreThemeHistory: (historyEntry, historyIndex) =>
+    set((state) => ({
+      themeSession: state.themeSession
+        ? {
+            ...state.themeSession,
+            semanticSlots: historyEntry.semanticSlots,
+            exactReplacements: historyEntry.exactReplacements,
+            applyMode: historyEntry.applyMode,
+            historyIndex,
+            isPreviewActive: true,
+            lowConfidence: historyEntry.semanticSlots.some((slot) => slot.uncertain),
+            lastUpdatedAt: Date.now(),
+          }
+        : null,
+    })),
   setRedFlagsLoaded: (loaded) => set({ redFlagsLoaded: loaded }),
   setScrollAnimationsLoaded: (loaded) => set({ scrollAnimationsLoaded: loaded }),
   reset: () => {
     // Only reset data and session flags, preserve preferences and localStorage
     set({ 
         data: initialData, 
+        themeSession: null,
         isInspecting: false, 
         redFlagsLoaded: false, 
         scrollAnimationsLoaded: false 

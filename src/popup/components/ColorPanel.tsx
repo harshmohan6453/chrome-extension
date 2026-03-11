@@ -134,7 +134,12 @@ const ColorSwatchSmall = ({ color, displayValue, onCopy, copied }: { color: stri
 
 // --- Main Panel ---
 
-export const ColorPanel = () => {
+interface ColorPanelProps {
+  isSidePanel: boolean;
+  onOpenThemeStudio: () => void;
+}
+
+export const ColorPanel = ({ isSidePanel, onOpenThemeStudio }: ColorPanelProps) => {
   const { data, preferences } = useStore();
   const [activeTab, setActiveTab] = useState<'palette' | 'list' | 'contrast'>('palette');
   const [copied, setCopied] = useState<string | null>(null);
@@ -266,6 +271,22 @@ export const ColorPanel = () => {
                 <Download className="w-4 h-4" />
              </button>
           </div>
+        </div>
+
+        <div className="rounded-2xl border-2 border-foreground/20 bg-card p-4 neo-shadow flex items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Theme Studio</div>
+            <div className="font-bold">{isSidePanel ? 'Open live color controls' : 'Launch in side panel'}</div>
+            <div className="text-sm text-muted-foreground">
+              Preview semantic theme changes, presets, and exact color replacements directly on the page.
+            </div>
+          </div>
+          <button
+            onClick={onOpenThemeStudio}
+            className="shrink-0 rounded-xl bg-primary text-primary-foreground font-bold px-4 py-3 hover:bg-primary/90 transition-colors"
+          >
+            {isSidePanel ? 'Open Studio' : 'Open Side Panel'}
+          </button>
         </div>
 
         {/* Tab Navigation */}

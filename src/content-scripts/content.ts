@@ -8,12 +8,15 @@ import { detectRedFlags } from './extractors/redFlagDetector';
 import { extractHTMLStructure } from './extractors/htmlExtractor';
 import { captureSiteCloneData } from './extractors/siteCloneExtractor';
 import { FlowRecorder } from './extractors/flowRecorder';
+import { ThemeRuntime } from './themeRuntime';
 
 // Check if already injected
 if (!(window as any).di_contentScriptInjected) {
   (window as any).di_contentScriptInjected = true;
 
   const inspector = new Inspector();
+  const themeRuntime = new ThemeRuntime();
+  let lastExtractedColors: ReturnType<typeof extractColors> = [];
 
   // Inject page context script to access window variables
   function injectPageContextScript() {
@@ -61,6 +64,65 @@ if (!(window as any).di_contentScriptInjected) {
     if (request.action === 'UPDATE_HIGHLIGHT_COLOR') {
       inspector.setHighlightColor(request.highlightColor);
       sendResponse({ status: 'ok' });
+    }
+
+    if (request.action === 'INIT_THEME_SESSION') {
+      if (!lastExtractedColors.length) {
+        lastExtractedColors = extractColors();
+      }
+
+      const session = themeRuntime.initSession(lastExtractedColors, document.title, window.location.href);
+      sendResponse({ status: 'ok', session });
+      return true;
+    }
+
+    if (request.action === 'APPLY_THEME_PRESET') {
+      const session = themeRuntime.applyPreset(request.semanticSlots || []);
+      sendResponse({ status: 'ok', session });
+      return true;
+    }
+
+    if (request.action === 'APPLY_THEME_PATCH') {
+      const session = themeRuntime.applyPatch({
+        semanticSlots: request.semanticSlots,
+        exactReplacements: request.exactReplacements,
+        applyMode: request.applyMode,
+        isPreviewActive: request.isPreviewActive,
+      });
+      sendResponse({ status: 'ok', session });
+      return true;
+    }
+
+    if (request.action === 'UNDO_THEME_PATCH') {
+      const session = themeRuntime.undoPatch({
+        semanticSlots: request.semanticSlots || [],
+        exactReplacements: request.exactReplacements || [],
+        applyMode: request.applyMode || 'hybrid',
+      });
+      sendResponse({ status: 'ok', session });
+      return true;
+    }
+
+    if (request.action === 'REDO_THEME_PATCH') {
+      const session = themeRuntime.redoPatch({
+        semanticSlots: request.semanticSlots || [],
+        exactReplacements: request.exactReplacements || [],
+        applyMode: request.applyMode || 'hybrid',
+      });
+      sendResponse({ status: 'ok', session });
+      return true;
+    }
+
+    if (request.action === 'RESET_THEME_SESSION') {
+      const session = themeRuntime.resetSession();
+      sendResponse({ status: 'ok', session });
+      return true;
+    }
+
+    if (request.action === 'EXPORT_THEME_SESSION') {
+      const payload = themeRuntime.exportSession();
+      sendResponse({ status: 'ok', payload });
+      return true;
     }
 
     // Color Picker using native EyeDropper API
@@ -340,6 +402,7 @@ if (!(window as any).di_contentScriptInjected) {
     if (request.action === 'GET_PAGE_DATA') {
       const fonts = extractFonts();
       const colors = extractColors();
+      lastExtractedColors = colors;
       const spacing = detectSpacingSystem();
       const assets = extractAssets();
       const htmlStructure = extractHTMLStructure();

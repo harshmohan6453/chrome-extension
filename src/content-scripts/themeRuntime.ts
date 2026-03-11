@@ -54,9 +54,9 @@ export class ThemeRuntime {
 
     const applyMode: ThemeApplyMode = this.pageElementCount > TRACK_LIMIT ? 'variables-only' : 'hybrid';
     this.session = buildInitialThemeSession(colors, pageTitle, pageUrl, applyMode, this.pageElementCount);
+    this.removeToast();
     this.syncTrackingForExactRules();
     this.startObserver();
-    this.showToast();
     this.render();
     this.emitSessionUpdate();
     return this.session;
@@ -116,6 +116,7 @@ export class ThemeRuntime {
     };
 
     this.clearTrackedNodes();
+    this.removeToast();
     this.render();
     this.emitSessionUpdate();
     return this.session;
@@ -350,56 +351,7 @@ export class ThemeRuntime {
     });
   }
 
-  private showToast() {
+  private removeToast() {
     document.getElementById(TOAST_ID)?.remove();
-
-    const toast = document.createElement('div');
-    toast.id = TOAST_ID;
-    toast.innerHTML = `
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div>
-          <div style="font-size:12px;font-weight:700;letter-spacing:0.02em;">Preview active</div>
-          <div style="font-size:11px;opacity:0.78;">Theme Studio is controlling this page.</div>
-        </div>
-        <button data-action="reset" style="border:none;border-radius:10px;padding:8px 10px;background:#111827;color:#fff;font-weight:700;cursor:pointer;">Reset</button>
-        <button data-action="open" style="border:none;border-radius:10px;padding:8px 10px;background:#2563EB;color:#fff;font-weight:700;cursor:pointer;">Back to Studio</button>
-      </div>
-    `;
-
-    toast.style.cssText = `
-      position: fixed;
-      right: 16px;
-      bottom: 16px;
-      z-index: 2147483647;
-      background: rgba(255,255,255,0.96);
-      color: #111827;
-      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
-      border: 1px solid rgba(15, 23, 42, 0.12);
-      border-radius: 16px;
-      padding: 12px 14px;
-      font-family: Inter, Arial, sans-serif;
-      min-width: 320px;
-      backdrop-filter: blur(10px);
-    `;
-
-    toast.addEventListener('click', async (event) => {
-      if (!isCurrentRuntimeOwner()) {
-        toast.remove();
-        return;
-      }
-
-      const target = event.target as HTMLElement | null;
-      if (!target?.dataset.action) return;
-
-      if (target.dataset.action === 'reset') {
-        this.resetSession();
-      }
-
-      if (target.dataset.action === 'open') {
-        await safeRuntimeSendMessage({ action: 'OPEN_THEME_STUDIO' });
-      }
-    });
-
-    (document.body || document.documentElement).appendChild(toast);
   }
 }

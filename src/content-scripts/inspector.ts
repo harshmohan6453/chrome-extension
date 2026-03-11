@@ -1,4 +1,6 @@
 // HTML escape function to prevent XSS/injection
+import { isCurrentRuntimeOwner, safeRuntimeSendMessage } from './runtime';
+
 const escapeHtml = (unsafe: string): string => {
   return unsafe
     .replace(/&/g, '&amp;')
@@ -256,6 +258,10 @@ export var Inspector = class {
   }
 
   private handleClick(e: MouseEvent) {
+    if (!isCurrentRuntimeOwner()) {
+      this.disable();
+      return;
+    }
     if (!this.isActive || !this.hoveredElement) return;
     
     // Allow interaction with our detail card
@@ -291,6 +297,10 @@ export var Inspector = class {
   
   // Update handleMouseMove to respect hoverMode
   private handleMouseMove(e: MouseEvent) {
+    if (!isCurrentRuntimeOwner()) {
+      this.disable();
+      return;
+    }
     if (!this.isActive) return;
 
     const target = e.target as HTMLElement;
@@ -858,7 +868,7 @@ height: ${rect.height}px;
 `;
 
       // Send to sidebar
-      chrome.runtime.sendMessage({
+      safeRuntimeSendMessage({
         action: 'INSPECTOR_ELEMENT_SELECTED',
         data: {
           tagName,
@@ -894,7 +904,7 @@ height: ${rect.height}px;
           cssString,
           prompt: this.generatePrompt(el)
         }
-      }).catch(() => {});
+      });
       
       return; // Don't show floating card
     }
@@ -1095,7 +1105,7 @@ height: ${rect.height}px;
     // Listeners for Card Controls
     this.detailCard.querySelector('#di-close-btn')?.addEventListener('click', () => {
         this.disable();
-        chrome.runtime.sendMessage({ action: 'INSPECTOR_DISABLED' });
+        safeRuntimeSendMessage({ action: 'INSPECTOR_DISABLED' });
     });
 
     const hoverToggle = this.detailCard.querySelector('#di-hover-toggle') as HTMLInputElement;

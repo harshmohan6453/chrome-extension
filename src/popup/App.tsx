@@ -223,12 +223,12 @@ export default function App() {
       }
       
       if (tab?.id) {
-        try {
+          try {
             const response = await chrome.tabs.sendMessage(tab.id, { action: 'GET_PAGE_DATA' });
             if (response) {
                 // Reset red flags loaded state so it refetches for the new page
                 setRedFlagsLoaded(false);
-                if (useStore.getState().themeSession?.pageUrl && useStore.getState().themeSession?.pageUrl !== response.meta?.url) {
+                if (useStore.getState().themeSession) {
                   useStore.getState().setThemeSession(null);
                 }
                 

@@ -9,10 +9,10 @@ import { extractHTMLStructure } from './extractors/htmlExtractor';
 import { captureSiteCloneData } from './extractors/siteCloneExtractor';
 import { FlowRecorder } from './extractors/flowRecorder';
 import { ThemeRuntime } from './themeRuntime';
+import { claimRuntimeOwnership, isCurrentRuntimeOwner, safeRuntimeGetURL, safeRuntimeSendMessage } from './runtime';
 
-// Check if already injected
-if (!(window as any).di_contentScriptInjected) {
-  (window as any).di_contentScriptInjected = true;
+if (!isCurrentRuntimeOwner()) {
+  claimRuntimeOwnership();
 
   const inspector = new Inspector();
   const themeRuntime = new ThemeRuntime();
@@ -20,8 +20,11 @@ if (!(window as any).di_contentScriptInjected) {
 
   // Inject page context script to access window variables
   function injectPageContextScript() {
+    const scriptUrl = safeRuntimeGetURL('pageContext.js');
+    if (!scriptUrl) return;
+
     const script = document.createElement('script');
-    script.src = chrome.runtime.getURL('pageContext.js');
+    script.src = scriptUrl;
     script.onload = () => {
       // console.log('✅ Page context script injected');
       script.remove();
@@ -52,6 +55,11 @@ if (!(window as any).di_contentScriptInjected) {
 
   // Listen for messages from popup
   chrome.runtime.onMessage.addListener((request, _, sendResponse) => {
+    if (!isCurrentRuntimeOwner()) {
+      sendResponse({ status: 'stale-context' });
+      return true;
+    }
+
     if (request.action === 'TOGGLE_INSPECTOR') {
       if (request.payload) {
         inspector.enable(request.highlightColor, request.sidebarMode);
@@ -432,10 +440,10 @@ if (!(window as any).di_contentScriptInjected) {
                 
               if (retryAnimations.length > 0) {
                 // console.log('✅ Found animations after 2s delay!');
-                chrome.runtime.sendMessage({
+                safeRuntimeSendMessage({
                   action: 'SCROLL_ANIMATIONS_UPDATED',
                   scrollAnimations: retryAnimations
-                }).catch(() => {});
+                });
               } else {
                 // Second retry after 4 seconds total
                 setTimeout(() => {
@@ -448,10 +456,10 @@ if (!(window as any).di_contentScriptInjected) {
                       
                      if (finalRetry.length > 0) {
                       // console.log('✅ Found animations after 4s delay!');
-                      chrome.runtime.sendMessage({
+                      safeRuntimeSendMessage({
                         action: 'SCROLL_ANIMATIONS_UPDATED',
                         scrollAnimations: finalRetry
-                      }).catch(() => {});
+                      });
                     } else {
                       // console.log('ℹ️ No scroll animations detected after multiple retries');
                     }

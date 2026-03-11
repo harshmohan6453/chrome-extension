@@ -1,3 +1,5 @@
+import { isCurrentRuntimeOwner } from '../runtime';
+
 export interface FlowStep {
   id: string;
   timestamp: number;
@@ -55,11 +57,15 @@ let clickListener: ((e: MouseEvent) => void) | null = null;
 export const FlowRecorder = {
   // Initialize: Check storage to see if we should be recording
   init: () => {
-    chrome.storage.local.get(['isRecording'], (result) => {
-      if (result.isRecording) {
-        FlowRecorder.start();
-      }
-    });
+    try {
+      chrome.storage.local.get(['isRecording'], (result) => {
+        if (result.isRecording) {
+          FlowRecorder.start();
+        }
+      });
+    } catch (error) {
+      console.warn('Flow recorder init skipped:', error);
+    }
 
     // Listen for toggle messages from Popup
     chrome.runtime.onMessage.addListener((message) => {
@@ -77,6 +83,11 @@ export const FlowRecorder = {
     // console.log('🔴 Flow Recorder Started');
 
     clickListener = (e: MouseEvent) => {
+      if (!isCurrentRuntimeOwner()) {
+        FlowRecorder.stop();
+        return;
+      }
+
       // Don't record clicks on the extension sidebar (if injected) or similar tools
       if ((e.target as Element).closest('#preflight-overlay')) return;
 
@@ -97,11 +108,15 @@ export const FlowRecorder = {
       // console.log('📸 Recorded:', step);
 
       // Save to storage
-      chrome.storage.local.get(['flowSteps'], (result) => {
-        const steps = result.flowSteps || [];
-        const newSteps = [...steps, step];
-        chrome.storage.local.set({ flowSteps: newSteps });
-      });
+      try {
+        chrome.storage.local.get(['flowSteps'], (result) => {
+          const steps = result.flowSteps || [];
+          const newSteps = [...steps, step];
+          chrome.storage.local.set({ flowSteps: newSteps });
+        });
+      } catch (error) {
+        console.warn('Flow recorder write skipped:', error);
+      }
     };
 
     document.addEventListener('click', clickListener, true); // Capture phase to catch everything

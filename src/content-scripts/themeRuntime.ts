@@ -9,6 +9,7 @@ import {
   exportThemeSession,
   normalizeHex,
 } from '../utils/themeStudio';
+import { isCurrentRuntimeOwner, safeRuntimeSendMessage } from './runtime';
 
 const STYLE_TAG_ID = 'di-theme-runtime-style';
 const TOAST_ID = 'di-theme-runtime-toast';
@@ -142,6 +143,10 @@ export class ThemeRuntime {
     if (this.observer) return;
 
     this.observer = new MutationObserver((mutations) => {
+      if (!isCurrentRuntimeOwner()) {
+        this.observer?.disconnect();
+        return;
+      }
       if (!this.session || this.session.applyMode !== 'hybrid') return;
       const activeColors = this.getTrackedColors();
       if (activeColors.size === 0) return;
@@ -339,16 +344,14 @@ export class ThemeRuntime {
 
   private emitSessionUpdate() {
     if (!this.session) return;
-    chrome.runtime
-      .sendMessage({
-        action: 'THEME_SESSION_UPDATED',
-        session: this.session,
-      })
-      .catch(() => null);
+    safeRuntimeSendMessage({
+      action: 'THEME_SESSION_UPDATED',
+      session: this.session,
+    });
   }
 
   private showToast() {
-    if (document.getElementById(TOAST_ID)) return;
+    document.getElementById(TOAST_ID)?.remove();
 
     const toast = document.createElement('div');
     toast.id = TOAST_ID;
@@ -380,6 +383,11 @@ export class ThemeRuntime {
     `;
 
     toast.addEventListener('click', async (event) => {
+      if (!isCurrentRuntimeOwner()) {
+        toast.remove();
+        return;
+      }
+
       const target = event.target as HTMLElement | null;
       if (!target?.dataset.action) return;
 
@@ -388,7 +396,7 @@ export class ThemeRuntime {
       }
 
       if (target.dataset.action === 'open') {
-        await chrome.runtime.sendMessage({ action: 'OPEN_THEME_STUDIO' }).catch(() => null);
+        await safeRuntimeSendMessage({ action: 'OPEN_THEME_STUDIO' });
       }
     });
 

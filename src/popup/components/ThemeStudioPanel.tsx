@@ -36,6 +36,33 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
   const [copyState, setCopyState] = useState<'idle' | 'copied'>('idle');
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
+  const initializeThemeSession = async (tabId?: number) => {
+    const resolvedTabId =
+      typeof tabId === 'number'
+        ? tabId
+        : (await chrome.tabs.query({ active: true, currentWindow: true }))[0]?.id;
+
+    if (!resolvedTabId) return null;
+
+    let response: any;
+    try {
+      response = await chrome.tabs.sendMessage(resolvedTabId, { action: 'INIT_THEME_SESSION' });
+    } catch {
+      await chrome.scripting.executeScript({
+        target: { tabId: resolvedTabId },
+        files: ['content.js'],
+      });
+      response = await chrome.tabs.sendMessage(resolvedTabId, { action: 'INIT_THEME_SESSION' });
+    }
+
+    if (response?.session) {
+      setThemeSession(response.session as ThemeSession);
+      return response.session as ThemeSession;
+    }
+
+    return null;
+  };
+
   useEffect(() => {
     let cancelled = false;
 
@@ -45,26 +72,14 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       try {
         const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
         if (!tab?.id) return;
-        const currentThemeSession = themeSession;
-
-        if (currentThemeSession && currentThemeSession.pageUrl === tab.url && currentThemeSession.semanticSlots.length > 0) {
+        if (themeSession && themeSession.pageUrl === tab.url && themeSession.semanticSlots.length > 0) {
           setInitializing(false);
           return;
         }
 
-        let response: any;
-        try {
-          response = await chrome.tabs.sendMessage(tab.id, { action: 'INIT_THEME_SESSION' });
-        } catch {
-          await chrome.scripting.executeScript({
-            target: { tabId: tab.id },
-            files: ['content.js'],
-          });
-          response = await chrome.tabs.sendMessage(tab.id, { action: 'INIT_THEME_SESSION' });
-        }
-
-        if (!cancelled && response?.session) {
-          setThemeSession(response.session as ThemeSession);
+        const session = await initializeThemeSession(tab.id);
+        if (!cancelled && session) {
+          setThemeSession(session);
         }
       } catch (error) {
         console.error('Failed to initialize theme session', error);
@@ -95,7 +110,27 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
   ) => {
     const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
     if (!tab?.id) return null;
-    return chrome.tabs.sendMessage(tab.id, payload);
+
+    const send = () => chrome.tabs.sendMessage(tab.id!, payload);
+
+    try {
+      const response: any = await send();
+      if (response?.status === 'stale-context') {
+        await initializeThemeSession(tab.id);
+        return await send();
+      }
+
+      const requiresThemeSession = payload.action !== 'EXPORT_THEME_SESSION';
+      if (requiresThemeSession && !response?.session && payload.action !== 'RESET_THEME_SESSION') {
+        await initializeThemeSession(tab.id);
+        return await send();
+      }
+
+      return response;
+    } catch {
+      await initializeThemeSession(tab.id);
+      return send();
+    }
   };
 
   const applySemanticSlots = async (nextSlots: ThemeSemanticSlot[]) => {

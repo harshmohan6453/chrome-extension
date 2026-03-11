@@ -34,23 +34,37 @@ const GRADIENT_COLOR_TOKEN_REGEX =
 interface GradientColorStop {
   raw: string;
   hex: string;
+  alpha: number;
   start: number;
   end: number;
 }
 
-const rgbStringToHex = (value: string) => {
+const parseResolvedRgb = (value: string) => {
   const channels = value.match(/\d+(\.\d+)?/g);
   if (!channels || channels.length < 3) return null;
 
   const [r, g, b] = channels.slice(0, 3).map((channel) => Math.max(0, Math.min(255, Math.round(Number(channel)))));
-  return `#${[r, g, b]
+  const alpha = channels[3] ? Math.max(0, Math.min(1, Number(channels[3]))) : 1;
+
+  return {
+    r,
+    g,
+    b,
+    alpha,
+    hex: `#${[r, g, b]
     .map((channel) => channel.toString(16).padStart(2, '0'))
     .join('')
-    .toUpperCase()}`;
+    .toUpperCase()}`,
+  };
 };
 
 const cssColorToHex = (value: string) => {
-  if (value.trim().toLowerCase() === 'transparent') return null;
+  if (value.trim().toLowerCase() === 'transparent') {
+    return {
+      hex: '#000000',
+      alpha: 0,
+    };
+  }
   if (!CSS.supports('color', value)) return null;
 
   const probe = document.createElement('span');
@@ -59,7 +73,13 @@ const cssColorToHex = (value: string) => {
   const resolved = getComputedStyle(probe).color;
   probe.remove();
 
-  return rgbStringToHex(resolved);
+  const parsed = parseResolvedRgb(resolved);
+  if (!parsed) return null;
+
+  return {
+    hex: parsed.hex,
+    alpha: parsed.alpha,
+  };
 };
 
 const extractGradientColorStops = (gradient: string): GradientColorStop[] => {
@@ -69,26 +89,43 @@ const extractGradientColorStops = (gradient: string): GradientColorStop[] => {
       const raw = match[0];
       const start = match.index ?? 0;
       const end = start + raw.length;
-      const hex = cssColorToHex(raw);
-      if (!hex) return null;
-      return { raw, hex, start, end };
+      const resolved = cssColorToHex(raw);
+      if (!resolved) return null;
+      return { raw, hex: resolved.hex, alpha: resolved.alpha, start, end };
     })
     .filter((stop): stop is GradientColorStop => Boolean(stop));
+};
+
+const formatGradientStopReplacement = (stop: GradientColorStop, nextHex: string) => {
+  if (stop.alpha <= 0) return 'transparent';
+  if (stop.alpha >= 1) return nextHex.toUpperCase();
+
+  const normalized = nextHex.replace('#', '');
+  const r = parseInt(normalized.slice(0, 2), 16);
+  const g = parseInt(normalized.slice(2, 4), 16);
+  const b = parseInt(normalized.slice(4, 6), 16);
+  const alphaLabel = Number(stop.alpha.toFixed(3)).toString();
+  return `rgba(${r}, ${g}, ${b}, ${alphaLabel})`;
 };
 
 const replaceGradientColorStop = (gradient: string, stopIndex: number, nextHex: string) => {
   const stops = extractGradientColorStops(gradient);
   const target = stops[stopIndex];
   if (!target) return gradient;
-  return `${gradient.slice(0, target.start)}${nextHex}${gradient.slice(target.end)}`;
+  const replacement = formatGradientStopReplacement(target, nextHex);
+  return `${gradient.slice(0, target.start)}${replacement}${gradient.slice(target.end)}`;
 };
 
 const getGradientPreviewStyle = (gradient: string) => ({
-  background: gradient,
-  backgroundImage: gradient,
-  backgroundSize: 'cover',
-  backgroundPosition: 'center',
+  backgroundImage: `${gradient}, repeating-conic-gradient(rgba(148, 163, 184, 0.28) 0% 25%, rgba(15, 23, 42, 0.52) 0% 50%)`,
+  backgroundSize: 'cover, 14px 14px',
+  backgroundPosition: 'center, center',
 });
+
+const transparencyBackdropStyle = {
+  backgroundImage: 'repeating-conic-gradient(rgba(148, 163, 184, 0.28) 0% 25%, rgba(15, 23, 42, 0.52) 0% 50%)',
+  backgroundSize: '14px 14px',
+};
 
 export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPanelProps) => {
   const { themeSession, setThemeSession, updateThemeSession, pushThemeHistory, restoreThemeHistory } = useStore();
@@ -680,7 +717,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                             style={
                               isTextGradient
                                 ? {
-                                    backgroundColor: 'rgba(148, 163, 184, 0.08)',
+                                    ...transparencyBackdropStyle,
                                   }
                                 : getGradientPreviewStyle(rule.originalValue)
                             }
@@ -712,7 +749,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                             style={
                               isTextGradient
                                 ? {
-                                    backgroundColor: 'rgba(148, 163, 184, 0.08)',
+                                    ...transparencyBackdropStyle,
                                   }
                                 : getGradientPreviewStyle(replacementValue)
                             }
@@ -739,21 +776,50 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                           />
                           {replacementStops.length > 0 && (
                             <div className="space-y-2">
-                              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Detected Colors</div>
-                              <div className="flex flex-wrap gap-2">
+                              <div className="flex items-center justify-between gap-3">
+                                <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Detected Colors</div>
+                                <div className="text-[11px] text-muted-foreground">
+                                  Transparent stops are shown as labels. Color pickers preserve opacity for alpha stops.
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
                                 {replacementStops.map((stop, stopIndex) => (
-                                  <label
+                                  <div
                                     key={`${rule.id}-stop-${stopIndex}`}
-                                    className="flex items-center gap-2 rounded-lg border border-border bg-background px-2 py-1.5"
+                                    className="flex items-center gap-3 rounded-xl border border-border bg-background/80 px-3 py-2"
                                   >
-                                    <input
-                                      type="color"
-                                      value={stop.hex}
-                                      onChange={(event) => handleGradientColorStopChange(rule.id, stopIndex, event.target.value)}
-                                      className="h-8 w-8 rounded border border-border bg-transparent"
+                                    <div
+                                      className="h-10 w-10 shrink-0 rounded-lg border border-border"
+                                      style={
+                                        stop.alpha > 0
+                                          ? {
+                                              ...transparencyBackdropStyle,
+                                              backgroundImage: `linear-gradient(${stop.hex}, ${stop.hex}), ${transparencyBackdropStyle.backgroundImage}`,
+                                            }
+                                          : transparencyBackdropStyle
+                                      }
                                     />
-                                    <span className="font-mono text-[11px] text-muted-foreground">{stop.hex}</span>
-                                  </label>
+                                    <div className="min-w-0 flex-1 space-y-1">
+                                      <div className="font-mono text-[11px] text-foreground">
+                                        {stop.alpha <= 0 ? 'transparent' : stop.hex}
+                                      </div>
+                                      <div className="text-[10px] text-muted-foreground">
+                                        {stop.alpha >= 1 ? 'Solid stop' : stop.alpha <= 0 ? 'Transparent stop' : `Alpha ${Math.round(stop.alpha * 100)}%`}
+                                      </div>
+                                    </div>
+                                    {stop.alpha > 0 ? (
+                                      <input
+                                        type="color"
+                                        value={stop.hex}
+                                        onChange={(event) => handleGradientColorStopChange(rule.id, stopIndex, event.target.value)}
+                                        className="h-9 w-9 shrink-0 rounded border border-border bg-transparent"
+                                      />
+                                    ) : (
+                                      <span className="rounded-full border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                                        Locked
+                                      </span>
+                                    )}
+                                  </div>
                                 ))}
                               </div>
                             </div>

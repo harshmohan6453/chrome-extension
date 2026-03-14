@@ -17,6 +17,7 @@ import { isCurrentRuntimeOwner, safeRuntimeSendMessage } from './runtime';
 const STYLE_TAG_ID = 'di-theme-runtime-style';
 const TOAST_ID = 'di-theme-runtime-toast';
 const NODE_ATTR = 'data-di-theme-node';
+const EXACT_TARGET_ATTR = 'data-di-theme-exact-target';
 const GRADIENT_NODE_ATTR = 'data-di-theme-gradient-node';
 const TRACK_LIMIT = 4000;
 
@@ -225,7 +226,12 @@ export class ThemeRuntime {
 
     const colors = new Set(
       this.session.exactReplacements
-        .filter((rule) => rule.enabled && normalizeHex(rule.replacementColor) !== normalizeHex(rule.originalColor))
+        .filter(
+          (rule) =>
+            !rule.targetNodeId &&
+            rule.enabled &&
+            normalizeHex(rule.replacementColor) !== normalizeHex(rule.originalColor)
+        )
         .map((rule) => normalizeHex(rule.originalColor))
     );
 
@@ -404,7 +410,12 @@ export class ThemeRuntime {
     });
 
     this.session.exactReplacements
-      .filter((rule) => rule.enabled && normalizeHex(rule.replacementColor) !== normalizeHex(rule.originalColor))
+      .filter(
+        (rule) =>
+          !rule.targetNodeId &&
+          rule.enabled &&
+          normalizeHex(rule.replacementColor) !== normalizeHex(rule.originalColor)
+      )
       .forEach((rule) => {
         rule.variableNames.forEach((variable) => variableOverrides.set(variable, rule.replacementColor));
       });
@@ -419,6 +430,20 @@ export class ThemeRuntime {
       );
     }
 
+    this.session.exactReplacements
+      .filter(
+        (rule) =>
+          Boolean(rule.targetNodeId) &&
+          rule.enabled &&
+          rule.property !== 'all' &&
+          normalizeHex(rule.replacementColor) !== normalizeHex(rule.originalColor)
+      )
+      .forEach((rule) => {
+        cssChunks.push(
+          `[${EXACT_TARGET_ATTR}="${sanitizeForCss(rule.targetNodeId!)}"] { ${rule.property}: ${rule.replacementColor} !important; }`
+        );
+      });
+
     if (this.session.applyMode === 'hybrid' && this.trackedNodes.size > 0) {
       this.trackedNodes.forEach((trackedNode) => {
         const declarations: string[] = [];
@@ -426,6 +451,7 @@ export class ThemeRuntime {
         (Object.entries(trackedNode.original) as Array<[ThemeProperty, string]>).forEach(([property, originalColor]) => {
           const exactRule = this.session?.exactReplacements.find(
             (candidate) =>
+              !candidate.targetNodeId &&
               candidate.enabled &&
               normalizeHex(candidate.originalColor) === normalizeHex(originalColor) &&
               (candidate.property === 'all' || candidate.property === property)

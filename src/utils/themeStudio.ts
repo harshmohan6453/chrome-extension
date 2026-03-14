@@ -19,10 +19,13 @@ export interface ThemeLocateRequest {
   selectors: string[];
   scope: ThemeLocateScope;
   scrollIntoView?: boolean;
+  matchColor?: string;
+  matchProperty?: ThemeProperty | 'all';
 }
 
 export interface ThemeElementUpdateTarget {
   selector: string;
+  nodeId: string;
   colors: {
     color: string | null;
     backgroundColor: string | null;
@@ -74,6 +77,7 @@ export interface ThemeReplacementRule {
   variableNames: string[];
   sampleSelectors: string[];
   enabled: boolean;
+  targetNodeId?: string | null;
 }
 
 export interface ThemeGradientRule {

@@ -68,6 +68,8 @@ interface ThemeLocateMeta {
   scope: ThemeLocateScope;
   canLocate: boolean;
   canCreateExactRule: boolean;
+  matchColor?: string;
+  matchProperty?: ThemeReplacementRule['property'];
 }
 
 interface ThemeLocateState {
@@ -426,6 +428,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
   const [expandedSources, setExpandedSources] = useState<Record<string, boolean>>({});
   const [locateStates, setLocateStates] = useState<Record<string, ThemeLocateState>>({});
   const [elementUpdateSession, setElementUpdateSession] = useState<ElementUpdateSession | null>(null);
+  const [elementUpdateDraftColor, setElementUpdateDraftColor] = useState<string | null>(null);
   const hoverTimerRef = useRef<number | null>(null);
   const activeHoverItemRef = useRef<string | null>(null);
 
@@ -861,11 +864,13 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
   useEffect(() => {
     void clearHoverPreview();
     setElementUpdateSession(null);
+    setElementUpdateDraftColor(null);
   }, [activeSection]);
 
   useEffect(() => {
     if (elementUpdateSession && selectedItemId !== elementUpdateSession.itemId) {
       setElementUpdateSession(null);
+      setElementUpdateDraftColor(null);
     }
   }, [elementUpdateSession, selectedItemId]);
 
@@ -967,8 +972,10 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       itemId: slot.id,
       selectors,
       scope: 'samples',
-      canLocate: selectors.length > 0,
-      canCreateExactRule: selectors.length > 0,
+      canLocate: selectors.length > 0 || Boolean(slot.sourceColor),
+      canCreateExactRule: selectors.length > 0 || Boolean(slot.sourceColor),
+      matchColor: slot.sourceColor,
+      matchProperty: getSlotPropertyPriority(slot.id)[0],
     };
     return accumulator;
   }, {});
@@ -991,8 +998,10 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       itemId: rule.id,
       selectors: rule.sampleSelectors.slice(0, 10),
       scope: 'all',
-      canLocate: rule.sampleSelectors.length > 0,
-      canCreateExactRule: rule.sampleSelectors.length > 0,
+      canLocate: rule.sampleSelectors.length > 0 || Boolean(rule.originalColor),
+      canCreateExactRule: rule.sampleSelectors.length > 0 || Boolean(rule.originalColor),
+      matchColor: rule.originalColor,
+      matchProperty: rule.property,
     };
     return accumulator;
   }, {});
@@ -1054,36 +1063,41 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
   const upsertExactRuleFromElement = async (
     originalColor: string,
     replacementColor: string,
-    selector: string
+    selector: string,
+    property: ThemeReplacementRule['property'],
+    targetNodeId: string
   ) => {
     const normalizedOriginal = normalizeHex(originalColor);
     const normalizedReplacement = normalizeHex(replacementColor);
     const existingRule = themeSession.exactReplacements.find(
-      (rule) => normalizeHex(rule.originalColor) === normalizedOriginal
+      (rule) => rule.targetNodeId === targetNodeId && rule.property === property
     );
 
     const nextRules = existingRule
       ? themeSession.exactReplacements.map((rule) =>
-          normalizeHex(rule.originalColor) === normalizedOriginal
+          rule.targetNodeId === targetNodeId && rule.property === property
             ? {
                 ...rule,
                 enabled: true,
+                originalColor: normalizedOriginal,
                 replacementColor: normalizedReplacement,
                 sampleSelectors: Array.from(new Set([selector, ...rule.sampleSelectors])).slice(0, 8),
+                targetNodeId,
               }
             : rule
         )
       : [
           ...themeSession.exactReplacements,
           {
-            id: `${normalizedOriginal}-all`,
+            id: `${targetNodeId}:${property}`,
             originalColor: normalizedOriginal,
             replacementColor: normalizedReplacement,
-            property: 'all' as const,
+            property,
             count: 1,
             variableNames: [],
             sampleSelectors: [selector],
             enabled: true,
+            targetNodeId,
           },
         ];
 
@@ -1110,6 +1124,8 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
           itemId: locateMeta.itemId,
           selectors: locateMeta.selectors,
           scope: locateMeta.scope,
+          matchColor: locateMeta.matchColor,
+          matchProperty: locateMeta.matchProperty,
         },
       });
 
@@ -1140,8 +1156,10 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
         itemType: locateMeta.itemType,
         itemId: locateMeta.itemId,
         selectors: locateMeta.selectors,
-        scope: locateMeta.scope,
+        scope: 'all',
         scrollIntoView: true,
+        matchColor: locateMeta.matchColor,
+        matchProperty: locateMeta.matchProperty,
       },
     });
 
@@ -1169,6 +1187,8 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
         selectors: locateMeta.selectors,
         scope: 'representative',
         scrollIntoView: true,
+        matchColor: locateMeta.matchColor,
+        matchProperty: locateMeta.matchProperty,
       },
     });
 
@@ -1184,12 +1204,19 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
         : target.colors.backgroundColor
           ? 'backgroundColor'
           : 'borderColor';
+    const initialReplacementColor =
+      activeSection === 'slots'
+        ? themeSession.semanticSlots.find((slot) => slot.id === itemId)?.currentColor
+        : activeSection === 'rules'
+          ? themeSession.exactReplacements.find((rule) => rule.id === itemId)?.replacementColor
+          : null;
 
     setElementUpdateSession({
       itemId,
       target,
       selectedProperty: preferredProperty,
     });
+    setElementUpdateDraftColor((initialReplacementColor || '#000000').toUpperCase());
     updateLocateState(itemId, {
       status: 'element-update',
       count: 1,
@@ -1199,16 +1226,17 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
 
   const renderLocateStatus = (itemId: string) => {
     const state = locateStates[itemId];
-    if (!state || state.status === 'idle') return 'Hover to preview';
-    if (state.status === 'previewing') return 'Previewing';
-    if (state.status === 'located') return state.count && state.count > 1 ? `${state.count} matches` : 'Located';
-    if (state.status === 'element-update') return 'Element mode';
-    if (state.status === 'not_found') return 'No match';
-    return 'Preview unavailable';
+    if (!state || state.status === 'idle') return 'Preview on hover';
+    if (state.status === 'previewing') return 'Finding matches';
+    if (state.status === 'located') return state.count && state.count > 1 ? `${state.count} found` : '1 found';
+    if (state.status === 'element-update') return 'Element selected';
+    if (state.status === 'not_found') return 'No elements found';
+    return 'Preview failed';
   };
 
   const renderElementUpdatePanel = (itemId: string, replacementColor: string) => {
     if (!elementUpdateSession || elementUpdateSession.itemId !== itemId) return null;
+    const draftColor = (elementUpdateDraftColor || replacementColor).toUpperCase();
 
     const availableProperties = (
       [
@@ -1221,8 +1249,8 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
     if (!availableProperties.length) {
       return (
         <div className="rounded-2xl border border-border bg-background/70 p-3 text-xs text-muted-foreground">
-          Element mode is pinned to <span className="font-mono text-foreground">{elementUpdateSession.target.selector}</span>, but no
-          solid colors were found to convert into an exact rule.
+          The selected element is pinned to <span className="font-mono text-foreground">{elementUpdateSession.target.selector}</span>,
+          but no solid colors were found to edit directly.
         </div>
       );
     }
@@ -1236,11 +1264,14 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       <div className="rounded-2xl border border-primary/20 bg-primary/5 p-3 space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-xs font-bold uppercase tracking-wider text-primary">Element Update</div>
+            <div className="text-xs font-bold uppercase tracking-wider text-primary">Single Element</div>
             <div className="mt-1 font-mono text-[11px] text-foreground break-all">{elementUpdateSession.target.selector}</div>
           </div>
           <button
-            onClick={() => setElementUpdateSession(null)}
+            onClick={() => {
+              setElementUpdateSession(null);
+              setElementUpdateDraftColor(null);
+            }}
             className="rounded-lg border border-border px-2 py-1 text-[11px] font-bold text-muted-foreground hover:text-foreground transition-colors"
           >
             Close
@@ -1267,20 +1298,46 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
           ))}
         </div>
         {selectedColor && (
-          <div className="flex items-center justify-between gap-3">
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 rounded-xl border border-border bg-background/70 px-3 py-2.5">
+              <input
+                type="color"
+                value={draftColor}
+                onChange={(event) => setElementUpdateDraftColor(event.target.value.toUpperCase())}
+                className="h-10 w-10 rounded-lg border border-border bg-transparent"
+              />
+              <div className="min-w-0">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Element color</div>
+                <div className="font-mono text-sm text-foreground">{draftColor}</div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
               <span className="h-8 w-8 rounded-lg border border-border" style={{ backgroundColor: selectedColor }} />
               <span className="font-mono">{selectedColor}</span>
               <span>→</span>
-              <span className="h-8 w-8 rounded-lg border border-border" style={{ backgroundColor: replacementColor }} />
-              <span className="font-mono text-foreground">{replacementColor}</span>
+              <span className="h-8 w-8 rounded-lg border border-border" style={{ backgroundColor: draftColor }} />
+              <span className="font-mono text-foreground">{draftColor}</span>
             </div>
             <button
-              onClick={() => upsertExactRuleFromElement(selectedColor, replacementColor, elementUpdateSession.target.selector)}
+              onClick={() =>
+                upsertExactRuleFromElement(
+                  selectedColor,
+                  draftColor,
+                  elementUpdateSession.target.selector,
+                  elementUpdateSession.selectedProperty === 'backgroundColor'
+                    ? 'background-color'
+                    : elementUpdateSession.selectedProperty === 'borderColor'
+                      ? 'border-color'
+                      : 'color',
+                  elementUpdateSession.target.nodeId
+                )
+              }
               className="rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              Apply Exact Rule
-            </button>
+              >
+                Apply To This Element
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -1320,14 +1377,14 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
             disabled={!locateMeta.canLocate}
             className="rounded-lg border border-border px-2 py-1 text-[11px] font-bold text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
           >
-            Find
+            Show All
           </button>
           <button
             onClick={() => void startElementUpdate(itemId)}
             disabled={!locateMeta.canCreateExactRule}
             className="rounded-lg border border-border px-2 py-1 text-[11px] font-bold text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
           >
-            Element Mode
+            Pick Element
           </button>
         </div>
       </div>

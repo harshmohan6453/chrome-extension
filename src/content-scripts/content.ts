@@ -20,11 +20,12 @@ if (!isCurrentRuntimeOwner()) {
   const themeRuntime = new ThemeRuntime();
   let lastExtractedColors: ReturnType<typeof extractColors> = [];
   let lastExtractedGradients: ReturnType<typeof extractGradients> = [];
-  const THEME_HIGHLIGHT_LIMIT = 18;
   const THEME_SAMPLE_LIMIT = 4;
+  const EXACT_TARGET_ATTR = 'data-di-theme-exact-target';
   const themeResolvedSelectorCache = new Map<string, string[]>();
   let themeHighlightOverlays: HTMLElement[] = [];
   let themeHighlightTimers: number[] = [];
+  let themeExactTargetSequence = 0;
 
   const getThemeHighlightColor = () => localStorage.getItem('di-highlightColor') || '#f97316';
   const selectorForElement = (element: Element) => {
@@ -93,8 +94,55 @@ if (!isCurrentRuntimeOwner()) {
 
     return matches;
   };
+  const ensureThemeExactTargetId = (element: HTMLElement) => {
+    const existing = element.getAttribute(EXACT_TARGET_ATTR);
+    if (existing) return existing;
+    const nextId = `exact-${++themeExactTargetSequence}`;
+    element.setAttribute(EXACT_TARGET_ATTR, nextId);
+    return nextId;
+  };
+  const getElementMatchColor = (element: HTMLElement, property: ThemeLocateRequest['matchProperty']) => {
+    const computed = window.getComputedStyle(element);
+    if (property === 'color') return normalizeComputedColor(computed.color);
+    if (property === 'background-color') return normalizeComputedColor(computed.backgroundColor);
+    if (property === 'border-color') return normalizeComputedColor(computed.borderTopColor);
+
+    return (
+      normalizeComputedColor(computed.color) ||
+      normalizeComputedColor(computed.backgroundColor) ||
+      normalizeComputedColor(computed.borderTopColor)
+    );
+  };
+  const findElementsByThemeColor = (matchColor: string, property: ThemeLocateRequest['matchProperty']) => {
+    const normalizedMatch = normalizeHex(matchColor);
+    const elements: HTMLElement[] = [];
+
+    document.querySelectorAll<HTMLElement>('body *').forEach((element) => {
+      if (!isVisibleElement(element)) return;
+
+      if (property === 'all') {
+        const computed = window.getComputedStyle(element);
+        const candidateColors = [
+          normalizeComputedColor(computed.color),
+          normalizeComputedColor(computed.backgroundColor),
+          normalizeComputedColor(computed.borderTopColor),
+        ];
+        if (candidateColors.some((candidate) => candidate && normalizeHex(candidate) === normalizedMatch)) {
+          elements.push(element);
+        }
+        return;
+      }
+
+      const candidate = getElementMatchColor(element, property);
+      if (candidate && normalizeHex(candidate) === normalizedMatch) {
+        elements.push(element);
+      }
+    });
+
+    return elements.sort((left, right) => scoreElement(right) - scoreElement(left));
+  };
   const resolveThemeLocateElements = (request: ThemeLocateRequest) => {
-    const cacheKey = `${request.itemType}:${request.itemId}:${request.scope}:${request.selectors.join('|')}`;
+    const cacheKey = `${request.itemType}:${request.itemId}:${request.scope}:${request.matchColor || ''}:${request.matchProperty || ''}:${request.selectors.join('|')}`;
     const selectorCandidates = [
       ...(themeResolvedSelectorCache.get(cacheKey) || []),
       ...request.selectors,
@@ -102,7 +150,7 @@ if (!isCurrentRuntimeOwner()) {
     const uniqueSelectors = Array.from(new Set(selectorCandidates));
     const limit =
       request.scope === 'all'
-        ? THEME_HIGHLIGHT_LIMIT
+        ? Number.MAX_SAFE_INTEGER
         : request.scope === 'samples'
           ? THEME_SAMPLE_LIMIT
           : 1;
@@ -110,12 +158,13 @@ if (!isCurrentRuntimeOwner()) {
     const seen = new Set<HTMLElement>();
     const elements: HTMLElement[] = [];
 
-    for (const selector of uniqueSelectors.slice(0, 18)) {
+    const selectorsToQuery = request.scope === 'all' ? uniqueSelectors : uniqueSelectors.slice(0, 18);
+    for (const selector of selectorsToQuery) {
       const candidates = queryElementsForSelector(selector)
         .filter(isVisibleElement)
         .sort((left, right) => scoreElement(right) - scoreElement(left));
       const takeCount =
-        request.scope === 'representative' ? 1 : request.scope === 'samples' ? 2 : Math.max(1, limit - elements.length);
+        request.scope === 'representative' ? 1 : request.scope === 'samples' ? 2 : candidates.length;
 
       for (const element of candidates.slice(0, takeCount)) {
         if (seen.has(element)) continue;
@@ -127,9 +176,19 @@ if (!isCurrentRuntimeOwner()) {
       if (elements.length >= limit) break;
     }
 
+    if (request.matchColor) {
+      const fallbackLimit = request.scope === 'representative' ? 1 : limit - elements.length;
+      for (const element of findElementsByThemeColor(request.matchColor, request.matchProperty || 'all')) {
+        if (fallbackLimit <= 0 || elements.length >= limit) break;
+        if (seen.has(element)) continue;
+        seen.add(element);
+        elements.push(element);
+      }
+    }
+
     themeResolvedSelectorCache.set(
       cacheKey,
-      elements.map((element) => selectorForElement(element)).slice(0, 8)
+      elements.map((element) => selectorForElement(element)).slice(0, 24)
     );
 
     return {
@@ -143,9 +202,9 @@ if (!isCurrentRuntimeOwner()) {
     const color = getThemeHighlightColor();
     const overlay = document.createElement('div');
     overlay.style.cssText = `
-      position: fixed;
-      top: ${rect.top}px;
-      left: ${rect.left}px;
+      position: absolute;
+      top: ${rect.top + window.scrollY}px;
+      left: ${rect.left + window.scrollX}px;
       width: ${rect.width}px;
       height: ${rect.height}px;
       border: ${primary ? 3 : 2}px solid ${color};
@@ -166,7 +225,7 @@ if (!isCurrentRuntimeOwner()) {
 
     const render = () => {
       clearThemeHighlights();
-      elements.slice(0, THEME_HIGHLIGHT_LIMIT).forEach((element, index) => {
+      elements.forEach((element, index) => {
         const overlay = createThemeHighlightOverlay(element, index === 0);
         if (index === 0) {
           const pulseTimer = window.setTimeout(() => {
@@ -189,7 +248,7 @@ if (!isCurrentRuntimeOwner()) {
 
     if (scrollIntoView && elements[0]) {
       elements[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-      const delayedRender = window.setTimeout(render, 320);
+      const delayedRender = window.setTimeout(render, 520);
       themeHighlightTimers.push(delayedRender);
       return;
     }
@@ -200,6 +259,7 @@ if (!isCurrentRuntimeOwner()) {
     const computed = window.getComputedStyle(element);
     return {
       selector: selectorForElement(element),
+      nodeId: ensureThemeExactTargetId(element),
       colors: {
         color: normalizeComputedColor(computed.color),
         backgroundColor: normalizeComputedColor(computed.backgroundColor),

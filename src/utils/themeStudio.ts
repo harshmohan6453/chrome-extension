@@ -10,6 +10,26 @@ export type ThemeSemanticSlotId =
 export type ThemeProperty = 'color' | 'background-color' | 'border-color';
 export type ThemeApplyMode = 'hybrid' | 'variables-only';
 export type ThemeGradientKind = 'background' | 'text';
+export type ThemeLocateItemType = 'slot' | 'gradient' | 'rule';
+export type ThemeLocateScope = 'samples' | 'all' | 'representative';
+
+export interface ThemeLocateRequest {
+  itemType: ThemeLocateItemType;
+  itemId: string;
+  selectors: string[];
+  scope: ThemeLocateScope;
+  scrollIntoView?: boolean;
+}
+
+export interface ThemeElementUpdateTarget {
+  selector: string;
+  colors: {
+    color: string | null;
+    backgroundColor: string | null;
+    borderColor: string | null;
+  };
+  backgroundImage: string | null;
+}
 
 export interface SemanticCandidate {
   slot: ThemeSemanticSlotId;

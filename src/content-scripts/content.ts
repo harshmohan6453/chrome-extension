@@ -10,6 +10,7 @@ import { extractHTMLStructure } from './extractors/htmlExtractor';
 import { captureSiteCloneData } from './extractors/siteCloneExtractor';
 import { FlowRecorder } from './extractors/flowRecorder';
 import { ThemeRuntime } from './themeRuntime';
+import { ThemeElementUpdateTarget, ThemeLocateRequest, normalizeHex } from '../utils/themeStudio';
 import { claimRuntimeOwnership, isCurrentRuntimeOwner, safeRuntimeGetURL, safeRuntimeSendMessage } from './runtime';
 
 if (!isCurrentRuntimeOwner()) {
@@ -19,6 +20,194 @@ if (!isCurrentRuntimeOwner()) {
   const themeRuntime = new ThemeRuntime();
   let lastExtractedColors: ReturnType<typeof extractColors> = [];
   let lastExtractedGradients: ReturnType<typeof extractGradients> = [];
+  const THEME_HIGHLIGHT_LIMIT = 18;
+  const THEME_SAMPLE_LIMIT = 4;
+  const themeResolvedSelectorCache = new Map<string, string[]>();
+  let themeHighlightOverlays: HTMLElement[] = [];
+  let themeHighlightTimers: number[] = [];
+
+  const getThemeHighlightColor = () => localStorage.getItem('di-highlightColor') || '#f97316';
+  const selectorForElement = (element: Element) => {
+    const htmlElement = element as HTMLElement;
+    const classes = Array.from(htmlElement.classList || []).slice(0, 3);
+    return `${element.tagName.toLowerCase()}${element.id ? `#${element.id}` : ''}${classes.length ? `.${classes.join('.')}` : ''}`;
+  };
+  const normalizeComputedColor = (value: string): string | null => {
+    if (!value || value === 'transparent' || value === 'rgba(0, 0, 0, 0)' || value === 'inherit') return null;
+    if (value.startsWith('#')) return normalizeHex(value);
+
+    const channels = value.match(/\d+(\.\d+)?/g);
+    if (!channels || channels.length < 3) return null;
+
+    const [r, g, b] = channels.slice(0, 3).map((part) => Math.max(0, Math.min(255, Math.round(Number(part)))));
+    return normalizeHex(
+      `#${[r, g, b]
+        .map((channel) => channel.toString(16).padStart(2, '0'))
+        .join('')}`
+    );
+  };
+  const isVisibleElement = (element: HTMLElement) => {
+    const rect = element.getBoundingClientRect();
+    if (rect.width < 4 || rect.height < 4) return false;
+    const computed = window.getComputedStyle(element);
+    return computed.display !== 'none' && computed.visibility !== 'hidden' && computed.opacity !== '0';
+  };
+  const scoreElement = (element: HTMLElement) => {
+    const rect = element.getBoundingClientRect();
+    const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+    const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+    const visibleX = Math.max(0, Math.min(rect.right, viewportWidth) - Math.max(rect.left, 0));
+    const visibleY = Math.max(0, Math.min(rect.bottom, viewportHeight) - Math.max(rect.top, 0));
+    const visibleArea = visibleX * visibleY;
+    const area = rect.width * rect.height;
+    const centerDistance = Math.abs(rect.top + rect.height / 2 - viewportHeight / 2);
+    return visibleArea * 2 + area - centerDistance;
+  };
+  const clearThemeHighlights = () => {
+    themeHighlightTimers.forEach((timer) => window.clearTimeout(timer));
+    themeHighlightTimers = [];
+    themeHighlightOverlays.forEach((overlay) => overlay.remove());
+    themeHighlightOverlays = [];
+  };
+  const queryElementsForSelector = (selector: string) => {
+    const matches: HTMLElement[] = [];
+
+    try {
+      document.querySelectorAll(selector).forEach((node) => {
+        if (node instanceof HTMLElement) matches.push(node);
+      });
+    } catch {
+      if (selector.startsWith('#')) {
+        const element = document.getElementById(selector.slice(1));
+        if (element instanceof HTMLElement) matches.push(element);
+      } else if (selector.startsWith('.')) {
+        Array.from(document.getElementsByClassName(selector.slice(1).split('.')[0])).forEach((node) => {
+          if (node instanceof HTMLElement) matches.push(node);
+        });
+      } else {
+        Array.from(document.getElementsByTagName(selector)).forEach((node) => {
+          if (node instanceof HTMLElement) matches.push(node);
+        });
+      }
+    }
+
+    return matches;
+  };
+  const resolveThemeLocateElements = (request: ThemeLocateRequest) => {
+    const cacheKey = `${request.itemType}:${request.itemId}:${request.scope}:${request.selectors.join('|')}`;
+    const selectorCandidates = [
+      ...(themeResolvedSelectorCache.get(cacheKey) || []),
+      ...request.selectors,
+    ].filter(Boolean);
+    const uniqueSelectors = Array.from(new Set(selectorCandidates));
+    const limit =
+      request.scope === 'all'
+        ? THEME_HIGHLIGHT_LIMIT
+        : request.scope === 'samples'
+          ? THEME_SAMPLE_LIMIT
+          : 1;
+
+    const seen = new Set<HTMLElement>();
+    const elements: HTMLElement[] = [];
+
+    for (const selector of uniqueSelectors.slice(0, 18)) {
+      const candidates = queryElementsForSelector(selector)
+        .filter(isVisibleElement)
+        .sort((left, right) => scoreElement(right) - scoreElement(left));
+      const takeCount =
+        request.scope === 'representative' ? 1 : request.scope === 'samples' ? 2 : Math.max(1, limit - elements.length);
+
+      for (const element of candidates.slice(0, takeCount)) {
+        if (seen.has(element)) continue;
+        seen.add(element);
+        elements.push(element);
+        if (elements.length >= limit) break;
+      }
+
+      if (elements.length >= limit) break;
+    }
+
+    themeResolvedSelectorCache.set(
+      cacheKey,
+      elements.map((element) => selectorForElement(element)).slice(0, 8)
+    );
+
+    return {
+      cacheKey,
+      elements,
+      selectors: elements.map((element) => selectorForElement(element)),
+    };
+  };
+  const createThemeHighlightOverlay = (element: HTMLElement, primary: boolean) => {
+    const rect = element.getBoundingClientRect();
+    const color = getThemeHighlightColor();
+    const overlay = document.createElement('div');
+    overlay.style.cssText = `
+      position: fixed;
+      top: ${rect.top}px;
+      left: ${rect.left}px;
+      width: ${rect.width}px;
+      height: ${rect.height}px;
+      border: ${primary ? 3 : 2}px solid ${color};
+      background: rgba(249, 115, 22, ${primary ? '0.12' : '0.07'});
+      pointer-events: none;
+      z-index: ${primary ? 999999 : 999998};
+      box-shadow: 0 0 0 ${primary ? 4 : 2}px rgba(249, 115, 22, ${primary ? '0.24' : '0.14'});
+      border-radius: 10px;
+      transition: all 0.2s ease;
+    `;
+    document.body.appendChild(overlay);
+    themeHighlightOverlays.push(overlay);
+    return overlay;
+  };
+  const highlightThemeElements = (elements: HTMLElement[], scrollIntoView = false) => {
+    clearThemeHighlights();
+    if (!elements.length) return;
+
+    const render = () => {
+      clearThemeHighlights();
+      elements.slice(0, THEME_HIGHLIGHT_LIMIT).forEach((element, index) => {
+        const overlay = createThemeHighlightOverlay(element, index === 0);
+        if (index === 0) {
+          const pulseTimer = window.setTimeout(() => {
+            overlay.style.transform = 'scale(1.02)';
+          }, 80);
+          themeHighlightTimers.push(pulseTimer);
+        }
+      });
+
+      const cleanupTimer = window.setTimeout(() => {
+        themeHighlightOverlays.forEach((overlay) => {
+          overlay.style.opacity = '0';
+        });
+        const removalTimer = window.setTimeout(() => clearThemeHighlights(), 220);
+        themeHighlightTimers.push(removalTimer);
+      }, scrollIntoView ? 3400 : 1800);
+
+      themeHighlightTimers.push(cleanupTimer);
+    };
+
+    if (scrollIntoView && elements[0]) {
+      elements[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const delayedRender = window.setTimeout(render, 320);
+      themeHighlightTimers.push(delayedRender);
+      return;
+    }
+
+    render();
+  };
+  const summarizeThemeElement = (element: HTMLElement): ThemeElementUpdateTarget => {
+    const computed = window.getComputedStyle(element);
+    return {
+      selector: selectorForElement(element),
+      colors: {
+        color: normalizeComputedColor(computed.color),
+        backgroundColor: normalizeComputedColor(computed.backgroundColor),
+        borderColor: normalizeComputedColor(computed.borderTopColor),
+      },
+      backgroundImage: computed.backgroundImage !== 'none' ? computed.backgroundImage : null,
+    };
+  };
 
   // Inject page context script to access window variables
   function injectPageContextScript() {
@@ -201,101 +390,71 @@ if (!isCurrentRuntimeOwner()) {
     }
 
 
+    if (request.action === 'THEME_CLEAR_HIGHLIGHTS') {
+      clearThemeHighlights();
+      sendResponse({ status: 'ok' });
+      return true;
+    }
+
+    if (request.action === 'THEME_HIGHLIGHT_MATCHES' || request.action === 'THEME_LOCATE_MATCH') {
+      try {
+        const locateRequest = request.payload as ThemeLocateRequest;
+        const { elements, selectors } = resolveThemeLocateElements(locateRequest);
+        if (!elements.length) {
+          sendResponse({ status: 'not_found', count: 0, selectors: [] });
+          return true;
+        }
+
+        highlightThemeElements(elements, request.action === 'THEME_LOCATE_MATCH' || locateRequest.scrollIntoView === true);
+        sendResponse({
+          status: 'ok',
+          count: elements.length,
+          selectors,
+          primarySelector: selectors[0] || null,
+        });
+      } catch (error) {
+        console.error('Error highlighting theme matches:', error);
+        sendResponse({ status: 'error', error: String(error) });
+      }
+      return true;
+    }
+
+    if (request.action === 'THEME_START_ELEMENT_UPDATE') {
+      try {
+        const locateRequest = request.payload as ThemeLocateRequest;
+        const requestWithRepresentativeScope: ThemeLocateRequest = {
+          ...locateRequest,
+          scope: 'representative',
+          scrollIntoView: true,
+        };
+        const { elements, selectors } = resolveThemeLocateElements(requestWithRepresentativeScope);
+        if (!elements.length) {
+          sendResponse({ status: 'not_found', count: 0, selectors: [] });
+          return true;
+        }
+
+        highlightThemeElements(elements.slice(0, 1), true);
+        sendResponse({
+          status: 'ok',
+          count: 1,
+          selectors,
+          primarySelector: selectors[0] || null,
+          target: summarizeThemeElement(elements[0]),
+        });
+      } catch (error) {
+        console.error('Error starting theme element update:', error);
+        sendResponse({ status: 'error', error: String(error) });
+      }
+      return true;
+    }
+
     if (request.action === 'HIGHLIGHT_ELEMENT') {
       // Highlight the element on the page
       try {
-        let element: Element | null = null;
-        
-        // Try multiple strategies to find the element
-        try {
-          // Strategy 1: Direct querySelector
-          element = document.querySelector(request.selector);
-        } catch (e) {
-          console.warn('Direct querySelector failed, trying alternatives:', e);
-        }
-        
-        // Strategy 2: If selector is an ID, try getElementById
-        if (!element && request.selector.startsWith('#')) {
-          const id = request.selector.slice(1);
-          element = document.getElementById(id);
-        }
-        
-        // Strategy 3: If selector is a class, try getElementsByClassName
-        if (!element && request.selector.startsWith('.')) {
-          const className = request.selector.slice(1).split('.')[0];
-          const elements = document.getElementsByClassName(className);
-          if (elements.length > 0) {
-            element = elements[0];
-          }
-        }
-        
-        // Strategy 4: Try as tag name
-        if (!element) {
-          const elements = document.getElementsByTagName(request.selector);
-          if (elements.length > 0) {
-            element = elements[0];
-          }
-        }
-        
+        const element = queryElementsForSelector(request.selector).find(isVisibleElement) || null;
+
         if (element) {
-          // Show immediate highlight before scroll for instant feedback
-          const rect = element.getBoundingClientRect();
-          const instantHighlight = document.createElement('div');
-          instantHighlight.style.cssText = `
-            position: fixed;
-            top: ${rect.top}px;
-            left: ${rect.left}px;
-            width: ${rect.width}px;
-            height: ${rect.height}px;
-            border: 3px solid #3b82f6;
-            background: rgba(59, 130, 246, 0.1);
-            pointer-events: none;
-            z-index: 999999;
-            box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
-            transition: all 0.3s ease;
-          `;
-          document.body.appendChild(instantHighlight);
-          
-          // Scroll element into view
-          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          
-          // Update highlight position after scroll completes (reduced from 800ms to 300ms)
-          setTimeout(() => {
-            if (!element) return;
-            
-            // Remove old highlight
-            instantHighlight.remove();
-            
-            // Recalculate position after scroll
-            const newRect = element.getBoundingClientRect();
-            const highlight = document.createElement('div');
-            highlight.style.cssText = `
-              position: fixed;
-              top: ${newRect.top}px;
-              left: ${newRect.left}px;
-              width: ${newRect.width}px;
-              height: ${newRect.height}px;
-              border: 3px solid #3b82f6;
-              background: rgba(59, 130, 246, 0.1);
-              pointer-events: none;
-              z-index: 999999;
-              box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3);
-              transition: all 0.3s ease;
-            `;
-            document.body.appendChild(highlight);
-            
-            // Pulse effect
-            setTimeout(() => {
-              highlight.style.transform = 'scale(1.05)';
-            }, 100);
-            
-            // Remove after 3 seconds
-            setTimeout(() => {
-              highlight.style.opacity = '0';
-              setTimeout(() => highlight.remove(), 300);
-            }, 3000);
-          }, 300); // Reduced from 800ms to 300ms
-          
+          highlightThemeElements([element], true);
           sendResponse({ status: 'highlighted', selector: request.selector });
         } else {
           console.warn('Element not found with any strategy:', request.selector);

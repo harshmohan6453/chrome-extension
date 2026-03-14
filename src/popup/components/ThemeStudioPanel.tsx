@@ -1,10 +1,9 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import {
   Check,
   ChevronDown,
   Copy,
   ExternalLink,
-  History,
   Paintbrush2,
   Palette,
   Redo2,
@@ -19,14 +18,18 @@ import { useStore } from '../../store';
 import {
   buildPresetExactReplacements,
   ThemeGradientRule,
+  ThemeLocateRequest,
+  ThemeLocateScope,
   ThemeReplacementRule,
   ThemeSemanticSlot,
   ThemeSession,
   ThemeSessionExport,
+  ThemeElementUpdateTarget,
   buildThemePreset,
   createHistorySnapshot,
   exportThemeSession,
   getContrastBadge,
+  normalizeHex,
 } from '../../utils/themeStudio';
 
 interface ThemeStudioPanelProps {
@@ -56,6 +59,27 @@ interface RailItem {
   enabled?: boolean;
   uncertain?: boolean;
   hasVariables?: boolean;
+}
+
+interface ThemeLocateMeta {
+  itemType: ThemeLocateRequest['itemType'];
+  itemId: string;
+  selectors: string[];
+  scope: ThemeLocateScope;
+  canLocate: boolean;
+  canCreateExactRule: boolean;
+}
+
+interface ThemeLocateState {
+  status: 'idle' | 'previewing' | 'located' | 'not_found' | 'element-update' | 'error';
+  count?: number;
+  selector?: string | null;
+}
+
+interface ElementUpdateSession {
+  itemId: string;
+  target: ThemeElementUpdateTarget;
+  selectedProperty: 'color' | 'backgroundColor' | 'borderColor';
 }
 
 const PRESET_IDS = ['original', 'dark', 'warm', 'ocean', 'forest', 'high-contrast'] as const;
@@ -224,21 +248,30 @@ const SectionButton = ({
     <button
       onClick={onClick}
       className={clsx(
-        'rounded-2xl border-2 p-3 text-left transition-all',
+        'rounded-2xl border px-3 py-3 text-left transition-all',
         active
-          ? 'border-primary bg-card text-foreground neo-shadow'
-          : 'border-transparent bg-secondary/45 text-muted-foreground hover:border-border hover:bg-card'
+          ? 'border-primary bg-card text-foreground shadow-[4px_4px_0_rgba(16,24,40,0.14)]'
+          : 'border-border/70 bg-background/80 text-muted-foreground hover:border-primary/40 hover:bg-card'
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className={clsx('mb-2 inline-flex rounded-xl bg-background/80 p-2', meta.accent)}>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <div
+            className={clsx(
+              'inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-border bg-background/80',
+              meta.accent
+            )}
+          >
             <meta.icon className="h-4 w-4" />
           </div>
-          <div className="font-bold">{meta.label}</div>
-          <div className="mt-1 text-xs text-muted-foreground line-clamp-2">{meta.description}</div>
+          <div className="min-w-0">
+            <div className="truncate text-sm font-bold">{meta.label}</div>
+            <div className="text-[11px] text-muted-foreground">
+              {count} {count === 1 ? 'item' : 'items'}
+            </div>
+          </div>
         </div>
-        <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-xs font-bold text-primary">
+        <span className="rounded-full border border-primary/20 bg-primary/10 px-2 py-1 text-[11px] font-bold text-primary">
           {count}
         </span>
       </div>
@@ -264,13 +297,19 @@ const RailRow = ({
   active,
   item,
   onClick,
+  onMouseEnter,
+  onMouseLeave,
   preview,
+  footer,
   expandedContent,
 }: {
   active: boolean;
   item: RailItem;
   onClick: () => void;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
   preview?: ReactNode;
+  footer?: ReactNode;
   expandedContent?: ReactNode;
 }) => (
   <div
@@ -281,7 +320,7 @@ const RailRow = ({
         : 'border-border/70 bg-background/80 hover:border-primary/40 hover:bg-card'
     )}
   >
-    <button onClick={onClick} className="w-full p-3 text-left">
+    <button onClick={onClick} onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} className="w-full p-3 text-left">
       <div className="flex items-start justify-between gap-3">
       <div className="min-w-0">
         <div className="truncate font-bold text-foreground">{item.title}</div>
@@ -302,6 +341,7 @@ const RailRow = ({
         </div>
       )}
     </button>
+    {footer && <div className="border-t border-border/70 bg-background/30 px-3 py-2">{footer}</div>}
     {expandedContent && <div className="border-t border-border/80 bg-background/50 p-4 md:hidden">{expandedContent}</div>}
   </div>
 );
@@ -374,7 +414,7 @@ const EditorShell = ({
 );
 
 export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPanelProps) => {
-  const { themeSession, setThemeSession, updateThemeSession, pushThemeHistory, restoreThemeHistory } = useStore();
+  const { data, themeSession, setThemeSession, updateThemeSession, pushThemeHistory, restoreThemeHistory } = useStore();
   const [initializing, setInitializing] = useState(false);
   const [copyState, setCopyState] = useState<'idle' | 'copied'>('idle');
   const [gradientDrafts, setGradientDrafts] = useState<Record<string, string>>({});
@@ -384,6 +424,10 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
   const [activeFilter, setActiveFilter] = useState<StudioFilter>('all');
   const [expandedPanels, setExpandedPanels] = useState<Record<string, boolean>>({});
   const [expandedSources, setExpandedSources] = useState<Record<string, boolean>>({});
+  const [locateStates, setLocateStates] = useState<Record<string, ThemeLocateState>>({});
+  const [elementUpdateSession, setElementUpdateSession] = useState<ElementUpdateSession | null>(null);
+  const hoverTimerRef = useRef<number | null>(null);
+  const activeHoverItemRef = useRef<string | null>(null);
 
   const initializeThemeSession = async (tabId?: number) => {
     const resolvedTabId =
@@ -507,6 +551,31 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
     }
   };
 
+  const sendThemeStudioAction = async (
+    payload:
+      | { action: 'THEME_CLEAR_HIGHLIGHTS' }
+      | { action: 'THEME_HIGHLIGHT_MATCHES'; payload: ThemeLocateRequest }
+      | { action: 'THEME_LOCATE_MATCH'; payload: ThemeLocateRequest }
+      | { action: 'THEME_START_ELEMENT_UPDATE'; payload: ThemeLocateRequest }
+  ) => {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) return null;
+
+    const send = () => chrome.tabs.sendMessage(tab.id!, payload);
+
+    try {
+      const response: any = await send();
+      if (response?.status === 'stale-context') {
+        await initializeThemeSession(tab.id);
+        return await send();
+      }
+      return response;
+    } catch {
+      await initializeThemeSession(tab.id);
+      return send();
+    }
+  };
+
   const applySemanticSlots = async (nextSlots: ThemeSemanticSlot[]) => {
     if (!themeSession) return;
     const nextRules = themeSession.exactReplacements.map((rule) => ({ ...rule }));
@@ -622,6 +691,8 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
 
   const handleUndo = async () => {
     if (!themeSession || themeSession.historyIndex <= 0) return;
+    await clearHoverPreview();
+    setElementUpdateSession(null);
     const targetIndex = themeSession.historyIndex - 1;
     const snapshot = themeSession.history[targetIndex];
     restoreThemeHistory(snapshot, targetIndex);
@@ -645,6 +716,8 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
 
   const handleRedo = async () => {
     if (!themeSession || themeSession.historyIndex >= themeSession.history.length - 1) return;
+    await clearHoverPreview();
+    setElementUpdateSession(null);
     const targetIndex = themeSession.historyIndex + 1;
     const snapshot = themeSession.history[targetIndex];
     restoreThemeHistory(snapshot, targetIndex);
@@ -668,6 +741,8 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
 
   const handleReset = async () => {
     if (!themeSession) return;
+    await clearHoverPreview();
+    setElementUpdateSession(null);
     const resetSlots = themeSession.semanticSlots.map((slot) => ({ ...slot, currentColor: slot.originalColor }));
     const resetRules = themeSession.exactReplacements.map((rule) => ({
       ...rule,
@@ -757,6 +832,43 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
     handleGradientDraftChange(ruleId, nextGradient);
   };
 
+  const clearHoverPreview = async () => {
+    if (hoverTimerRef.current) {
+      window.clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    activeHoverItemRef.current = null;
+    await sendThemeStudioAction({ action: 'THEME_CLEAR_HIGHLIGHTS' });
+    setLocateStates((current) =>
+      Object.fromEntries(
+        Object.entries(current).map(([itemId, state]) => [
+          itemId,
+          state.status === 'previewing' ? { ...state, status: 'idle' } : state,
+        ])
+      )
+    );
+  };
+
+  useEffect(() => {
+    return () => {
+      if (hoverTimerRef.current) {
+        window.clearTimeout(hoverTimerRef.current);
+      }
+      void sendThemeStudioAction({ action: 'THEME_CLEAR_HIGHLIGHTS' });
+    };
+  }, []);
+
+  useEffect(() => {
+    void clearHoverPreview();
+    setElementUpdateSession(null);
+  }, [activeSection]);
+
+  useEffect(() => {
+    if (elementUpdateSession && selectedItemId !== elementUpdateSession.itemId) {
+      setElementUpdateSession(null);
+    }
+  }, [elementUpdateSession, selectedItemId]);
+
   const availableFilters = FILTERS_BY_SECTION[activeSection];
   useEffect(() => {
     if (!availableFilters.includes(activeFilter)) {
@@ -831,6 +943,67 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
     rules: ruleItems,
   };
 
+  const getSlotPropertyPriority = (slotId: ThemeSemanticSlot['id']) => {
+    if (slotId === 'background' || slotId === 'surface') return ['background-color', 'border-color', 'color'] as const;
+    if (slotId === 'border') return ['border-color', 'background-color', 'color'] as const;
+    return ['color', 'background-color', 'border-color'] as const;
+  };
+
+  const slotLocateMeta = semanticSlots.reduce<Record<string, ThemeLocateMeta>>((accumulator, slot) => {
+    const matchingColor = data.colors.find((entry) => normalizeHex(entry.hex) === normalizeHex(slot.sourceColor));
+    const occurrences = matchingColor?.occurrences || [];
+    const prioritizedSelectors = getSlotPropertyPriority(slot.id)
+      .flatMap((property) =>
+        occurrences
+          .filter((occurrence) => occurrence.property === property)
+          .flatMap((occurrence) => occurrence.sampleSelectors)
+      )
+      .concat(occurrences.flatMap((occurrence) => occurrence.sampleSelectors))
+      .filter(Boolean);
+    const selectors = Array.from(new Set(prioritizedSelectors)).slice(0, 6);
+
+    accumulator[slot.id] = {
+      itemType: 'slot',
+      itemId: slot.id,
+      selectors,
+      scope: 'samples',
+      canLocate: selectors.length > 0,
+      canCreateExactRule: selectors.length > 0,
+    };
+    return accumulator;
+  }, {});
+
+  const gradientLocateMeta = gradientRules.reduce<Record<string, ThemeLocateMeta>>((accumulator, rule) => {
+    accumulator[rule.id] = {
+      itemType: 'gradient',
+      itemId: rule.id,
+      selectors: rule.sampleSelectors.slice(0, 10),
+      scope: 'all',
+      canLocate: rule.sampleSelectors.length > 0,
+      canCreateExactRule: false,
+    };
+    return accumulator;
+  }, {});
+
+  const ruleLocateMeta = exactRules.reduce<Record<string, ThemeLocateMeta>>((accumulator, rule) => {
+    accumulator[rule.id] = {
+      itemType: 'rule',
+      itemId: rule.id,
+      selectors: rule.sampleSelectors.slice(0, 10),
+      scope: 'all',
+      canLocate: rule.sampleSelectors.length > 0,
+      canCreateExactRule: rule.sampleSelectors.length > 0,
+    };
+    return accumulator;
+  }, {});
+
+  const getLocateMeta = (section: WorkbenchSection, itemId: string): ThemeLocateMeta | null => {
+    if (section === 'slots') return slotLocateMeta[itemId] || null;
+    if (section === 'gradients') return gradientLocateMeta[itemId] || null;
+    if (section === 'rules') return ruleLocateMeta[itemId] || null;
+    return null;
+  };
+
   const visibleItems = sectionItems[activeSection].filter(
     (item) => matchesFilter(item, activeFilter) && matchesSearch(item, searchQuery)
   );
@@ -843,6 +1016,12 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
     }
     if (!visibleItems.length) {
       setSelectedItemId(null);
+      return;
+    }
+    if (activeSection === 'presets') {
+      if (selectedItemId && !visibleItems.some((item) => item.id === selectedItemId)) {
+        setSelectedItemId(null);
+      }
       return;
     }
     if (!selectedItemId || !visibleItems.some((item) => item.id === selectedItemId)) {
@@ -862,8 +1041,6 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
     );
   }
 
-  const selectedPresetId = activeSection === 'presets' ? (selectedItemId as PresetId | null) : null;
-  const selectedPreset = selectedPresetId ? buildThemePreset(selectedPresetId, themeSession.semanticSlots) : null;
   const selectedSlot = activeSection === 'slots' ? themeSession.semanticSlots.find((slot) => slot.id === selectedItemId) || null : null;
   const selectedGradient =
     activeSection === 'gradients'
@@ -874,10 +1051,297 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       ? themeSession.exactReplacements.find((rule) => rule.id === selectedItemId) || null
       : null;
 
+  const upsertExactRuleFromElement = async (
+    originalColor: string,
+    replacementColor: string,
+    selector: string
+  ) => {
+    const normalizedOriginal = normalizeHex(originalColor);
+    const normalizedReplacement = normalizeHex(replacementColor);
+    const existingRule = themeSession.exactReplacements.find(
+      (rule) => normalizeHex(rule.originalColor) === normalizedOriginal
+    );
+
+    const nextRules = existingRule
+      ? themeSession.exactReplacements.map((rule) =>
+          normalizeHex(rule.originalColor) === normalizedOriginal
+            ? {
+                ...rule,
+                enabled: true,
+                replacementColor: normalizedReplacement,
+                sampleSelectors: Array.from(new Set([selector, ...rule.sampleSelectors])).slice(0, 8),
+              }
+            : rule
+        )
+      : [
+          ...themeSession.exactReplacements,
+          {
+            id: `${normalizedOriginal}-all`,
+            originalColor: normalizedOriginal,
+            replacementColor: normalizedReplacement,
+            property: 'all' as const,
+            count: 1,
+            variableNames: [],
+            sampleSelectors: [selector],
+            enabled: true,
+          },
+        ];
+
+    await applyExactRules(nextRules);
+  };
+
+  const updateLocateState = (itemId: string, nextState: ThemeLocateState) => {
+    setLocateStates((current) => ({ ...current, [itemId]: nextState }));
+  };
+
+  const previewLocateItem = (itemId: string) => {
+    const locateMeta = getLocateMeta(activeSection, itemId);
+    if (!locateMeta?.canLocate) return;
+
+    if (hoverTimerRef.current) window.clearTimeout(hoverTimerRef.current);
+    activeHoverItemRef.current = itemId;
+    updateLocateState(itemId, { status: 'previewing' });
+
+    hoverTimerRef.current = window.setTimeout(async () => {
+      const response = await sendThemeStudioAction({
+        action: 'THEME_HIGHLIGHT_MATCHES',
+        payload: {
+          itemType: locateMeta.itemType,
+          itemId: locateMeta.itemId,
+          selectors: locateMeta.selectors,
+          scope: locateMeta.scope,
+        },
+      });
+
+      if (activeHoverItemRef.current !== itemId) return;
+      if (response?.status === 'ok') {
+        updateLocateState(itemId, {
+          status: 'located',
+          count: response.count,
+          selector: response.primarySelector || null,
+        });
+      } else if (response?.status === 'not_found') {
+        updateLocateState(itemId, { status: 'not_found' });
+      } else {
+        updateLocateState(itemId, { status: 'error' });
+      }
+    }, 180);
+  };
+
+  const locateItem = async (itemId: string) => {
+    const locateMeta = getLocateMeta(activeSection, itemId);
+    if (!locateMeta?.canLocate) return;
+
+    activeHoverItemRef.current = itemId;
+    updateLocateState(itemId, { status: 'previewing' });
+    const response = await sendThemeStudioAction({
+      action: 'THEME_LOCATE_MATCH',
+      payload: {
+        itemType: locateMeta.itemType,
+        itemId: locateMeta.itemId,
+        selectors: locateMeta.selectors,
+        scope: locateMeta.scope,
+        scrollIntoView: true,
+      },
+    });
+
+    if (response?.status === 'ok') {
+      updateLocateState(itemId, {
+        status: 'located',
+        count: response.count,
+        selector: response.primarySelector || null,
+      });
+      return;
+    }
+
+    updateLocateState(itemId, { status: response?.status === 'not_found' ? 'not_found' : 'error' });
+  };
+
+  const startElementUpdate = async (itemId: string) => {
+    const locateMeta = getLocateMeta(activeSection, itemId);
+    if (!locateMeta?.canLocate) return;
+
+    const response = await sendThemeStudioAction({
+      action: 'THEME_START_ELEMENT_UPDATE',
+      payload: {
+        itemType: locateMeta.itemType,
+        itemId: locateMeta.itemId,
+        selectors: locateMeta.selectors,
+        scope: 'representative',
+        scrollIntoView: true,
+      },
+    });
+
+    if (response?.status !== 'ok' || !response.target) {
+      updateLocateState(itemId, { status: response?.status === 'not_found' ? 'not_found' : 'error' });
+      return;
+    }
+
+    const target = response.target as ThemeElementUpdateTarget;
+    const preferredProperty =
+      target.colors.color
+        ? 'color'
+        : target.colors.backgroundColor
+          ? 'backgroundColor'
+          : 'borderColor';
+
+    setElementUpdateSession({
+      itemId,
+      target,
+      selectedProperty: preferredProperty,
+    });
+    updateLocateState(itemId, {
+      status: 'element-update',
+      count: 1,
+      selector: target.selector,
+    });
+  };
+
+  const renderLocateStatus = (itemId: string) => {
+    const state = locateStates[itemId];
+    if (!state || state.status === 'idle') return 'Hover to preview';
+    if (state.status === 'previewing') return 'Previewing';
+    if (state.status === 'located') return state.count && state.count > 1 ? `${state.count} matches` : 'Located';
+    if (state.status === 'element-update') return 'Element mode';
+    if (state.status === 'not_found') return 'No match';
+    return 'Preview unavailable';
+  };
+
+  const renderElementUpdatePanel = (itemId: string, replacementColor: string) => {
+    if (!elementUpdateSession || elementUpdateSession.itemId !== itemId) return null;
+
+    const availableProperties = (
+      [
+        ['color', elementUpdateSession.target.colors.color, 'Text'],
+        ['backgroundColor', elementUpdateSession.target.colors.backgroundColor, 'Background'],
+        ['borderColor', elementUpdateSession.target.colors.borderColor, 'Border'],
+      ] as const
+    ).filter((entry) => Boolean(entry[1]));
+
+    if (!availableProperties.length) {
+      return (
+        <div className="rounded-2xl border border-border bg-background/70 p-3 text-xs text-muted-foreground">
+          Element mode is pinned to <span className="font-mono text-foreground">{elementUpdateSession.target.selector}</span>, but no
+          solid colors were found to convert into an exact rule.
+        </div>
+      );
+    }
+
+    const selectedColor =
+      elementUpdateSession.target.colors[elementUpdateSession.selectedProperty] ||
+      availableProperties[0][1] ||
+      null;
+
+    return (
+      <div className="rounded-2xl border border-primary/20 bg-primary/5 p-3 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-wider text-primary">Element Update</div>
+            <div className="mt-1 font-mono text-[11px] text-foreground break-all">{elementUpdateSession.target.selector}</div>
+          </div>
+          <button
+            onClick={() => setElementUpdateSession(null)}
+            className="rounded-lg border border-border px-2 py-1 text-[11px] font-bold text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Close
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {availableProperties.map(([property, value, label]) => (
+            <button
+              key={`${itemId}-${property}`}
+              onClick={() =>
+                setElementUpdateSession((current) =>
+                  current ? { ...current, selectedProperty: property } : current
+                )
+              }
+              className={clsx(
+                'rounded-full border px-3 py-1 text-[11px] font-bold transition-colors',
+                elementUpdateSession.selectedProperty === property
+                  ? 'border-primary bg-primary text-primary-foreground'
+                  : 'border-border bg-background text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {label} {value}
+            </button>
+          ))}
+        </div>
+        {selectedColor && (
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="h-8 w-8 rounded-lg border border-border" style={{ backgroundColor: selectedColor }} />
+              <span className="font-mono">{selectedColor}</span>
+              <span>→</span>
+              <span className="h-8 w-8 rounded-lg border border-border" style={{ backgroundColor: replacementColor }} />
+              <span className="font-mono text-foreground">{replacementColor}</span>
+            </div>
+            <button
+              onClick={() => upsertExactRuleFromElement(selectedColor, replacementColor, elementUpdateSession.target.selector)}
+              className="rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-colors"
+            >
+              Apply Exact Rule
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderRowFooter = (itemId: string) => {
+    if (activeSection === 'presets') {
+      const preset = buildThemePreset(itemId as PresetId, themeSession.semanticSlots);
+      return (
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex min-w-0 items-center gap-1.5">
+            {Object.values(preset.colors)
+              .slice(0, 6)
+              .map((color, index) => (
+                <span
+                  key={`${itemId}-footer-preset-${index}`}
+                  className="h-6 w-6 rounded-md border border-border"
+                  style={{ backgroundColor: color }}
+                />
+              ))}
+          </div>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Click to apply</span>
+        </div>
+      );
+    }
+
+    const locateMeta = getLocateMeta(activeSection, itemId);
+    if (!locateMeta) return null;
+
+    return (
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{renderLocateStatus(itemId)}</span>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => void locateItem(itemId)}
+            disabled={!locateMeta.canLocate}
+            className="rounded-lg border border-border px-2 py-1 text-[11px] font-bold text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
+          >
+            Find
+          </button>
+          <button
+            onClick={() => void startElementUpdate(itemId)}
+            disabled={!locateMeta.canCreateExactRule}
+            className="rounded-lg border border-border px-2 py-1 text-[11px] font-bold text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
+          >
+            Element Mode
+          </button>
+        </div>
+      </div>
+    );
+  };
+
   const renderRailPreview = (itemId: string) => {
     if (activeSection === 'slots') {
       const slot = themeSession.semanticSlots.find((entry) => entry.id === itemId);
       if (!slot) return null;
+      const slotChanged = normalizeHex(slot.currentColor) !== normalizeHex(slot.originalColor);
+      if (!slotChanged) {
+        return <span className="h-8 w-8 rounded-lg border border-border" style={{ backgroundColor: slot.currentColor }} />;
+      }
       return (
         <div className="flex items-center gap-2">
           <span className="h-8 w-8 rounded-lg border border-border" style={{ backgroundColor: slot.originalColor }} />
@@ -912,102 +1376,101 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       );
     }
 
-    if (activeSection === 'presets') {
-      const preset = buildThemePreset(itemId as PresetId, themeSession.semanticSlots);
-      return (
-        <div className="flex items-center gap-1">
-          {Object.values(preset.colors)
-            .slice(0, 3)
-            .map((color, index) => (
-              <span
-                key={`${itemId}-preview-${index}`}
-                className="h-7 w-7 rounded-lg border border-border"
-                style={{ backgroundColor: color }}
-              />
-            ))}
-        </div>
-      );
-    }
-
     return null;
   };
 
   const renderInlineEditor = (itemId: string) => {
-    if (activeSection === 'presets') {
-      const preset = buildThemePreset(itemId as PresetId, themeSession.semanticSlots);
-      return (
-        <div className="space-y-4">
-          <div className="grid grid-cols-3 gap-2">
-            {Object.values(preset.colors)
-              .slice(0, 6)
-              .map((color, index) => (
-                <div key={`${itemId}-inline-preset-${index}`} className="rounded-xl border border-border bg-background/70 p-2">
-                  <div className="h-12 rounded-lg border border-border" style={{ backgroundColor: color }} />
-                </div>
-              ))}
-          </div>
-          <button
-            onClick={() => handlePreset(preset.id as PresetId)}
-            className="w-full rounded-xl bg-primary px-4 py-3 text-sm font-bold text-primary-foreground hover:bg-primary/90 transition-colors"
-          >
-            Apply Preset
-          </button>
-        </div>
-      );
-    }
-
     if (activeSection === 'slots') {
       const slot = themeSession.semanticSlots.find((entry) => entry.id === itemId);
       if (!slot) return null;
+      const slotChanged = normalizeHex(slot.currentColor) !== normalizeHex(slot.originalColor);
       return (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Live Color</div>
-              <div className="font-mono text-sm text-foreground">{slot.currentColor}</div>
-            </div>
-            <button
-              onClick={() =>
-                applySemanticSlots(
-                  themeSession.semanticSlots.map((entry) =>
-                    entry.id === slot.id ? { ...entry, currentColor: entry.originalColor } : entry
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background/70 px-3 py-2.5">
+            <div className="flex min-w-0 items-center gap-3">
+              <input
+                type="color"
+                value={slot.currentColor}
+                onChange={(event) =>
+                  applySemanticSlots(
+                    themeSession.semanticSlots.map((entry) =>
+                      entry.id === slot.id ? { ...entry, currentColor: event.target.value.toUpperCase() } : entry
+                    )
                   )
-                )
-              }
-              className="rounded-xl border border-border px-3 py-2 text-xs font-bold text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors"
-            >
-              Revert
-            </button>
-          </div>
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-            <div>
-              <div className="h-16 rounded-2xl border border-border" style={{ backgroundColor: slot.originalColor }} />
-              <div className="mt-2 font-mono text-[11px] text-muted-foreground break-all">{slot.originalColor}</div>
+                }
+                className="h-10 w-10 rounded-lg border border-border bg-transparent"
+              />
+              <div className="min-w-0">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  {slotChanged ? 'Current color' : 'Detected color'}
+                </div>
+                <div className="font-mono text-sm text-foreground">{slot.currentColor}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  {slotChanged ? `Originally ${slot.originalColor}` : 'No manual changes yet'}
+                </div>
+              </div>
             </div>
-            <div className="text-xs font-bold text-muted-foreground">→</div>
-            <div>
-              <div className="h-16 rounded-2xl border border-border" style={{ backgroundColor: slot.currentColor }} />
-              <div className="mt-2 font-mono text-[11px] text-foreground break-all">{slot.currentColor}</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <input
-              type="color"
-              value={slot.currentColor}
-              onChange={(event) =>
-                applySemanticSlots(
-                  themeSession.semanticSlots.map((entry) =>
-                    entry.id === slot.id ? { ...entry, currentColor: event.target.value.toUpperCase() } : entry
+            {slotChanged ? (
+              <button
+                onClick={() =>
+                  applySemanticSlots(
+                    themeSession.semanticSlots.map((entry) =>
+                      entry.id === slot.id ? { ...entry, currentColor: entry.originalColor } : entry
+                    )
                   )
-                )
-              }
-              className="h-12 w-16 rounded-xl border border-border bg-transparent"
-            />
-            <div className="text-xs text-muted-foreground">
-              Confidence {Math.round(slot.confidence * 100)}%
-              {slot.uncertain ? ' • review suggested' : ''}
-            </div>
+                }
+                className="rounded-xl border border-border px-3 py-2 text-xs font-bold text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors"
+              >
+                Revert
+              </button>
+            ) : (
+              <span className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
+                Original
+              </span>
+            )}
           </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
+              {Math.round(slot.confidence * 100)}% confidence
+            </span>
+            {slot.candidateVariables.length > 0 && (
+              <span className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
+                {slot.candidateVariables.length} vars
+              </span>
+            )}
+            {slotChanged && (
+              <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary">
+                Changed
+              </span>
+            )}
+            {slot.uncertain && (
+              <span className="rounded-full border border-yellow-500/30 bg-yellow-500/10 px-2.5 py-1 text-[11px] font-bold text-yellow-700">
+                Review suggested
+              </span>
+            )}
+          </div>
+
+          {slotChanged && (
+            <div className="rounded-xl border border-border bg-background/70 px-3 py-2.5">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Change Preview</div>
+              <div className="mt-2 flex items-center gap-3">
+                <span className="h-8 w-8 rounded-lg border border-border" style={{ backgroundColor: slot.originalColor }} />
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Before</div>
+                  <div className="font-mono text-xs text-muted-foreground break-all">{slot.originalColor}</div>
+                </div>
+                <span className="text-xs font-bold text-muted-foreground">{'->'}</span>
+                <span className="h-8 w-8 rounded-lg border border-border" style={{ backgroundColor: slot.currentColor }} />
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">After</div>
+                  <div className="font-mono text-xs text-foreground break-all">{slot.currentColor}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {renderElementUpdatePanel(slot.id, slot.currentColor)}
         </div>
       );
     }
@@ -1081,6 +1544,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
               {rule.count} matches{rule.variableNames.length > 0 ? ` • ${rule.variableNames.length} vars` : ''}
             </div>
           </div>
+          {renderElementUpdatePanel(rule.id, rule.replacementColor)}
         </div>
       );
     }
@@ -1217,58 +1681,16 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       );
     }
 
-    if (selectedPreset && activeSection === 'presets') {
-      const resetCount =
-        themeSession.exactReplacements.filter((rule) => rule.enabled).length +
-        themeSession.gradientReplacements.filter((rule) => rule.enabled).length;
-      const palettePanelKey = `preset-palette:${selectedPreset.id}`;
-
+    if (activeSection === 'presets') {
       return (
         <EditorShell
-          eyebrow="Preset"
-          title={selectedPreset.label}
-          summary="Presets remap semantic slots, refresh exact replacements, and reset gradients so the page gets a clean palette pass."
-          actions={
-            <button
-              onClick={() => handlePreset(selectedPreset.id as PresetId)}
-              className="rounded-xl bg-primary px-4 py-3 font-bold text-primary-foreground hover:bg-primary/90 transition-colors"
-            >
-              Apply Preset
-            </button>
-          }
-          badges={
-            <>
-              <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-                {themeSession.semanticSlots.length} slots
-              </span>
-              <span className="rounded-full border border-border bg-secondary/50 px-3 py-1 text-xs font-bold text-muted-foreground">
-                Resets {resetCount} live overrides
-              </span>
-            </>
-          }
-          footer={
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-muted-foreground">Presets apply instantly and create a new history checkpoint.</p>
-              <span className="text-sm font-bold text-primary">Ready to apply</span>
-            </div>
-          }
+          eyebrow="Presets"
+          title="Apply From The List"
+          summary="Choose a preset from the left. It applies immediately and updates the page without opening another editor."
         >
-          <AccordionSection
-            title="Palette Preview"
-            eyebrow="Preview"
-            summary="Review the colors that will be pushed into the semantic slots."
-            expanded={isPanelExpanded(palettePanelKey, true)}
-            onToggle={() => toggleExpandedPanel(palettePanelKey, true)}
-          >
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-              {Object.values(selectedPreset.colors).map((color, index) => (
-                <div key={`${selectedPreset.id}-${index}`} className="rounded-2xl border border-border bg-background/70 p-4">
-                  <div className="h-24 rounded-xl border border-border" style={{ backgroundColor: color }} />
-                  <div className="mt-3 font-mono text-sm font-bold">{color}</div>
-                </div>
-              ))}
-            </div>
-          </AccordionSection>
+          <div className="rounded-2xl border border-dashed border-border bg-background/60 p-8 text-center text-muted-foreground">
+            Presets no longer expand. Click any preset card to apply it directly.
+          </div>
         </EditorShell>
       );
     }
@@ -1784,14 +2206,10 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
   };
 
   return (
-    <div className="space-y-5 pb-20">
-      <section className="rounded-[28px] border-2 border-foreground/20 bg-card px-5 py-5 neo-shadow">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <div className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Theme Studio Workbench</div>
-            <h2 className="mt-1 text-2xl font-black tracking-tight text-foreground">{themeSession.pageTitle || 'Current page'}</h2>
-            <p className="mt-2 max-w-2xl text-sm text-muted-foreground truncate">{themeSession.pageUrl}</p>
-          </div>
+    <div className="space-y-4 pb-20">
+      <section className="rounded-[24px] border-2 border-foreground/20 bg-card px-4 py-3 neo-shadow">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h2 className="text-xl font-black tracking-tight text-foreground">Theme Studio</h2>
           <div className="flex flex-wrap items-center gap-2">
             {!isSidePanel && (
               <button
@@ -1827,6 +2245,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
             </button>
             <button
               onClick={handleCopyExport}
+              title="Copy the current semantic slot colors plus changed exact and gradient rules as JSON."
               className="rounded-xl bg-primary px-3 py-2 font-bold text-sm text-primary-foreground hover:bg-primary/90 transition-colors flex items-center gap-2"
             >
               {copyState === 'copied' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
@@ -1834,37 +2253,11 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
             </button>
           </div>
         </div>
-
-        <div className="mt-5 flex flex-wrap gap-2">
-          <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
-            <History className="mr-2 inline h-3.5 w-3.5" />
-            {themeSession.history.length - 1} edits
-          </span>
-          <span
-            className={clsx(
-              'rounded-full border px-3 py-1 text-xs font-bold',
-              themeSession.applyMode === 'variables-only'
-                ? 'border-yellow-500/30 bg-yellow-500/10 text-yellow-700'
-                : 'border-green-500/30 bg-green-500/10 text-green-700'
-            )}
-          >
-            {themeSession.applyMode === 'variables-only' ? 'Variables-only mode' : 'Hybrid mode'}
-          </span>
-          <span className="rounded-full border border-border bg-background px-3 py-1 text-xs font-bold text-muted-foreground">
-            {slotItems.length} slots
-          </span>
-          <span className="rounded-full border border-border bg-background px-3 py-1 text-xs font-bold text-muted-foreground">
-            {gradientItems.length} gradients
-          </span>
-          <span className="rounded-full border border-border bg-background px-3 py-1 text-xs font-bold text-muted-foreground">
-            {ruleItems.length} exact rules
-          </span>
-        </div>
       </section>
 
       <div className="grid gap-4 md:grid-cols-[300px_minmax(0,1fr)]">
         <aside className="rounded-[28px] border-2 border-foreground/20 bg-card p-4 neo-shadow md:max-h-[calc(100vh-16rem)] md:overflow-hidden">
-          <div className="grid gap-2 sm:grid-cols-2 md:grid-cols-1">
+          <div className="grid grid-cols-2 gap-2">
             {(Object.keys(SECTION_META) as WorkbenchSection[]).map((section) => (
               <SectionButton
                 key={section}
@@ -1874,6 +2267,13 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                 onClick={() => setActiveSection(section)}
               />
             ))}
+          </div>
+
+          <div className="mt-3 rounded-2xl border border-border bg-background/60 px-3 py-2.5">
+            <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+              {SECTION_META[activeSection].label}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">{SECTION_META[activeSection].description}</p>
           </div>
 
           <div className="mt-4 rounded-2xl border border-border bg-background/70 px-3 py-2 flex items-center gap-2">
@@ -1909,9 +2309,21 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                   key={item.id}
                   item={item}
                   active={item.id === selectedItemId}
+                  onMouseEnter={() => previewLocateItem(item.id)}
+                  onMouseLeave={() => {
+                    if (activeHoverItemRef.current === item.id) {
+                      void clearHoverPreview();
+                    }
+                  }}
                   preview={renderRailPreview(item.id)}
-                  expandedContent={item.id === selectedItemId ? renderInlineEditor(item.id) : null}
-                  onClick={() => setSelectedItemId(item.id)}
+                  footer={renderRowFooter(item.id)}
+                  expandedContent={activeSection === 'presets' ? null : item.id === selectedItemId ? renderInlineEditor(item.id) : null}
+                  onClick={() => {
+                    setSelectedItemId(item.id);
+                    if (activeSection === 'presets') {
+                      void handlePreset(item.id as PresetId);
+                    }
+                  }}
                 />
               ))
             ) : (

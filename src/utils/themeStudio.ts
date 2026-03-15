@@ -95,6 +95,9 @@ export interface ThemeHistoryEntry {
   exactReplacements: ThemeReplacementRule[];
   gradientReplacements: ThemeGradientRule[];
   applyMode: ThemeApplyMode;
+  fontPresetId: string;
+  fontFamily: string;
+  fontStylesheetUrl: string;
 }
 
 export interface ThemeSession {
@@ -105,6 +108,9 @@ export interface ThemeSession {
   historyIndex: number;
   isPreviewActive: boolean;
   applyMode: ThemeApplyMode;
+  fontPresetId: string;
+  fontFamily: string;
+  fontStylesheetUrl: string;
   trackedNodeCount: number;
   pageTitle: string;
   pageUrl: string;
@@ -122,6 +128,9 @@ export interface ThemeSessionExport {
   pageUrl: string;
   pageTitle: string;
   exportedAt: string;
+  fontPresetId: string;
+  fontFamily: string;
+  fontStylesheetUrl: string;
   semanticSlots: ThemeSemanticSlot[];
   exactReplacements: ThemeReplacementRule[];
   gradientReplacements: ThemeGradientRule[];
@@ -383,12 +392,18 @@ export const buildInitialThemeSession = (
     semanticSlots,
     exactReplacements,
     gradientReplacements,
+    fontPresetId: 'original',
+    fontFamily: '',
+    fontStylesheetUrl: '',
     history: [
       {
         semanticSlots,
         exactReplacements,
         gradientReplacements,
         applyMode,
+        fontPresetId: 'original',
+        fontFamily: '',
+        fontStylesheetUrl: '',
       },
     ],
     historyIndex: 0,
@@ -414,13 +429,19 @@ export const cloneThemeSessionState = (session: ThemeSession): ThemeHistoryEntry
     sampleSelectors: [...rule.sampleSelectors],
   })),
   applyMode: session.applyMode,
+  fontPresetId: session.fontPresetId,
+  fontFamily: session.fontFamily,
+  fontStylesheetUrl: session.fontStylesheetUrl,
 });
 
 export const createHistorySnapshot = (
   semanticSlots: ThemeSemanticSlot[],
   exactReplacements: ThemeReplacementRule[],
   gradientReplacements: ThemeGradientRule[],
-  applyMode: ThemeApplyMode
+  applyMode: ThemeApplyMode,
+  fontPresetId: string,
+  fontFamily: string,
+  fontStylesheetUrl: string
 ): ThemeHistoryEntry => ({
   semanticSlots: semanticSlots.map((slot) => ({ ...slot, candidateVariables: [...slot.candidateVariables] })),
   exactReplacements: exactReplacements.map((rule) => ({
@@ -433,6 +454,9 @@ export const createHistorySnapshot = (
     sampleSelectors: [...rule.sampleSelectors],
   })),
   applyMode,
+  fontPresetId,
+  fontFamily,
+  fontStylesheetUrl,
 });
 
 const getColorDistance = (left: string, right: string) => {
@@ -613,6 +637,9 @@ export const exportThemeSession = (session: ThemeSession): ThemeSessionExport =>
   pageUrl: session.pageUrl,
   pageTitle: session.pageTitle,
   exportedAt: new Date().toISOString(),
+  fontPresetId: session.fontPresetId,
+  fontFamily: session.fontFamily,
+  fontStylesheetUrl: session.fontStylesheetUrl,
   semanticSlots: session.semanticSlots.map((slot) => ({ ...slot, candidateVariables: [...slot.candidateVariables] })),
   exactReplacements: session.exactReplacements
     .filter((rule) => rule.enabled || normalizeHex(rule.originalColor) !== normalizeHex(rule.replacementColor))

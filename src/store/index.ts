@@ -186,7 +186,10 @@ interface AppState {
     semanticSlots: ThemeSemanticSlot[],
     exactReplacements: ThemeReplacementRule[],
     gradientReplacements: ThemeGradientRule[],
-    applyMode: ThemeApplyMode
+    applyMode: ThemeApplyMode,
+    fontPresetId: string,
+    fontFamily: string,
+    fontStylesheetUrl: string
   ) => void;
   restoreThemeHistory: (historyEntry: ThemeHistoryEntry, historyIndex: number) => void;
   setRedFlagsLoaded: (loaded: boolean) => void;
@@ -200,10 +203,16 @@ const normalizeThemeSession = (themeSession: ThemeSession | null): ThemeSession 
 
   return {
     ...themeSession,
+    fontPresetId: themeSession.fontPresetId || 'original',
+    fontFamily: themeSession.fontFamily || '',
+    fontStylesheetUrl: themeSession.fontStylesheetUrl || '',
     gradientReplacements: themeSession.gradientReplacements || [],
     history: (themeSession.history || []).map((entry) => ({
       ...entry,
       gradientReplacements: entry.gradientReplacements || [],
+      fontPresetId: entry.fontPresetId || 'original',
+      fontFamily: entry.fontFamily || '',
+      fontStylesheetUrl: entry.fontStylesheetUrl || '',
     })),
   };
 };
@@ -249,12 +258,22 @@ export const useStore = create<AppState>((set) => ({
           })
         : null,
     })),
-  pushThemeHistory: (semanticSlots, exactReplacements, gradientReplacements, applyMode) =>
+  pushThemeHistory: (semanticSlots, exactReplacements, gradientReplacements, applyMode, fontPresetId, fontFamily, fontStylesheetUrl) =>
     set((state) => {
       if (!state.themeSession) return {};
 
       const nextHistory = state.themeSession.history.slice(0, state.themeSession.historyIndex + 1);
-      nextHistory.push(createHistorySnapshot(semanticSlots, exactReplacements, gradientReplacements, applyMode));
+      nextHistory.push(
+        createHistorySnapshot(
+          semanticSlots,
+          exactReplacements,
+          gradientReplacements,
+          applyMode,
+          fontPresetId,
+          fontFamily,
+          fontStylesheetUrl
+        )
+      );
 
       return {
         themeSession: {
@@ -263,6 +282,9 @@ export const useStore = create<AppState>((set) => ({
           exactReplacements,
           gradientReplacements,
           applyMode,
+          fontPresetId,
+          fontFamily,
+          fontStylesheetUrl,
           history: nextHistory,
           historyIndex: nextHistory.length - 1,
           isPreviewActive: true,
@@ -280,6 +302,9 @@ export const useStore = create<AppState>((set) => ({
             exactReplacements: historyEntry.exactReplacements,
             gradientReplacements: historyEntry.gradientReplacements || [],
             applyMode: historyEntry.applyMode,
+            fontPresetId: historyEntry.fontPresetId || 'original',
+            fontFamily: historyEntry.fontFamily || '',
+            fontStylesheetUrl: historyEntry.fontStylesheetUrl || '',
             historyIndex,
             isPreviewActive: true,
             lowConfidence: historyEntry.semanticSlots.some((slot) => slot.uncertain),

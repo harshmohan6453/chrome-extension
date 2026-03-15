@@ -15,6 +15,7 @@ import {
 import { isCurrentRuntimeOwner, safeRuntimeSendMessage } from './runtime';
 
 const STYLE_TAG_ID = 'di-theme-runtime-style';
+const FONT_LINK_ID = 'di-theme-runtime-font';
 const TOAST_ID = 'di-theme-runtime-toast';
 const NODE_ATTR = 'data-di-theme-node';
 const EXACT_TARGET_ATTR = 'data-di-theme-exact-target';
@@ -63,6 +64,7 @@ const getGradientKind = (computed: CSSStyleDeclaration): ThemeGradientKind => {
 
 export class ThemeRuntime {
   private styleTag: HTMLStyleElement | null = null;
+  private fontLinkTag: HTMLLinkElement | null = null;
   private observer: MutationObserver | null = null;
   private trackedNodes = new Map<string, TrackedNode>();
   private trackedGradientNodes = new Map<string, TrackedGradientNode>();
@@ -94,6 +96,9 @@ export class ThemeRuntime {
     exactReplacements?: ThemeReplacementRule[];
     gradientReplacements?: ThemeGradientRule[];
     applyMode?: ThemeApplyMode;
+    fontPresetId?: string;
+    fontFamily?: string;
+    fontStylesheetUrl?: string;
     isPreviewActive?: boolean;
   }) {
     if (!this.session) return null;
@@ -104,6 +109,9 @@ export class ThemeRuntime {
       exactReplacements: payload.exactReplacements || this.session.exactReplacements,
       gradientReplacements: payload.gradientReplacements || this.session.gradientReplacements,
       applyMode: payload.applyMode || this.session.applyMode,
+      fontPresetId: payload.fontPresetId ?? this.session.fontPresetId,
+      fontFamily: payload.fontFamily ?? this.session.fontFamily,
+      fontStylesheetUrl: payload.fontStylesheetUrl ?? this.session.fontStylesheetUrl,
       isPreviewActive: payload.isPreviewActive ?? true,
       lastUpdatedAt: Date.now(),
     };
@@ -120,6 +128,9 @@ export class ThemeRuntime {
     exactReplacements: ThemeReplacementRule[];
     gradientReplacements: ThemeGradientRule[];
     applyMode: ThemeApplyMode;
+    fontPresetId: string;
+    fontFamily: string;
+    fontStylesheetUrl: string;
   }) {
     return this.applyPatch({ ...payload, isPreviewActive: true });
   }
@@ -129,6 +140,9 @@ export class ThemeRuntime {
     exactReplacements: ThemeReplacementRule[];
     gradientReplacements: ThemeGradientRule[];
     applyMode: ThemeApplyMode;
+    fontPresetId: string;
+    fontFamily: string;
+    fontStylesheetUrl: string;
   }) {
     return this.applyPatch({ ...payload, isPreviewActive: true });
   }
@@ -156,6 +170,9 @@ export class ThemeRuntime {
         replacementValue: rule.originalValue,
         enabled: false,
       })),
+      fontPresetId: 'original',
+      fontFamily: '',
+      fontStylesheetUrl: '',
       isPreviewActive: false,
       lastUpdatedAt: Date.now(),
     };
@@ -184,6 +201,32 @@ export class ThemeRuntime {
     this.styleTag = document.createElement('style');
     this.styleTag.id = STYLE_TAG_ID;
     document.documentElement.appendChild(this.styleTag);
+  }
+
+  private syncFontStylesheet() {
+    const href = this.session?.fontStylesheetUrl?.trim();
+    const existing = (document.getElementById(FONT_LINK_ID) as HTMLLinkElement | null) || this.fontLinkTag;
+
+    if (!href) {
+      existing?.remove();
+      this.fontLinkTag = null;
+      return;
+    }
+
+    if (existing) {
+      this.fontLinkTag = existing;
+      if (existing.getAttribute('href') !== href) {
+        existing.setAttribute('href', href);
+      }
+      return;
+    }
+
+    const link = document.createElement('link');
+    link.id = FONT_LINK_ID;
+    link.rel = 'stylesheet';
+    link.href = href;
+    document.head.appendChild(link);
+    this.fontLinkTag = link;
   }
 
   private startObserver() {
@@ -402,6 +445,7 @@ export class ThemeRuntime {
 
   private render() {
     if (!this.styleTag || !this.session) return;
+    this.syncFontStylesheet();
 
     const variableOverrides = new Map<string, string>();
     this.session.semanticSlots.forEach((slot) => {
@@ -421,6 +465,12 @@ export class ThemeRuntime {
       });
 
     const cssChunks: string[] = [];
+
+    if (this.session.fontPresetId !== 'original' && this.session.fontFamily) {
+      cssChunks.push(
+        `body, body :where(h1,h2,h3,h4,h5,h6,p,a,button,input,textarea,select,label,span,li,dt,dd,small,strong,em,div) { font-family: ${this.session.fontFamily} !important; }`
+      );
+    }
 
     if (variableOverrides.size > 0) {
       cssChunks.push(

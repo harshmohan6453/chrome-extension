@@ -350,6 +350,9 @@ if (!isCurrentRuntimeOwner()) {
         exactReplacements: request.exactReplacements,
         gradientReplacements: request.gradientReplacements,
         applyMode: request.applyMode,
+        fontPresetId: request.fontPresetId,
+        fontFamily: request.fontFamily,
+        fontStylesheetUrl: request.fontStylesheetUrl,
         isPreviewActive: request.isPreviewActive,
       });
       sendResponse({ status: 'ok', session });
@@ -362,6 +365,9 @@ if (!isCurrentRuntimeOwner()) {
         exactReplacements: request.exactReplacements || [],
         gradientReplacements: request.gradientReplacements || [],
         applyMode: request.applyMode || 'hybrid',
+        fontPresetId: request.fontPresetId || 'original',
+        fontFamily: request.fontFamily || '',
+        fontStylesheetUrl: request.fontStylesheetUrl || '',
       });
       sendResponse({ status: 'ok', session });
       return true;
@@ -373,6 +379,9 @@ if (!isCurrentRuntimeOwner()) {
         exactReplacements: request.exactReplacements || [],
         gradientReplacements: request.gradientReplacements || [],
         applyMode: request.applyMode || 'hybrid',
+        fontPresetId: request.fontPresetId || 'original',
+        fontFamily: request.fontFamily || '',
+        fontStylesheetUrl: request.fontStylesheetUrl || '',
       });
       sendResponse({ status: 'ok', session });
       return true;

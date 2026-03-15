@@ -11,6 +11,7 @@ import {
   Search,
   SlidersHorizontal,
   Sparkles,
+  Type,
   Undo2,
 } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -37,9 +38,11 @@ interface ThemeStudioPanelProps {
   openSidePanel: (targetTab?: 'overview' | 'themeStudio') => Promise<void>;
 }
 
-type WorkbenchSection = 'presets' | 'slots' | 'gradients' | 'rules';
+type WorkbenchSection = 'presets' | 'fonts' | 'slots' | 'gradients' | 'rules';
 type StudioFilter = 'all' | 'changed' | 'enabled' | 'uncertain' | 'variables';
 type PresetId = (typeof PRESET_IDS)[number];
+type FontPresetId = (typeof FONT_PRESET_IDS)[number];
+type FontPresetSource = 'system' | 'google';
 
 interface GradientColorStop {
   raw: string;
@@ -85,6 +88,161 @@ interface ElementUpdateSession {
 }
 
 const PRESET_IDS = ['original', 'dark', 'warm', 'ocean', 'forest', 'high-contrast'] as const;
+const FONT_PRESET_IDS = [
+  'original',
+  'system-sans',
+  'editorial-serif',
+  'humanist',
+  'rounded',
+  'mono',
+  'inter',
+  'manrope',
+  'space-grotesk',
+  'dm-sans',
+  'plus-jakarta-sans',
+  'playfair-display',
+  'merriweather',
+  'source-serif-4',
+  'jetbrains-mono',
+] as const;
+
+const FONT_PRESETS = {
+  original: {
+    id: 'original',
+    label: 'Original',
+    source: 'system' as FontPresetSource,
+    stack: '',
+    stylesheetUrl: '',
+    sample: 'Aa',
+    subtitle: 'Keep the detected page typography.',
+  },
+  'system-sans': {
+    id: 'system-sans',
+    label: 'System Sans',
+    source: 'system' as FontPresetSource,
+    stack: `system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`,
+    stylesheetUrl: '',
+    sample: 'Aa',
+    subtitle: 'Clean modern UI stack.',
+  },
+  'editorial-serif': {
+    id: 'editorial-serif',
+    label: 'Editorial Serif',
+    source: 'system' as FontPresetSource,
+    stack: `Georgia, "Times New Roman", serif`,
+    stylesheetUrl: '',
+    sample: 'Ag',
+    subtitle: 'Readable serif for content-heavy pages.',
+  },
+  humanist: {
+    id: 'humanist',
+    label: 'Humanist',
+    source: 'system' as FontPresetSource,
+    stack: `"Trebuchet MS", "Segoe UI", sans-serif`,
+    stylesheetUrl: '',
+    sample: 'Aa',
+    subtitle: 'Softer sans with more character.',
+  },
+  rounded: {
+    id: 'rounded',
+    label: 'Rounded',
+    source: 'system' as FontPresetSource,
+    stack: `"Arial Rounded MT Bold", "Trebuchet MS", "Segoe UI", sans-serif`,
+    stylesheetUrl: '',
+    sample: 'Aa',
+    subtitle: 'Friendlier rounded fallback stack.',
+  },
+  mono: {
+    id: 'mono',
+    label: 'Mono',
+    source: 'system' as FontPresetSource,
+    stack: `ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace`,
+    stylesheetUrl: '',
+    sample: '0x',
+    subtitle: 'Technical mono treatment.',
+  },
+  inter: {
+    id: 'inter',
+    label: 'Inter',
+    source: 'google' as FontPresetSource,
+    stack: `"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`,
+    stylesheetUrl: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
+    sample: 'Aa',
+    subtitle: 'Neutral UI sans from Google Fonts.',
+  },
+  manrope: {
+    id: 'manrope',
+    label: 'Manrope',
+    source: 'google' as FontPresetSource,
+    stack: `"Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`,
+    stylesheetUrl: 'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap',
+    sample: 'Aa',
+    subtitle: 'Modern sans with a little more personality.',
+  },
+  'space-grotesk': {
+    id: 'space-grotesk',
+    label: 'Space Grotesk',
+    source: 'google' as FontPresetSource,
+    stack: `"Space Grotesk", "Segoe UI", sans-serif`,
+    stylesheetUrl: 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap',
+    sample: 'Aa',
+    subtitle: 'Sharper display-oriented grotesk.',
+  },
+  'dm-sans': {
+    id: 'dm-sans',
+    label: 'DM Sans',
+    source: 'google' as FontPresetSource,
+    stack: `"DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`,
+    stylesheetUrl: 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap',
+    sample: 'Aa',
+    subtitle: 'Friendly geometric sans for product pages.',
+  },
+  'plus-jakarta-sans': {
+    id: 'plus-jakarta-sans',
+    label: 'Plus Jakarta Sans',
+    source: 'google' as FontPresetSource,
+    stack: `"Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`,
+    stylesheetUrl: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap',
+    sample: 'Aa',
+    subtitle: 'Balanced sans that reads well in UI and content.',
+  },
+  'playfair-display': {
+    id: 'playfair-display',
+    label: 'Playfair Display',
+    source: 'google' as FontPresetSource,
+    stack: `"Playfair Display", Georgia, serif`,
+    stylesheetUrl: 'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&display=swap',
+    sample: 'Ag',
+    subtitle: 'Elegant serif for editorial or luxury pages.',
+  },
+  merriweather: {
+    id: 'merriweather',
+    label: 'Merriweather',
+    source: 'google' as FontPresetSource,
+    stack: `"Merriweather", Georgia, serif`,
+    stylesheetUrl: 'https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap',
+    sample: 'Ag',
+    subtitle: 'Readable serif built for long-form copy.',
+  },
+  'source-serif-4': {
+    id: 'source-serif-4',
+    label: 'Source Serif 4',
+    source: 'google' as FontPresetSource,
+    stack: `"Source Serif 4", Georgia, serif`,
+    stylesheetUrl: 'https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&display=swap',
+    sample: 'Ag',
+    subtitle: 'Clean contemporary serif with broad language support.',
+  },
+  'jetbrains-mono': {
+    id: 'jetbrains-mono',
+    label: 'JetBrains Mono',
+    source: 'google' as FontPresetSource,
+    stack: `"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace`,
+    stylesheetUrl: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap',
+    sample: '0x',
+    subtitle: 'Developer-focused monospace with a cleaner rhythm.',
+  },
+} as const;
 
 const badgeToneClasses = {
   good: 'bg-green-500/10 text-green-700 border-green-500/30',
@@ -101,6 +259,12 @@ const SECTION_META: Record<
     icon: Sparkles,
     accent: 'text-amber-600',
     description: 'Quickly restyle the page with curated palettes.',
+  },
+  fonts: {
+    label: 'Fonts',
+    icon: Type,
+    accent: 'text-violet-600',
+    description: 'Swap page typography with built-in stacks and curated free fonts.',
   },
   slots: {
     label: 'Semantic Slots',
@@ -132,6 +296,7 @@ const FILTER_LABELS: Record<StudioFilter, string> = {
 
 const FILTERS_BY_SECTION: Record<WorkbenchSection, StudioFilter[]> = {
   presets: ['all'],
+  fonts: ['all'],
   slots: ['all', 'changed', 'uncertain', 'variables'],
   gradients: ['all', 'changed', 'enabled'],
   rules: ['all', 'changed', 'enabled', 'variables'],
@@ -503,29 +668,38 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
 
   const sendThemePatch = async (
     payload:
-      | {
-          action: 'APPLY_THEME_PATCH';
-          semanticSlots?: ThemeSemanticSlot[];
-          exactReplacements?: ThemeReplacementRule[];
-          gradientReplacements?: ThemeGradientRule[];
-          applyMode?: ThemeSession['applyMode'];
-          isPreviewActive?: boolean;
-        }
+        | {
+            action: 'APPLY_THEME_PATCH';
+            semanticSlots?: ThemeSemanticSlot[];
+            exactReplacements?: ThemeReplacementRule[];
+            gradientReplacements?: ThemeGradientRule[];
+            applyMode?: ThemeSession['applyMode'];
+            fontPresetId?: string;
+            fontFamily?: string;
+            fontStylesheetUrl?: string;
+            isPreviewActive?: boolean;
+          }
       | { action: 'APPLY_THEME_PRESET'; semanticSlots: ThemeSemanticSlot[] }
-      | {
-          action: 'UNDO_THEME_PATCH';
-          semanticSlots: ThemeSemanticSlot[];
-          exactReplacements: ThemeReplacementRule[];
-          gradientReplacements: ThemeGradientRule[];
-          applyMode: ThemeSession['applyMode'];
-        }
-      | {
-          action: 'REDO_THEME_PATCH';
-          semanticSlots: ThemeSemanticSlot[];
-          exactReplacements: ThemeReplacementRule[];
-          gradientReplacements: ThemeGradientRule[];
-          applyMode: ThemeSession['applyMode'];
-        }
+        | {
+            action: 'UNDO_THEME_PATCH';
+            semanticSlots: ThemeSemanticSlot[];
+            exactReplacements: ThemeReplacementRule[];
+            gradientReplacements: ThemeGradientRule[];
+            applyMode: ThemeSession['applyMode'];
+            fontPresetId: string;
+            fontFamily: string;
+            fontStylesheetUrl: string;
+          }
+        | {
+            action: 'REDO_THEME_PATCH';
+            semanticSlots: ThemeSemanticSlot[];
+            exactReplacements: ThemeReplacementRule[];
+            gradientReplacements: ThemeGradientRule[];
+            applyMode: ThemeSession['applyMode'];
+            fontPresetId: string;
+            fontFamily: string;
+            fontStylesheetUrl: string;
+          }
       | { action: 'RESET_THEME_SESSION' }
       | { action: 'EXPORT_THEME_SESSION' }
   ) => {
@@ -583,7 +757,15 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
     if (!themeSession) return;
     const nextRules = themeSession.exactReplacements.map((rule) => ({ ...rule }));
     const nextGradientRules = themeSession.gradientReplacements.map((rule) => ({ ...rule }));
-    pushThemeHistory(nextSlots, nextRules, nextGradientRules, themeSession.applyMode);
+    pushThemeHistory(
+      nextSlots,
+      nextRules,
+      nextGradientRules,
+      themeSession.applyMode,
+      themeSession.fontPresetId,
+      themeSession.fontFamily,
+      themeSession.fontStylesheetUrl
+    );
     const response = await sendThemePatch({
       action: 'APPLY_THEME_PATCH',
       semanticSlots: nextSlots,
@@ -607,7 +789,15 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
     if (!themeSession) return;
     const nextSlots = themeSession.semanticSlots.map((slot) => ({ ...slot }));
     const nextGradientRules = themeSession.gradientReplacements.map((rule) => ({ ...rule }));
-    pushThemeHistory(nextSlots, nextRules, nextGradientRules, themeSession.applyMode);
+    pushThemeHistory(
+      nextSlots,
+      nextRules,
+      nextGradientRules,
+      themeSession.applyMode,
+      themeSession.fontPresetId,
+      themeSession.fontFamily,
+      themeSession.fontStylesheetUrl
+    );
     const response = await sendThemePatch({
       action: 'APPLY_THEME_PATCH',
       semanticSlots: nextSlots,
@@ -631,7 +821,15 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
     if (!themeSession) return;
     const nextSlots = themeSession.semanticSlots.map((slot) => ({ ...slot }));
     const nextRules = themeSession.exactReplacements.map((rule) => ({ ...rule }));
-    pushThemeHistory(nextSlots, nextRules, nextGradientRules, themeSession.applyMode);
+    pushThemeHistory(
+      nextSlots,
+      nextRules,
+      nextGradientRules,
+      themeSession.applyMode,
+      themeSession.fontPresetId,
+      themeSession.fontFamily,
+      themeSession.fontStylesheetUrl
+    );
     const response = await sendThemePatch({
       action: 'APPLY_THEME_PATCH',
       semanticSlots: nextSlots,
@@ -672,7 +870,15 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       enabled: false,
     }));
 
-    pushThemeHistory(nextSlots, nextRules, nextGradientRules, themeSession.applyMode);
+    pushThemeHistory(
+      nextSlots,
+      nextRules,
+      nextGradientRules,
+      themeSession.applyMode,
+      themeSession.fontPresetId,
+      themeSession.fontFamily,
+      themeSession.fontStylesheetUrl
+    );
     const response = await sendThemePatch({
       action: 'APPLY_THEME_PATCH',
       semanticSlots: nextSlots,
@@ -692,6 +898,47 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
     }
   };
 
+  const handleFontPreset = async (fontPresetId: FontPresetId) => {
+    if (!themeSession) return;
+    const preset = FONT_PRESETS[fontPresetId];
+    const nextSlots = themeSession.semanticSlots.map((slot) => ({ ...slot }));
+    const nextRules = themeSession.exactReplacements.map((rule) => ({ ...rule }));
+    const nextGradientRules = themeSession.gradientReplacements.map((rule) => ({ ...rule }));
+
+    pushThemeHistory(
+      nextSlots,
+      nextRules,
+      nextGradientRules,
+      themeSession.applyMode,
+      preset.id,
+      preset.stack,
+      preset.stylesheetUrl
+    );
+    const response = await sendThemePatch({
+      action: 'APPLY_THEME_PATCH',
+      semanticSlots: nextSlots,
+      exactReplacements: nextRules,
+      gradientReplacements: nextGradientRules,
+      applyMode: themeSession.applyMode,
+      fontPresetId: preset.id,
+      fontFamily: preset.stack,
+      fontStylesheetUrl: preset.stylesheetUrl,
+      isPreviewActive: true,
+    });
+    if (response?.session) {
+      const session = response.session as ThemeSession;
+      updateThemeSession({
+        gradientReplacements: session.gradientReplacements,
+        trackedNodeCount: session.trackedNodeCount,
+        applyMode: session.applyMode,
+        fontPresetId: session.fontPresetId,
+        fontFamily: session.fontFamily,
+        fontStylesheetUrl: session.fontStylesheetUrl,
+        isPreviewActive: session.isPreviewActive,
+      });
+    }
+  };
+
   const handleUndo = async () => {
     if (!themeSession || themeSession.historyIndex <= 0) return;
     await clearHoverPreview();
@@ -705,6 +952,9 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       exactReplacements: snapshot.exactReplacements,
       gradientReplacements: snapshot.gradientReplacements,
       applyMode: snapshot.applyMode,
+      fontPresetId: snapshot.fontPresetId,
+      fontFamily: snapshot.fontFamily,
+      fontStylesheetUrl: snapshot.fontStylesheetUrl,
     });
     if (response?.session) {
       const session = response.session as ThemeSession;
@@ -730,6 +980,9 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       exactReplacements: snapshot.exactReplacements,
       gradientReplacements: snapshot.gradientReplacements,
       applyMode: snapshot.applyMode,
+      fontPresetId: snapshot.fontPresetId,
+      fontFamily: snapshot.fontFamily,
+      fontStylesheetUrl: snapshot.fontStylesheetUrl,
     });
     if (response?.session) {
       const session = response.session as ThemeSession;
@@ -757,7 +1010,15 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       replacementValue: rule.originalValue,
       enabled: false,
     }));
-    const snapshot = createHistorySnapshot(resetSlots, resetRules, resetGradientRules, themeSession.applyMode);
+    const snapshot = createHistorySnapshot(
+      resetSlots,
+      resetRules,
+      resetGradientRules,
+      themeSession.applyMode,
+      'original',
+      '',
+      ''
+    );
     restoreThemeHistory(snapshot, themeSession.history.length);
     useStore.setState((state) => ({
       themeSession: state.themeSession
@@ -766,6 +1027,9 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
             semanticSlots: snapshot.semanticSlots,
             exactReplacements: snapshot.exactReplacements,
             gradientReplacements: snapshot.gradientReplacements,
+            fontPresetId: snapshot.fontPresetId,
+            fontFamily: snapshot.fontFamily,
+            fontStylesheetUrl: snapshot.fontStylesheetUrl,
             history: [...state.themeSession.history, snapshot],
             historyIndex: state.themeSession.history.length,
             isPreviewActive: false,
@@ -780,6 +1044,9 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
         gradientReplacements: session.gradientReplacements,
         trackedNodeCount: session.trackedNodeCount,
         applyMode: session.applyMode,
+        fontPresetId: session.fontPresetId,
+        fontFamily: session.fontFamily,
+        fontStylesheetUrl: session.fontStylesheetUrl,
         isPreviewActive: session.isPreviewActive,
       });
     }
@@ -896,6 +1163,23 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
     };
   });
 
+  const activeFontPresetId = themeSession?.fontPresetId || 'original';
+  const fontItems: RailItem[] = FONT_PRESET_IDS.map((fontPresetId) => {
+    const preset = FONT_PRESETS[fontPresetId];
+    return {
+      id: preset.id,
+      title: preset.label,
+      subtitle: preset.subtitle,
+      badges: [
+        activeFontPresetId === preset.id ? 'Active' : '',
+        preset.id === 'original' ? 'Detected' : 'Preset',
+        preset.source === 'google' ? 'Google' : 'Built-in',
+      ].filter(Boolean),
+      searchText: `${preset.label} ${preset.subtitle} ${preset.stack} ${preset.source}`,
+      changed: activeFontPresetId === preset.id && preset.id !== 'original',
+    };
+  });
+
   const slotItems: RailItem[] = semanticSlots.map((slot) => ({
     id: slot.id,
     title: slot.label,
@@ -943,6 +1227,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
 
   const sectionItems: Record<WorkbenchSection, RailItem[]> = {
     presets: presetItems,
+    fonts: fontItems,
     slots: slotItems,
     gradients: gradientItems,
     rules: ruleItems,
@@ -1027,7 +1312,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       setSelectedItemId(null);
       return;
     }
-    if (activeSection === 'presets') {
+    if (activeSection === 'presets' || activeSection === 'fonts') {
       if (selectedItemId && !visibleItems.some((item) => item.id === selectedItemId)) {
         setSelectedItemId(null);
       }
@@ -1365,6 +1650,30 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       );
     }
 
+    if (activeSection === 'fonts') {
+      const preset = FONT_PRESETS[itemId as FontPresetId];
+      return (
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-lg font-black text-foreground" style={preset.stack ? { fontFamily: preset.stack } : undefined}>
+              {preset.sample}
+            </div>
+            <div className="text-[11px] text-muted-foreground">
+              {preset.id === 'original' ? 'Use page fonts' : preset.source === 'google' ? 'Click to load' : 'Click to apply'}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="rounded-full border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              {preset.source === 'google' ? 'Google' : 'Built-in'}
+            </span>
+            {themeSession.fontPresetId === preset.id && (
+              <span className="text-[11px] font-bold uppercase tracking-wider text-primary">Active</span>
+            )}
+          </div>
+        </div>
+      );
+    }
+
     const locateMeta = getLocateMeta(activeSection, itemId);
     if (!locateMeta) return null;
 
@@ -1430,6 +1739,18 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
           <span className="text-xs font-bold text-muted-foreground">→</span>
           <span className="h-8 w-12 rounded-lg border border-border" style={getGradientPreviewStyle(replacementValue)} />
         </div>
+      );
+    }
+
+    if (activeSection === 'fonts') {
+      const preset = FONT_PRESETS[itemId as FontPresetId];
+      return (
+        <span
+          className="inline-flex h-8 min-w-8 items-center justify-center rounded-lg border border-border bg-background px-2 text-sm font-black text-foreground"
+          style={preset.stack ? { fontFamily: preset.stack } : undefined}
+        >
+          {preset.sample}
+        </span>
       );
     }
 
@@ -1747,6 +2068,20 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
         >
           <div className="rounded-2xl border border-dashed border-border bg-background/60 p-8 text-center text-muted-foreground">
             Presets no longer expand. Click any preset card to apply it directly.
+          </div>
+        </EditorShell>
+      );
+    }
+
+    if (activeSection === 'fonts') {
+      return (
+        <EditorShell
+          eyebrow="Fonts"
+          title="Typography Presets"
+          summary="Choose a built-in stack or a curated Google Font from the left. It applies across the page and participates in undo, redo, reset, and export."
+        >
+          <div className="rounded-2xl border border-dashed border-border bg-background/60 p-8 text-center text-muted-foreground">
+            Search the list and click any font to apply it. Original restores the site typography.
           </div>
         </EditorShell>
       );
@@ -2374,11 +2709,14 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                   }}
                   preview={renderRailPreview(item.id)}
                   footer={renderRowFooter(item.id)}
-                  expandedContent={activeSection === 'presets' ? null : item.id === selectedItemId ? renderInlineEditor(item.id) : null}
+                  expandedContent={activeSection === 'presets' || activeSection === 'fonts' ? null : item.id === selectedItemId ? renderInlineEditor(item.id) : null}
                   onClick={() => {
                     setSelectedItemId(item.id);
                     if (activeSection === 'presets') {
                       void handlePreset(item.id as PresetId);
+                    }
+                    if (activeSection === 'fonts') {
+                      void handleFontPreset(item.id as FontPresetId);
                     }
                   }}
                 />

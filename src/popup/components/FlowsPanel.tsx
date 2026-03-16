@@ -15,6 +15,15 @@ import {
 import { FlowStep } from '../../store';
 import { clsx } from 'clsx';
 
+const getSafePathLabel = (url: string) => {
+  try {
+    const pathname = new URL(url).pathname;
+    return pathname === '/' ? 'Home' : pathname || 'Page';
+  } catch {
+    return 'Page';
+  }
+};
+
 export default function FlowsPanel() {
   const [isRecording, setIsRecording] = useState(false);
   const [steps, setSteps] = useState<FlowStep[]>([]);
@@ -77,11 +86,8 @@ export default function FlowsPanel() {
     steps.forEach((step, index) => {
         const safeDesc = step.description.replace(/'/g, "'").replace(/\n/g, ' ');
         // Shorten URL for display
-        let urlDisplay = '';
-        try {
-            urlDisplay = new URL(step.url).pathname;
-            if (urlDisplay.length > 20) urlDisplay = '...' + urlDisplay.slice(-20);
-        } catch (e) { urlDisplay = 'Page'; }
+        let urlDisplay = getSafePathLabel(step.url);
+        if (urlDisplay.length > 20) urlDisplay = '...' + urlDisplay.slice(-20);
 
         code += `Node${index}["<b>${safeDesc}</b><br/><i>${urlDisplay}</i>"]\n`;
         
@@ -242,7 +248,7 @@ export default function FlowsPanel() {
                                 <div className="flex-1 min-w-0">
                                     <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Page {i + 1}</div>
                                     <div className="font-bold text-sm truncate" title={block.url}>
-                                        {new URL(block.url).pathname === '/' ? 'Home' : new URL(block.url).pathname}
+                                        {getSafePathLabel(block.url)}
                                     </div>
                                 </div>
                             </div>

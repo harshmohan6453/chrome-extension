@@ -105,6 +105,8 @@ const FONT_PRESET_IDS = [
   'source-serif-4',
   'jetbrains-mono',
 ] as const;
+const SHOW_LOCATE_ACTIONS = false;
+const SHOW_HOVER_LOCATE_PREVIEW = false;
 
 const FONT_PRESETS = {
   original: {
@@ -1589,7 +1591,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                 type="color"
                 value={draftColor}
                 onChange={(event) => setElementUpdateDraftColor(event.target.value.toUpperCase())}
-                className="h-10 w-10 rounded-lg border border-border bg-transparent"
+                className="h-10 w-10 cursor-pointer rounded-lg border border-border bg-transparent"
               />
               <div className="min-w-0">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Element color</div>
@@ -1674,28 +1676,32 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       );
     }
 
+    if (!SHOW_HOVER_LOCATE_PREVIEW && !SHOW_LOCATE_ACTIONS) return null;
+
     const locateMeta = getLocateMeta(activeSection, itemId);
     if (!locateMeta) return null;
 
     return (
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{renderLocateStatus(itemId)}</span>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => void locateItem(itemId)}
-            disabled={!locateMeta.canLocate}
-            className="rounded-lg border border-border px-2 py-1 text-[11px] font-bold text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
-          >
-            Show All
-          </button>
-          <button
-            onClick={() => void startElementUpdate(itemId)}
-            disabled={!locateMeta.canCreateExactRule}
-            className="rounded-lg border border-border px-2 py-1 text-[11px] font-bold text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
-          >
-            Pick Element
-          </button>
-        </div>
+        {SHOW_LOCATE_ACTIONS && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => void locateItem(itemId)}
+              disabled={!locateMeta.canLocate}
+              className="rounded-lg border border-border px-2 py-1 text-[11px] font-bold text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
+            >
+              Show All
+            </button>
+            <button
+              onClick={() => void startElementUpdate(itemId)}
+              disabled={!locateMeta.canCreateExactRule}
+              className="rounded-lg border border-border px-2 py-1 text-[11px] font-bold text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
+            >
+              Pick Element
+            </button>
+          </div>
+        )}
       </div>
     );
   };
@@ -1776,7 +1782,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                     )
                   )
                 }
-                className="h-10 w-10 rounded-lg border border-border bg-transparent"
+                className="h-10 w-10 cursor-pointer rounded-lg border border-border bg-transparent"
               />
               <div className="min-w-0">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -1916,7 +1922,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                   )
                 )
               }
-              className="h-12 w-16 rounded-xl border border-border bg-transparent"
+              className="h-12 w-16 cursor-pointer rounded-xl border border-border bg-transparent"
             />
             <div className="text-xs text-muted-foreground">
               {rule.count} matches{rule.variableNames.length > 0 ? ` • ${rule.variableNames.length} vars` : ''}
@@ -2018,7 +2024,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                         type="color"
                         value={stop.hex}
                         onChange={(event) => handleGradientColorStopChange(rule.id, stopIndex, event.target.value)}
-                        className="h-9 w-9 rounded border border-border bg-transparent"
+                        className="h-9 w-9 cursor-pointer rounded border border-border bg-transparent"
                       />
                     ) : null}
                   </div>
@@ -2150,7 +2156,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                       )
                     )
                   }
-                  className="mt-4 h-14 w-full rounded-xl border border-border bg-transparent"
+                  className="mt-4 h-14 w-full cursor-pointer rounded-xl border border-border bg-transparent"
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -2357,7 +2363,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                           type="color"
                           value={stop.hex}
                           onChange={(event) => handleGradientColorStopChange(selectedGradient.id, stopIndex, event.target.value)}
-                          className="h-10 w-10 rounded border border-border bg-transparent"
+                          className="h-10 w-10 cursor-pointer rounded border border-border bg-transparent"
                         />
                       ) : (
                         <span className="rounded-full border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -2529,7 +2535,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                         )
                       )
                     }
-                    className="h-14 w-16 rounded-xl border border-border bg-transparent"
+                    className="h-14 w-16 cursor-pointer rounded-xl border border-border bg-transparent"
                   />
                   <div>
                     <div className="font-mono text-lg font-bold">{selectedRule.replacementColor}</div>
@@ -2701,12 +2707,16 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                   key={item.id}
                   item={item}
                   active={item.id === selectedItemId}
-                  onMouseEnter={() => previewLocateItem(item.id)}
-                  onMouseLeave={() => {
-                    if (activeHoverItemRef.current === item.id) {
-                      void clearHoverPreview();
-                    }
-                  }}
+                  onMouseEnter={SHOW_HOVER_LOCATE_PREVIEW ? () => previewLocateItem(item.id) : undefined}
+                  onMouseLeave={
+                    SHOW_HOVER_LOCATE_PREVIEW
+                      ? () => {
+                          if (activeHoverItemRef.current === item.id) {
+                            void clearHoverPreview();
+                          }
+                        }
+                      : undefined
+                  }
                   preview={renderRailPreview(item.id)}
                   footer={renderRowFooter(item.id)}
                   expandedContent={activeSection === 'presets' || activeSection === 'fonts' ? null : item.id === selectedItemId ? renderInlineEditor(item.id) : null}

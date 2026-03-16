@@ -152,3 +152,19 @@
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: hsl(var(--foreground) / 0.15); border-radius: 4px; transition: background 0.2s; }
 ::-webkit-scrollbar-thumb:hover { background: hsl(var(--primary) / 0.6); }
+
+.color-input-solid {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 0;
+  overflow: hidden;
+}
+
+.color-input-solid::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.color-input-solid::-webkit-color-swatch {
+  border: 0;
+  border-radius: inherit;
+}

@@ -380,6 +380,13 @@ const getGradientPreviewStyle = (gradient: string) => ({
   backgroundPosition: 'center, center',
 });
 
+const getRulePropertyLabel = (property: ThemeReplacementRule['property']) => {
+  if (property === 'color') return 'Text Color';
+  if (property === 'background-color') return 'Background Color';
+  if (property === 'border-color') return 'Border Color';
+  return 'Universal Color';
+};
+
 const gradientHasAlpha = (rule: ThemeGradientRule) =>
   extractGradientColorStops(rule.replacementValue).some((stop) => stop.alpha > 0 && stop.alpha < 1);
 
@@ -1591,7 +1598,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                 type="color"
                 value={draftColor}
                 onChange={(event) => setElementUpdateDraftColor(event.target.value.toUpperCase())}
-                className="h-10 w-10 cursor-pointer rounded-lg border border-border bg-transparent"
+                className="color-input-solid h-10 w-10 cursor-pointer rounded-lg border border-border bg-transparent"
               />
               <div className="min-w-0">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Element color</div>
@@ -1712,10 +1719,10 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       if (!slot) return null;
       const slotChanged = normalizeHex(slot.currentColor) !== normalizeHex(slot.originalColor);
       if (!slotChanged) {
-        return <span className="h-8 w-8 rounded-lg border border-border" style={{ backgroundColor: slot.currentColor }} />;
+        return <span className="h-8 w-8 cursor-default rounded-lg border border-border" style={{ backgroundColor: slot.currentColor }} />;
       }
       return (
-        <div className="flex items-center gap-2">
+        <div className="flex cursor-default items-center gap-2">
           <span className="h-8 w-8 rounded-lg border border-border" style={{ backgroundColor: slot.originalColor }} />
           <span className="text-xs font-bold text-muted-foreground">→</span>
           <span className="h-8 w-8 rounded-lg border border-border" style={{ backgroundColor: slot.currentColor }} />
@@ -1727,7 +1734,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       const rule = themeSession.exactReplacements.find((entry) => entry.id === itemId);
       if (!rule) return null;
       return (
-        <div className="flex items-center gap-2">
+        <div className="flex cursor-default items-center gap-2">
           <span className="h-8 w-8 rounded-lg border border-border" style={{ backgroundColor: rule.originalColor }} />
           <span className="text-xs font-bold text-muted-foreground">→</span>
           <span className="h-8 w-8 rounded-lg border border-border" style={{ backgroundColor: rule.replacementColor }} />
@@ -1740,7 +1747,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       if (!rule) return null;
       const replacementValue = gradientDrafts[rule.id] ?? rule.replacementValue;
       return (
-        <div className="flex items-center gap-2">
+        <div className="flex cursor-default items-center gap-2">
           <span className="h-8 w-12 rounded-lg border border-border" style={getGradientPreviewStyle(rule.originalValue)} />
           <span className="text-xs font-bold text-muted-foreground">→</span>
           <span className="h-8 w-12 rounded-lg border border-border" style={getGradientPreviewStyle(replacementValue)} />
@@ -1782,7 +1789,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                     )
                   )
                 }
-                className="h-10 w-10 cursor-pointer rounded-lg border border-border bg-transparent"
+                className="color-input-solid h-10 w-10 cursor-pointer rounded-lg border border-border bg-transparent"
               />
               <div className="min-w-0">
                 <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -1862,72 +1869,92 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
     if (activeSection === 'rules') {
       const rule = themeSession.exactReplacements.find((entry) => entry.id === itemId);
       if (!rule) return null;
+      const ruleChanged = normalizeHex(rule.replacementColor) !== normalizeHex(rule.originalColor);
+      const rulePropertyLabel = getRulePropertyLabel(rule.property);
       return (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between gap-3">
-            <label className="inline-flex items-center gap-2 text-xs font-bold text-foreground">
+        <div className="space-y-3">
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-background/70 px-3 py-2.5">
+            <div className="flex min-w-0 items-center gap-3">
               <input
-                type="checkbox"
-                checked={rule.enabled}
+                type="color"
+                value={rule.replacementColor}
                 onChange={(event) =>
                   applyExactRules(
                     themeSession.exactReplacements.map((entry) =>
                       entry.id === rule.id
-                        ? {
-                            ...entry,
-                            enabled: event.target.checked,
-                            replacementColor: event.target.checked ? entry.replacementColor : entry.originalColor,
-                          }
+                        ? { ...entry, enabled: true, replacementColor: event.target.value.toUpperCase() }
                         : entry
                     )
                   )
                 }
+                className="color-input-solid h-10 w-10 cursor-pointer rounded-lg border border-border bg-transparent"
               />
-              Enabled
-            </label>
-            <button
-              onClick={() =>
-                applyExactRules(
-                  themeSession.exactReplacements.map((entry) =>
-                    entry.id === rule.id ? { ...entry, replacementColor: entry.originalColor, enabled: false } : entry
+              <div className="min-w-0">
+                <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+                  {ruleChanged ? 'Replacement color' : 'Detected color'}
+                </div>
+                <div className="font-mono text-sm text-foreground">{rule.replacementColor}</div>
+                <div className="text-[11px] text-muted-foreground">
+                  {ruleChanged ? `Originally ${rule.originalColor}` : 'No manual changes yet'}
+                </div>
+              </div>
+            </div>
+            {ruleChanged || rule.enabled ? (
+              <button
+                onClick={() =>
+                  applyExactRules(
+                    themeSession.exactReplacements.map((entry) =>
+                      entry.id === rule.id ? { ...entry, replacementColor: entry.originalColor, enabled: false } : entry
+                    )
                   )
-                )
-              }
-              className="rounded-xl border border-border px-3 py-2 text-xs font-bold text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors"
-            >
-              Revert
-            </button>
+                }
+                className="rounded-xl border border-border px-3 py-2 text-xs font-bold text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors"
+              >
+                Revert
+              </button>
+            ) : (
+              <span className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
+                Original
+              </span>
+            )}
           </div>
-          <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
-            <div>
-              <div className="h-16 rounded-2xl border border-border" style={{ backgroundColor: rule.originalColor }} />
-              <div className="mt-2 font-mono text-[11px] text-muted-foreground break-all">{rule.originalColor}</div>
-            </div>
-            <div className="text-xs font-bold text-muted-foreground">→</div>
-            <div>
-              <div className="h-16 rounded-2xl border border-border" style={{ backgroundColor: rule.replacementColor }} />
-              <div className="mt-2 font-mono text-[11px] text-foreground break-all">{rule.replacementColor}</div>
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
+              {rulePropertyLabel}
+            </span>
+            <span className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
+              {rule.count} matches
+            </span>
+            {rule.variableNames.length > 0 && (
+              <span className="rounded-full border border-border bg-background px-2.5 py-1 text-[11px] font-bold text-muted-foreground">
+                {rule.variableNames.length} vars
+              </span>
+            )}
+            {ruleChanged && (
+              <span className="rounded-full border border-primary/30 bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary">
+                Changed
+              </span>
+            )}
           </div>
-          <div className="flex items-center gap-3">
-            <input
-              type="color"
-              value={rule.replacementColor}
-              onChange={(event) =>
-                applyExactRules(
-                  themeSession.exactReplacements.map((entry) =>
-                    entry.id === rule.id
-                      ? { ...entry, enabled: true, replacementColor: event.target.value.toUpperCase() }
-                      : entry
-                  )
-                )
-              }
-              className="h-12 w-16 cursor-pointer rounded-xl border border-border bg-transparent"
-            />
-            <div className="text-xs text-muted-foreground">
-              {rule.count} matches{rule.variableNames.length > 0 ? ` • ${rule.variableNames.length} vars` : ''}
+
+          {ruleChanged && (
+            <div className="rounded-xl border border-border bg-background/70 px-3 py-2.5">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Change Preview</div>
+              <div className="mt-2 flex items-center gap-3">
+                <span className="h-8 w-8 rounded-lg border border-border" style={{ backgroundColor: rule.originalColor }} />
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Before</div>
+                  <div className="font-mono text-xs text-muted-foreground break-all">{rule.originalColor}</div>
+                </div>
+                <span className="text-xs font-bold text-muted-foreground">{'->'}</span>
+                <span className="h-8 w-8 rounded-lg border border-border" style={{ backgroundColor: rule.replacementColor }} />
+                <div className="min-w-0">
+                  <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">After</div>
+                  <div className="font-mono text-xs text-foreground break-all">{rule.replacementColor}</div>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
           {renderElementUpdatePanel(rule.id, rule.replacementColor)}
         </div>
       );
@@ -2024,7 +2051,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                         type="color"
                         value={stop.hex}
                         onChange={(event) => handleGradientColorStopChange(rule.id, stopIndex, event.target.value)}
-                        className="h-9 w-9 cursor-pointer rounded border border-border bg-transparent"
+                        className="color-input-solid h-9 w-9 cursor-pointer rounded border border-border bg-transparent"
                       />
                     ) : null}
                   </div>
@@ -2156,7 +2183,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                       )
                     )
                   }
-                  className="mt-4 h-14 w-full cursor-pointer rounded-xl border border-border bg-transparent"
+                  className="color-input-solid mt-4 h-14 w-full cursor-pointer rounded-xl border border-border bg-transparent"
                 />
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
@@ -2363,7 +2390,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                           type="color"
                           value={stop.hex}
                           onChange={(event) => handleGradientColorStopChange(selectedGradient.id, stopIndex, event.target.value)}
-                          className="h-10 w-10 cursor-pointer rounded border border-border bg-transparent"
+                          className="color-input-solid h-10 w-10 cursor-pointer rounded border border-border bg-transparent"
                         />
                       ) : (
                         <span className="rounded-full border border-border px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -2425,38 +2452,20 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
     }
 
     if (selectedRule && activeSection === 'rules') {
-      const summaryPanelKey = `rule-summary:${selectedRule.id}`;
-      const advancedDetailsPanelKey = `rule:${selectedRule.id}`;
-      const showAdvancedDetails = isPanelExpanded(advancedDetailsPanelKey, false);
+      const liveColorPanelKey = `rule-live:${selectedRule.id}`;
+      const ruleContextPanelKey = `rule-context:${selectedRule.id}`;
+      const ruleChanged = normalizeHex(selectedRule.replacementColor) !== normalizeHex(selectedRule.originalColor);
+      const rulePropertyLabel = getRulePropertyLabel(selectedRule.property);
       return (
         <EditorShell
           eyebrow="Exact Rule"
-          title={selectedRule.originalColor}
+          title={`${rulePropertyLabel} Rule`}
           summary="Exact rules are best for high-precision cleanup after semantic slots and gradients are in the right place."
-          actions={
-            <label className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-2 text-sm font-bold text-foreground">
-              <input
-                type="checkbox"
-                checked={selectedRule.enabled}
-                onChange={(event) =>
-                  applyExactRules(
-                    themeSession.exactReplacements.map((rule) =>
-                      rule.id === selectedRule.id
-                        ? {
-                            ...rule,
-                            enabled: event.target.checked,
-                            replacementColor: event.target.checked ? rule.replacementColor : rule.originalColor,
-                          }
-                        : rule
-                    )
-                  )
-                }
-              />
-              Enabled
-            </label>
-          }
           badges={
             <>
+              <span className="rounded-full border border-border bg-background px-3 py-1 text-xs font-bold text-muted-foreground">
+                {rulePropertyLabel}
+              </span>
               <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
                 {selectedRule.count} matches
               </span>
@@ -2465,7 +2474,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                   {selectedRule.variableNames.length} linked vars
                 </span>
               )}
-              {selectedRule.replacementColor !== selectedRule.originalColor && (
+              {ruleChanged && (
                 <span className="rounded-full border border-border bg-background px-3 py-1 text-xs font-bold text-muted-foreground">
                   Changed
                 </span>
@@ -2475,7 +2484,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
           footer={
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p className="text-sm text-muted-foreground">
-                Replacement: <span className="font-mono text-foreground">{selectedRule.replacementColor}</span>
+                Current: <span className="font-mono text-foreground">{selectedRule.replacementColor}</span>
               </p>
               <button
                 onClick={() =>
@@ -2495,51 +2504,58 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
           }
         >
           <AccordionSection
-            title="Replacement Color"
+            title="Live Color"
             eyebrow="Primary control"
             summary="Change the exact replacement color here. Preview applies instantly when enabled."
-            expanded={isPanelExpanded(summaryPanelKey, true)}
-            onToggle={() => toggleExpandedPanel(summaryPanelKey, true)}
+            expanded={isPanelExpanded(liveColorPanelKey, true)}
+            onToggle={() => toggleExpandedPanel(liveColorPanelKey, true)}
           >
-            <div className="grid gap-4 md:grid-cols-[240px_minmax(0,1fr)]">
+            <div className="grid gap-4 md:grid-cols-[180px_minmax(0,1fr)]">
               <div className="rounded-2xl border border-border bg-background/70 p-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Original</div>
-                    <div className="mt-2 h-24 rounded-2xl border border-border" style={{ backgroundColor: selectedRule.originalColor }} />
-                    <div className="mt-2 font-mono text-xs text-muted-foreground break-all">{selectedRule.originalColor}</div>
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Replacement</div>
-                    <div className="mt-2 h-24 rounded-2xl border border-border" style={{ backgroundColor: selectedRule.replacementColor }} />
-                    <div className="mt-2 font-mono text-xs text-muted-foreground break-all">{selectedRule.replacementColor}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-border bg-background/70 p-4">
-                <div className="mt-4 flex items-center gap-3">
-                  <input
-                    type="color"
-                    value={selectedRule.replacementColor}
-                    onChange={(event) =>
-                      applyExactRules(
-                        themeSession.exactReplacements.map((rule) =>
-                          rule.id === selectedRule.id
-                            ? {
-                                ...rule,
-                                enabled: true,
-                                replacementColor: event.target.value.toUpperCase(),
-                              }
-                            : rule
-                        )
+                <div className="h-40 rounded-2xl border border-border" style={{ backgroundColor: selectedRule.replacementColor }} />
+                <input
+                  type="color"
+                  value={selectedRule.replacementColor}
+                  onChange={(event) =>
+                    applyExactRules(
+                      themeSession.exactReplacements.map((rule) =>
+                        rule.id === selectedRule.id
+                          ? {
+                              ...rule,
+                              enabled: true,
+                              replacementColor: event.target.value.toUpperCase(),
+                            }
+                          : rule
                       )
-                    }
-                    className="h-14 w-16 cursor-pointer rounded-xl border border-border bg-transparent"
-                  />
-                  <div>
-                    <div className="font-mono text-lg font-bold">{selectedRule.replacementColor}</div>
-                    <div className="text-sm text-muted-foreground">Preview applies instantly when enabled.</div>
+                    )
+                  }
+                  className="color-input-solid mt-4 h-14 w-full cursor-pointer rounded-xl border border-border bg-transparent"
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl border border-border bg-background/70 p-4">
+                  <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Current</div>
+                  <div className="mt-2 font-mono text-lg font-bold">{selectedRule.replacementColor}</div>
+                  <div className="mt-5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Original</div>
+                  <div className="mt-2 font-mono text-sm text-muted-foreground">{selectedRule.originalColor}</div>
+                </div>
+                <div className="rounded-2xl border border-border bg-background/70 p-4">
+                  <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Matches</div>
+                  <div className="mt-2 text-3xl font-black">{selectedRule.count}</div>
+                  <div className="mt-5 text-xs font-bold uppercase tracking-wider text-muted-foreground">Linked variables</div>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {selectedRule.variableNames.length > 0 ? (
+                      selectedRule.variableNames.map((variableName) => (
+                        <span
+                          key={`${selectedRule.id}-${variableName}`}
+                          className="rounded-lg border border-border bg-secondary/50 px-2 py-1 font-mono text-[11px] text-foreground"
+                        >
+                          {variableName}
+                        </span>
+                      ))
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No linked variables detected.</span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2547,28 +2563,27 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
           </AccordionSection>
 
           <AccordionSection
-            title="Advanced Details"
+            title="Rule Context"
             eyebrow="Reference"
-            summary="Open this only when you need the linked variables or selector samples."
-            expanded={showAdvancedDetails}
-            onToggle={() => toggleExpandedPanel(advancedDetailsPanelKey)}
+            summary="Use this for rule details and selector samples before making more targeted cleanup edits."
+            expanded={isPanelExpanded(ruleContextPanelKey, false)}
+            onToggle={() => toggleExpandedPanel(ruleContextPanelKey)}
           >
-            <div className="grid gap-4 lg:grid-cols-2">
-              <div>
-                <div className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">Variables</div>
-                <div className="flex flex-wrap gap-2">
-                  {selectedRule.variableNames.length > 0 ? (
-                    selectedRule.variableNames.map((variableName) => (
-                      <span
-                        key={`${selectedRule.id}-${variableName}`}
-                        className="rounded-lg border border-border bg-card px-2 py-1 font-mono text-[11px] text-foreground"
-                      >
-                        {variableName}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-sm text-muted-foreground">No linked variables detected.</span>
-                  )}
+            <div className="space-y-4">
+              <div className="grid gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl border border-border bg-background/70 p-4">
+                  <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Matching property</div>
+                  <div className="mt-2 text-sm font-bold text-foreground">{rulePropertyLabel}</div>
+                </div>
+                <div className="rounded-2xl border border-border bg-background/70 p-4">
+                  <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Rule status</div>
+                  <div className="mt-2 text-sm font-bold text-foreground">
+                    {selectedRule.enabled ? 'Enabled for preview' : 'Disabled'}
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-border bg-background/70 p-4">
+                  <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Change status</div>
+                  <div className="mt-2 text-sm font-bold text-foreground">{ruleChanged ? 'Replacement updated' : 'Using original color'}</div>
                 </div>
               </div>
               <div>

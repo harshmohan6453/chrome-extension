@@ -32,6 +32,7 @@ import {
   getContrastBadge,
   normalizeHex,
 } from '../../utils/themeStudio';
+import { FONT_PRESET_IDS, getFontPresetById } from '../themeStudioFonts';
 
 interface ThemeStudioPanelProps {
   isSidePanel: boolean;
@@ -41,8 +42,7 @@ interface ThemeStudioPanelProps {
 type WorkbenchSection = 'presets' | 'fonts' | 'slots' | 'gradients' | 'rules';
 type StudioFilter = 'all' | 'changed' | 'enabled' | 'uncertain' | 'variables';
 type PresetId = (typeof PRESET_IDS)[number];
-type FontPresetId = (typeof FONT_PRESET_IDS)[number];
-type FontPresetSource = 'system' | 'google';
+type FontPresetId = string;
 
 interface GradientColorStop {
   raw: string;
@@ -88,163 +88,8 @@ interface ElementUpdateSession {
 }
 
 const PRESET_IDS = ['original', 'dark', 'warm', 'ocean', 'forest', 'high-contrast'] as const;
-const FONT_PRESET_IDS = [
-  'original',
-  'system-sans',
-  'editorial-serif',
-  'humanist',
-  'rounded',
-  'mono',
-  'inter',
-  'manrope',
-  'space-grotesk',
-  'dm-sans',
-  'plus-jakarta-sans',
-  'playfair-display',
-  'merriweather',
-  'source-serif-4',
-  'jetbrains-mono',
-] as const;
 const SHOW_LOCATE_ACTIONS = false;
 const SHOW_HOVER_LOCATE_PREVIEW = false;
-
-const FONT_PRESETS = {
-  original: {
-    id: 'original',
-    label: 'Original',
-    source: 'system' as FontPresetSource,
-    stack: '',
-    stylesheetUrl: '',
-    sample: 'Aa',
-    subtitle: 'Keep the detected page typography.',
-  },
-  'system-sans': {
-    id: 'system-sans',
-    label: 'System Sans',
-    source: 'system' as FontPresetSource,
-    stack: `system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`,
-    stylesheetUrl: '',
-    sample: 'Aa',
-    subtitle: 'Clean modern UI stack.',
-  },
-  'editorial-serif': {
-    id: 'editorial-serif',
-    label: 'Editorial Serif',
-    source: 'system' as FontPresetSource,
-    stack: `Georgia, "Times New Roman", serif`,
-    stylesheetUrl: '',
-    sample: 'Ag',
-    subtitle: 'Readable serif for content-heavy pages.',
-  },
-  humanist: {
-    id: 'humanist',
-    label: 'Humanist',
-    source: 'system' as FontPresetSource,
-    stack: `"Trebuchet MS", "Segoe UI", sans-serif`,
-    stylesheetUrl: '',
-    sample: 'Aa',
-    subtitle: 'Softer sans with more character.',
-  },
-  rounded: {
-    id: 'rounded',
-    label: 'Rounded',
-    source: 'system' as FontPresetSource,
-    stack: `"Arial Rounded MT Bold", "Trebuchet MS", "Segoe UI", sans-serif`,
-    stylesheetUrl: '',
-    sample: 'Aa',
-    subtitle: 'Friendlier rounded fallback stack.',
-  },
-  mono: {
-    id: 'mono',
-    label: 'Mono',
-    source: 'system' as FontPresetSource,
-    stack: `ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace`,
-    stylesheetUrl: '',
-    sample: '0x',
-    subtitle: 'Technical mono treatment.',
-  },
-  inter: {
-    id: 'inter',
-    label: 'Inter',
-    source: 'google' as FontPresetSource,
-    stack: `"Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`,
-    stylesheetUrl: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap',
-    sample: 'Aa',
-    subtitle: 'Neutral UI sans from Google Fonts.',
-  },
-  manrope: {
-    id: 'manrope',
-    label: 'Manrope',
-    source: 'google' as FontPresetSource,
-    stack: `"Manrope", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`,
-    stylesheetUrl: 'https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap',
-    sample: 'Aa',
-    subtitle: 'Modern sans with a little more personality.',
-  },
-  'space-grotesk': {
-    id: 'space-grotesk',
-    label: 'Space Grotesk',
-    source: 'google' as FontPresetSource,
-    stack: `"Space Grotesk", "Segoe UI", sans-serif`,
-    stylesheetUrl: 'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&display=swap',
-    sample: 'Aa',
-    subtitle: 'Sharper display-oriented grotesk.',
-  },
-  'dm-sans': {
-    id: 'dm-sans',
-    label: 'DM Sans',
-    source: 'google' as FontPresetSource,
-    stack: `"DM Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`,
-    stylesheetUrl: 'https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&display=swap',
-    sample: 'Aa',
-    subtitle: 'Friendly geometric sans for product pages.',
-  },
-  'plus-jakarta-sans': {
-    id: 'plus-jakarta-sans',
-    label: 'Plus Jakarta Sans',
-    source: 'google' as FontPresetSource,
-    stack: `"Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`,
-    stylesheetUrl: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap',
-    sample: 'Aa',
-    subtitle: 'Balanced sans that reads well in UI and content.',
-  },
-  'playfair-display': {
-    id: 'playfair-display',
-    label: 'Playfair Display',
-    source: 'google' as FontPresetSource,
-    stack: `"Playfair Display", Georgia, serif`,
-    stylesheetUrl: 'https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&display=swap',
-    sample: 'Ag',
-    subtitle: 'Elegant serif for editorial or luxury pages.',
-  },
-  merriweather: {
-    id: 'merriweather',
-    label: 'Merriweather',
-    source: 'google' as FontPresetSource,
-    stack: `"Merriweather", Georgia, serif`,
-    stylesheetUrl: 'https://fonts.googleapis.com/css2?family=Merriweather:wght@400;700&display=swap',
-    sample: 'Ag',
-    subtitle: 'Readable serif built for long-form copy.',
-  },
-  'source-serif-4': {
-    id: 'source-serif-4',
-    label: 'Source Serif 4',
-    source: 'google' as FontPresetSource,
-    stack: `"Source Serif 4", Georgia, serif`,
-    stylesheetUrl: 'https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&display=swap',
-    sample: 'Ag',
-    subtitle: 'Clean contemporary serif with broad language support.',
-  },
-  'jetbrains-mono': {
-    id: 'jetbrains-mono',
-    label: 'JetBrains Mono',
-    source: 'google' as FontPresetSource,
-    stack: `"JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace`,
-    stylesheetUrl: 'https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap',
-    sample: '0x',
-    subtitle: 'Developer-focused monospace with a cleaner rhythm.',
-  },
-} as const;
 
 const badgeToneClasses = {
   good: 'bg-green-500/10 text-green-700 border-green-500/30',
@@ -909,7 +754,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
 
   const handleFontPreset = async (fontPresetId: FontPresetId) => {
     if (!themeSession) return;
-    const preset = FONT_PRESETS[fontPresetId];
+    const preset = getFontPresetById(fontPresetId);
     const nextSlots = themeSession.semanticSlots.map((slot) => ({ ...slot }));
     const nextRules = themeSession.exactReplacements.map((rule) => ({ ...rule }));
     const nextGradientRules = themeSession.gradientReplacements.map((rule) => ({ ...rule }));
@@ -1171,7 +1016,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
 
   const activeFontPresetId = themeSession?.fontPresetId || 'original';
   const fontItems: RailItem[] = FONT_PRESET_IDS.map((fontPresetId) => {
-    const preset = FONT_PRESETS[fontPresetId];
+    const preset = getFontPresetById(fontPresetId);
     return {
       id: preset.id,
       title: preset.label,
@@ -1656,7 +1501,7 @@ const gradientItems: RailItem[] = gradientRules.map((rule) => ({
     }
 
     if (activeSection === 'fonts') {
-      const preset = FONT_PRESETS[itemId as FontPresetId];
+      const preset = getFontPresetById(itemId as FontPresetId);
       return (
         <div className="flex items-center justify-between gap-3">
           <div className="min-w-0">
@@ -1752,7 +1597,7 @@ const gradientItems: RailItem[] = gradientRules.map((rule) => ({
     }
 
     if (activeSection === 'fonts') {
-      const preset = FONT_PRESETS[itemId as FontPresetId];
+      const preset = getFontPresetById(itemId as FontPresetId);
       return (
         <span
           className="inline-flex h-8 min-w-8 items-center justify-center rounded-lg border border-border bg-background px-2 text-sm font-black text-foreground"

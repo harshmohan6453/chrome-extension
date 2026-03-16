@@ -300,7 +300,7 @@ const FILTERS_BY_SECTION: Record<WorkbenchSection, StudioFilter[]> = {
   presets: ['all'],
   fonts: ['all'],
   slots: ['all', 'changed', 'uncertain', 'variables'],
-  gradients: ['all', 'changed', 'enabled'],
+  gradients: ['all', 'changed'],
   rules: ['all', 'changed', 'enabled', 'variables'],
 };
 
@@ -1080,13 +1080,10 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
     setExpandedSources((current) => ({ ...current, [key]: !current[key] }));
   };
 
-  const handleGradientDraftChange = (ruleId: string, value: string) => {
+  const handleGradientDraftChange = async (ruleId: string, value: string) => {
     setGradientDrafts((current) => ({ ...current, [ruleId]: value }));
-  };
-
-  const handleGradientApply = async (ruleId: string) => {
     if (!themeSession) return;
-    const draft = (gradientDrafts[ruleId] || '').trim();
+    const draft = value.trim();
     if (!draft) return;
 
     await applyGradientRules(
@@ -1108,7 +1105,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       themeSession?.gradientReplacements.find((rule) => rule.id === ruleId)?.replacementValue ||
       '';
     const nextGradient = replaceGradientColorStop(currentGradient, stopIndex, nextHex.toUpperCase());
-    handleGradientDraftChange(ruleId, nextGradient);
+    void handleGradientDraftChange(ruleId, nextGradient);
   };
 
   const clearHoverPreview = async () => {
@@ -1204,16 +1201,15 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
     hasVariables: slot.candidateVariables.length > 0,
   }));
 
-  const gradientItems: RailItem[] = gradientRules.map((rule) => ({
-    id: rule.id,
-    title: rule.kind === 'text' ? 'Text Gradient' : 'Background Gradient',
-    subtitle: rule.sampleSelectors[0] || rule.originalValue,
-    badges: [
-      rule.kind,
-      rule.enabled ? 'Enabled' : 'Disabled',
-      rule.replacementValue !== rule.originalValue ? 'Changed' : 'Original',
-      gradientHasTransparentStop(rule) ? 'Transparent' : gradientHasAlpha(rule) ? 'Alpha' : '',
-    ].filter(Boolean),
+const gradientItems: RailItem[] = gradientRules.map((rule) => ({
+  id: rule.id,
+  title: rule.kind === 'text' ? 'Text Gradient' : 'Background Gradient',
+  subtitle: rule.sampleSelectors[0] || rule.originalValue,
+  badges: [
+    rule.kind,
+    rule.replacementValue !== rule.originalValue ? 'Changed' : 'Original',
+    gradientHasTransparentStop(rule) ? 'Transparent' : gradientHasAlpha(rule) ? 'Alpha' : '',
+  ].filter(Boolean),
     searchText: `${rule.kind} ${rule.originalValue} ${rule.replacementValue} ${rule.sampleSelectors.join(' ')}`,
     changed: rule.replacementValue !== rule.originalValue,
     enabled: rule.enabled,
@@ -1968,49 +1964,20 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
       return (
         <div className="space-y-4">
           <div className="flex items-center justify-between gap-3">
-            <label className="inline-flex items-center gap-2 text-xs font-bold text-foreground">
-              <input
-                type="checkbox"
-                checked={rule.enabled}
-                onChange={(event) =>
-                  applyGradientRules(
-                    themeSession.gradientReplacements.map((entry) =>
-                      entry.id === rule.id
-                        ? {
-                            ...entry,
-                            enabled: event.target.checked,
-                            replacementValue: event.target.checked
-                              ? (gradientDrafts[entry.id] || entry.replacementValue).trim() || entry.originalValue
-                              : entry.originalValue,
-                          }
-                        : entry
-                    )
+            <div className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Live preview</div>
+            <button
+              onClick={() => {
+                void handleGradientDraftChange(rule.id, rule.originalValue);
+                void applyGradientRules(
+                  themeSession.gradientReplacements.map((entry) =>
+                    entry.id === rule.id ? { ...entry, replacementValue: entry.originalValue, enabled: false } : entry
                   )
-                }
-              />
-              Enabled
-            </label>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handleGradientApply(rule.id)}
-                className="rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                Apply
-              </button>
-              <button
-                onClick={() => {
-                  handleGradientDraftChange(rule.id, rule.originalValue);
-                  applyGradientRules(
-                    themeSession.gradientReplacements.map((entry) =>
-                      entry.id === rule.id ? { ...entry, replacementValue: entry.originalValue, enabled: false } : entry
-                    )
-                  );
-                }}
-                className="rounded-xl border border-border px-3 py-2 text-xs font-bold text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors"
-              >
-                Revert
-              </button>
-            </div>
+                );
+              }}
+              className="rounded-xl border border-border px-3 py-2 text-xs font-bold text-muted-foreground hover:text-destructive hover:border-destructive/40 transition-colors"
+            >
+              Revert
+            </button>
           </div>
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
             <div>
@@ -2020,7 +1987,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
             <div className="text-xs font-bold text-muted-foreground">→</div>
             <div>
               <div className="h-16 rounded-2xl border border-border" style={getGradientPreviewStyle(replacementValue)} />
-              <div className="mt-2 text-[11px] text-foreground">{rule.enabled ? 'Preview enabled' : 'Draft only'}</div>
+              <div className="mt-2 text-[11px] text-foreground">Updates live as you edit</div>
             </div>
           </div>
           {replacementStops.length > 0 && (
@@ -2050,7 +2017,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                       <input
                         type="color"
                         value={stop.hex}
-                        onChange={(event) => handleGradientColorStopChange(rule.id, stopIndex, event.target.value)}
+                onChange={(event) => void handleGradientColorStopChange(rule.id, stopIndex, event.target.value)}
                         className="color-input-solid h-9 w-9 cursor-pointer rounded border border-border bg-transparent"
                       />
                     ) : null}
@@ -2258,38 +2225,6 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
           eyebrow="Gradient"
           title={selectedGradient.kind === 'text' ? 'Text Gradient' : 'Background Gradient'}
           summary="Use the stop controls for fast edits, then open advanced CSS only if you need to tweak the raw gradient string."
-          actions={
-            <div className="flex flex-wrap items-center gap-2">
-              <label className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-3 py-2 text-sm font-bold text-foreground">
-                <input
-                  type="checkbox"
-                  checked={selectedGradient.enabled}
-                  onChange={(event) =>
-                    applyGradientRules(
-                      themeSession.gradientReplacements.map((rule) =>
-                        rule.id === selectedGradient.id
-                          ? {
-                              ...rule,
-                              enabled: event.target.checked,
-                              replacementValue: event.target.checked
-                                ? (gradientDrafts[rule.id] || rule.replacementValue).trim() || rule.originalValue
-                                : rule.originalValue,
-                            }
-                          : rule
-                      )
-                    )
-                  }
-                />
-                Enabled
-              </label>
-              <button
-                onClick={() => handleGradientApply(selectedGradient.id)}
-                className="rounded-xl bg-primary px-4 py-3 font-bold text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                Apply Gradient
-              </button>
-            </div>
-          }
           badges={
             <>
               <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-bold text-primary">
@@ -2312,13 +2247,11 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
           }
           footer={
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-muted-foreground">
-                {selectedGradient.enabled ? 'Live preview is enabled for this gradient.' : 'Enable this gradient to preview it on the page.'}
-              </p>
+              <p className="text-sm text-muted-foreground">Gradient updates apply immediately as you edit stops or CSS.</p>
               <button
                 onClick={() => {
-                  handleGradientDraftChange(selectedGradient.id, selectedGradient.originalValue);
-                  applyGradientRules(
+                  void handleGradientDraftChange(selectedGradient.id, selectedGradient.originalValue);
+                  void applyGradientRules(
                     themeSession.gradientReplacements.map((rule) =>
                       rule.id === selectedGradient.id
                         ? { ...rule, replacementValue: rule.originalValue, enabled: false }
@@ -2336,7 +2269,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
           <AccordionSection
             title="Preview"
             eyebrow="Primary control"
-            summary="Compare the original gradient against the replacement before applying."
+            summary="Compare the original gradient against the replacement while you edit."
             expanded={isPanelExpanded(previewPanelKey, true)}
             onToggle={() => toggleExpandedPanel(previewPanelKey, true)}
           >
@@ -2389,7 +2322,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
                         <input
                           type="color"
                           value={stop.hex}
-                          onChange={(event) => handleGradientColorStopChange(selectedGradient.id, stopIndex, event.target.value)}
+                          onChange={(event) => void handleGradientColorStopChange(selectedGradient.id, stopIndex, event.target.value)}
                           className="color-input-solid h-10 w-10 cursor-pointer rounded border border-border bg-transparent"
                         />
                       ) : (
@@ -2413,7 +2346,7 @@ export const ThemeStudioPanel = ({ isSidePanel, openSidePanel }: ThemeStudioPane
           >
               <textarea
                 value={replacementValue}
-                onChange={(event) => handleGradientDraftChange(selectedGradient.id, event.target.value)}
+                onChange={(event) => void handleGradientDraftChange(selectedGradient.id, event.target.value)}
                 className="min-h-[150px] w-full rounded-2xl border border-border bg-background px-4 py-3 font-mono text-xs"
                 spellCheck={false}
               />

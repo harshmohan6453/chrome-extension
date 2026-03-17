@@ -75,7 +75,19 @@ const parseThemeStudioFonts = (input: unknown): ThemeStudioFontPreset[] => {
   return parsed;
 };
 
-const parsedThemeStudioFonts = parseThemeStudioFonts(rawThemeStudioFonts);
+const loadThemeStudioFonts = (): ThemeStudioFontPreset[] => {
+  try {
+    return parseThemeStudioFonts(rawThemeStudioFonts);
+  } catch (error) {
+    console.error(
+      'Failed to load Theme Studio font catalog. Falling back to the default preset.',
+      error
+    );
+    return [FALLBACK_FONT_PRESET];
+  }
+};
+
+const parsedThemeStudioFonts = loadThemeStudioFonts();
 
 export const FONT_PRESET_IDS = parsedThemeStudioFonts.map((preset) => preset.id);
 

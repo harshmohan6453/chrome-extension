@@ -115,6 +115,37 @@ interface VersionInfo {
   storeUrl: string;
 }
 
+const fetchVersionInfo = async (): Promise<VersionInfo | null> => {
+  if (!VERSION_API_URL) {
+    return null;
+  }
+
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), 3000);
+
+  try {
+    const response = await fetch(VERSION_API_URL, {
+      signal: controller.signal,
+      cache: 'no-store',
+    });
+
+    if (!response.ok) {
+      return null;
+    }
+
+    return (await response.json()) as VersionInfo;
+  } catch (error) {
+    if (error instanceof Error && (error.name === 'AbortError' || error instanceof TypeError)) {
+      return null;
+    }
+
+    console.error('Unexpected version check failure:', error);
+    return null;
+  } finally {
+    window.clearTimeout(timeoutId);
+  }
+};
+
 export default function App() {
   const isSidePanel = window.location.pathname.includes('sidepanel');
   const [activeTab, setActiveTab] = useState<Tab>(() => getInitialTab(isSidePanel));
@@ -286,12 +317,13 @@ export default function App() {
       const extVersion = manifest.version;
       setCurrentVersion(extVersion);
       
-      // Fetch version requirements from server
-      const response = await fetch(VERSION_API_URL);
-      if (!response.ok) throw new Error('Failed to fetch version info');
-      
-      const info: VersionInfo = await response.json();
+      const info = await fetchVersionInfo();
       setVersionInfo(info);
+
+      if (!info) {
+        setUpdateRequired(false);
+        return;
+      }
       
       // Check if update is required
       if (info.forceUpdate && !compareVersions(extVersion, info.minVersion)) {
@@ -299,9 +331,8 @@ export default function App() {
       } else {
         setUpdateRequired(false);
       }
-    } catch (e) {
+    } catch {
       // If version check fails, allow the app to work (fail open)
-      console.warn('Version check failed:', e);
       setUpdateRequired(false);
     } finally {
       setCheckingVersion(false);

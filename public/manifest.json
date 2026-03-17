@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "WebSnatch",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "homepage_url": "https://www.websnatch.dev/",
   "description": "Extract design systems and generate AI prompts from any website.",
   "permissions": [
